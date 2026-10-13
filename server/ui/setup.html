@@ -74,6 +74,9 @@
   .tip { border-left: 3px solid var(--accent); padding: 8px 14px; background: color-mix(in srgb, var(--accent) 6%, var(--surface)); border-radius: 0 10px 10px 0; font-size: 13.5px; margin: 10px 0; }
   .warnbox { border-left-color: var(--warn); background: color-mix(in srgb, var(--warn) 8%, var(--surface)); }
   pre { background: var(--surface2); border: 1px solid var(--line); border-radius: 12px; padding: 14px; overflow: auto; font: 12px/1.5 ui-monospace, Menlo, monospace; max-height: 340px; }
+  .card.support { display: flex; gap: 18px; align-items: center; text-decoration: none; color: var(--text); border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); background: linear-gradient(135deg, color-mix(in srgb, #ff3d7f 10%, var(--surface)), color-mix(in srgb, var(--accent) 12%, var(--surface))); transition: transform .15s; }
+  .card.support:hover { transform: translateY(-2px); }
+  .card.support .heart { width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; font-size: 28px; background: var(--surface); box-shadow: var(--shadow); flex: none; }
   .seg { display: inline-flex; background: var(--surface2); border: 1px solid var(--line); border-radius: 9px; padding: 2px; }
   .seg button { border: 0; background: none; color: var(--muted); font: inherit; font-weight: 700; font-size: 12px; padding: 4px 10px; border-radius: 7px; cursor: pointer; }
   .seg button.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
@@ -113,7 +116,7 @@ const ext = (url, label) => `<a href="${url}" target="_blank" rel="noopener">${l
 const T = {
   fr: {
     tagline: "Guide d'installation", dash: "Dashboard →", next: "Continuer →", prev: "← Retour", skip: "Passer cette étape →", optional: "option",
-    steps: ["Bienvenue", "Ton profil", "Tes apps", "YouTube", "TikTok", "Photos TikTok", "Dossier TikTok", "C'est prêt"],
+    steps: ["Bienvenue", "Ton profil", "Tes apps", "YouTube", "TikTok", "Photos TikTok", "Dossier TikTok", "C'est prêt", "Soutenir le dév"],
     s0: { h: "Bienvenue 👋", lead: "En quelques étapes, tu vas connecter ta chaîne YouTube et ton compte TikTok. Tout reste sur ton Mac : tes clés sont enregistrées dans le dossier <code>data/</code>, jamais envoyées ailleurs.",
       checks: "Vérification de ton Mac", node: "Node.js", ffmpeg: "ffmpeg (encodage vidéo)", python: "Python + numpy/scipy (musique)", ocr: "OCR macOS (lecture des slides TikTok)", claude: "Claude Code CLI (légendes automatiques)", say: "Voix macOS (Shorts narrés)",
       missing: "Relance <code>./install.sh</code> pour installer ce qui manque.", claudeNote: "Facultatif : sans Claude Code, l'import de dossiers TikTok fonctionne mais sans légendes écrites automatiquement. Installe-le sur claude.com/claude-code." },
@@ -169,6 +172,10 @@ const T = {
       prompt: (d) => `Crée 3 carrousels TikTok pour mon app <NOM DE L'APP> (6 slides 1080×1920 chacun, en français et en anglais) et dépose-les dans ${d}/<NOM>-<DATE>/ : un sous-dossier par carrousel dans fr/ et en/ (01.png, 02.png…), plus un fichier LEGENDES.md avec, pour chaque carrousel, le titre et la légende FR / EN (texte + hashtags).`,
       slots: (s) => `Créneaux : FR ${s.fr.join(" · ")} — EN ${s.en.join(" · ")}. Modifiables dans le dashboard → Réglages → TikTok.`,
       inbox: "TikTok accepte ~5 brouillons non publiés dans ta boîte : publie-les au fil de l'eau, sinon la plateforme réessaie toutes les 2 h." },
+    sS: { h: "Soutenir le développeur 💜", lead: "TikTube Planner est <b>gratuit et open source</b>. S'il te fait gagner du temps, la meilleure façon de me dire merci : <b>télécharge une de mes apps</b> et, si elle te plaît, <b>laisse-lui une note</b>. C'est tout ce que je demande 🙏",
+      apps: "Découvrir mes apps", appsSub: "iPhone, Android, Apple Watch, Garmin… — une note ⭐⭐⭐⭐⭐ m'aide énormément.",
+      follow: "Me suivre", followSub: "Pas obligatoire, mais ça fait toujours plaisir — je partage comment je construis mes apps avec l'IA.",
+      thanks: "Merci d'utiliser TikTube Planner. — Louis", go: "Ouvrir le dashboard" },
     s6: { h: "C'est prêt 🎉", lead: "Ta plateforme est configurée. Voici comment l'utiliser au quotidien.",
       list: [
         "<b>Vidéos</b> : rends tes vidéos, puis active l'<b>autopilote</b> (Réglages) — il rend et programme sur YouTube ce qui sort dans les prochains jours.",
@@ -180,7 +187,7 @@ const T = {
   },
   en: {
     tagline: "Setup guide", dash: "Dashboard →", next: "Continue →", prev: "← Back", skip: "Skip this step →", optional: "optional",
-    steps: ["Welcome", "Your profile", "Your apps", "YouTube", "TikTok", "TikTok photos", "TikTok folder", "All set"],
+    steps: ["Welcome", "Your profile", "Your apps", "YouTube", "TikTok", "TikTok photos", "TikTok folder", "All set", "Support the dev"],
     s0: { h: "Welcome 👋", lead: "In a few steps you'll connect your YouTube channel and TikTok account. Everything stays on your Mac: keys are saved in the <code>data/</code> folder and never sent anywhere else.",
       checks: "Checking your Mac", node: "Node.js", ffmpeg: "ffmpeg (video encoding)", python: "Python + numpy/scipy (music)", ocr: "macOS OCR (reads TikTok slides)", claude: "Claude Code CLI (automatic captions)", say: "macOS voices (narrated Shorts)",
       missing: "Run <code>./install.sh</code> again to install what's missing.", claudeNote: "Optional: without Claude Code, TikTok folder import still works but captions aren't written for you. Get it at claude.com/claude-code." },
@@ -236,6 +243,10 @@ const T = {
       prompt: (d) => `Create 3 TikTok carousels for my app <APP NAME> (6 slides of 1080×1920 each, in French and English) and save them in ${d}/<NAME>-<DATE>/: one subfolder per carousel under fr/ and en/ (01.png, 02.png…), plus a CAPTIONS.md file with, for each carousel, the title and the FR / EN caption (text + hashtags).`,
       slots: (s) => `Slots: FR ${s.fr.join(" · ")} — EN ${s.en.join(" · ")}. Change them in the dashboard → Settings → TikTok.`,
       inbox: "TikTok accepts ~5 unpublished drafts in your inbox: publish them as they come, otherwise the platform retries every 2 h." },
+    sS: { h: "Support the developer 💜", lead: "TikTube Planner is <b>free and open source</b>. If it saves you time, the best way to say thanks: <b>download one of my apps</b> and, if you like it, <b>leave it a rating</b>. That's all I ask 🙏",
+      apps: "Discover my apps", appsSub: "iPhone, Android, Apple Watch, Garmin… — a ⭐⭐⭐⭐⭐ rating helps me a lot.",
+      follow: "Follow me", followSub: "Not required, but always appreciated — I share how I build my apps with AI.",
+      thanks: "Thanks for using TikTube Planner. — Louis", go: "Open the dashboard" },
     s6: { h: "All set 🎉", lead: "Your platform is configured. Here's how to use it day to day.",
       list: [
         "<b>Videos</b>: render your videos, then turn on the <b>autopilot</b> (Settings) — it renders and schedules on YouTube whatever comes out in the next few days.",
@@ -258,9 +269,19 @@ const done = () => [
   !!ST.hosting?.host,
   ST.watch.exists && ST.watch.enabled,
   !!ST.profile.setupDone,
+  !!ST.profile.setupDone,
 ];
-const OPTIONAL = [false, false, false, false, true, true, true, false];
-const LAST = 7;
+const OPTIONAL = [false, false, false, false, true, true, true, false, true];
+const LAST = 8;
+// Liens de l'auteur (étape « Soutenir le développeur »)
+const AUTHOR = {
+  apps: "https://tapp.be/louis.valli",
+  social: [
+    ["X", "@fj_2304", "https://x.com/fj_2304", '<path d="M17.8 3h3.1l-6.8 7.7L22 21h-6.2l-4.9-6.4L5.3 21H2.2l7.2-8.3L1.8 3h6.4l4.4 5.8zm-1.1 16.2h1.7L7.4 4.7H5.6z" fill="currentColor"/>'],
+    ["TikTok", "@smartcom.digital", "https://www.tiktok.com/@smartcom.digital", '<path d="M16.6 3c.4 2.4 1.9 4 4.4 4.3v3.4c-1.6 0-3.1-.5-4.4-1.4v6.3a6.1 6.1 0 1 1-6.1-6.1h.6v3.5h-.6a2.6 2.6 0 1 0 2.6 2.6V3z" fill="currentColor"/>'],
+    ["LinkedIn", "Louis Valli", "https://www.linkedin.com/in/louis-valli/", '<path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9.5h4V21H3zM9.5 9.5h3.8v1.6h.1c.5-1 1.8-2 3.8-2 4 0 4.8 2.6 4.8 6V21h-4v-5.1c0-1.2 0-2.8-1.7-2.8s-2 1.3-2 2.7V21h-4z" fill="currentColor"/>'],
+  ],
+};
 
 function renderNav() {
   const d = done();
@@ -366,7 +387,20 @@ const VIEWS = [
   () => {
     const x = t().s6;
     return `<h1>${x.h}</h1><p class="lead">${x.lead}</p><div class="card">${how(x.list)}</div>
-      <div class="nav"><button class="btn" data-go="6">${t().prev}</button><button class="btn primary" id="finish">${x.go}</button></div>`;
+      ${navBtns(false)}`;
+  },
+  () => {
+    const x = t().sS;
+    return `<h1>${x.h}</h1><p class="lead">${x.lead}</p>
+      <a class="card support" href="${AUTHOR.apps}" target="_blank" rel="noopener">
+        <span class="heart">💜</span>
+        <span style="flex:1"><b style="font-size:17px">${x.apps} →</b><br><span class="note">${x.appsSub}</span><br><span class="note" style="font-family:ui-monospace,Menlo,monospace">${AUTHOR.apps.replace("https://", "")}</span></span>
+      </a>
+      <div class="card"><h3>${x.follow}</h3><p class="note" style="margin-top:0">${x.followSub}</p>
+        <div class="row">${AUTHOR.social.map(([n, h, u, svg]) => `<a class="btn" href="${u}" target="_blank" rel="noopener"><svg width="16" height="16" viewBox="0 0 24 24">${svg}</svg>${n} <span class="note">${esc(h)}</span></a>`).join("")}</div>
+      </div>
+      <p class="note" style="text-align:center;margin-top:22px">${x.thanks}</p>
+      <div class="nav"><button class="btn" data-go="7">${t().prev}</button><button class="btn primary" id="finish">${x.go}</button></div>`;
   },
 ];
 

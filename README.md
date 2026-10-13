@@ -80,6 +80,12 @@ data/       ⚠️ local only (git-ignored): OAuth tokens, TikTok config, state
 - Secrets live only in `data/` (`client_secret.json`, `youtube-token.json`, `tiktok-config.json`, `tiktok-token.json`) — all git-ignored.
 - Nothing is sent anywhere except Google/TikTok APIs and your own FTP host.
 
+## 💜 Support the developer
+
+TikTube Planner is free. If it saves you time, the only thing I ask: **[download one of my apps](https://tapp.be/louis.valli)** and leave a rating if you like it. 🙏
+
+Not required, but always appreciated: follow me on [X (@fj_2304)](https://x.com/fj_2304), [TikTok (@smartcom.digital)](https://www.tiktok.com/@smartcom.digital) and [LinkedIn](https://www.linkedin.com/in/louis-valli/).
+
 ## License
 
 MIT — built with [Claude Code](https://claude.com/claude-code).
@@ -109,6 +115,10 @@ Duplique `content/apps/mrrkit.json`, adapte les textes, couleurs, prix et liens,
 ### TikTok
 
 Dépose un dossier dans `~/Desktop/Tiktok` (sous-dossiers `fr/` / `en/` d'images + un fichier de légendes) : la plateforme associe chaque carrousel à sa légende, programme tout (FR 12:30 · 19:00, EN 15:00 · 21:00 par défaut) et range le dossier dans `Programmés`.
+
+### 💜 Soutenir le développeur
+
+TikTube Planner est gratuit. S'il te fait gagner du temps, tout ce que je demande : **[télécharge une de mes apps](https://tapp.be/louis.valli)** et laisse une note si elle te plaît 🙏 — et si tu veux, suis-moi sur [X](https://x.com/fj_2304), [TikTok](https://www.tiktok.com/@smartcom.digital) et [LinkedIn](https://www.linkedin.com/in/louis-valli/).
 
 ### Sécurité
 

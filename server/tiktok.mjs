@@ -275,7 +275,7 @@ export async function sendPost(post) {
       if (!file || !existsSync(file)) throw new Error("Vidéo introuvable (rends-la d'abord)");
       publishId = await sendVideo(file);
     }
-    Object.assign(post, { status: "sent", publishId, sentAt: new Date().toISOString(), error: null, retryAt: null, waiting: null });
+    Object.assign(post, { status: "sent", publishId, sentAt: new Date().toISOString(), error: null, retryAt: null, waiting: null, attempts: 0 });
     tiktokState.lastError = null;
     logEvent("upload", `TikTok : brouillon envoyé — « ${post.title} »`, post.id);
     void notifyMac(post);
@@ -285,6 +285,13 @@ export async function sendPost(post) {
       const retry = new Date(Date.now() + 2 * 3600000);
       Object.assign(post, { status: "scheduled", retryAt: retry.toISOString(), waiting: "TikTok bloque : trop de brouillons en attente dans ta boîte. Publie ou supprime-en quelques-uns." });
       logEvent("info", `TikTok : « ${post.title} » en attente (boîte TikTok pleine), nouvel essai à ${retry.toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit" })}`, post.id);
+      return;
+    }
+    // Coupure réseau / FTP passagère : nouvel essai dans 15 min (5 tentatives max) plutôt qu'une erreur.
+    if (/ETIMEDOUT|ECONNRESET|EPIPE|ENOTFOUND|EAI_AGAIN|socket|fetch failed|timeout/i.test(String(e.message)) && (post.attempts ?? 0) < 5) {
+      const retry = new Date(Date.now() + 15 * 60000);
+      Object.assign(post, { status: "scheduled", attempts: (post.attempts ?? 0) + 1, retryAt: retry.toISOString(), waiting: `Coupure réseau pendant l'envoi (${String(e.message).slice(0, 60)}).` });
+      logEvent("info", `TikTok : « ${post.title} » — coupure réseau, nouvel essai à ${retry.toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit" })}`, post.id);
       return;
     }
     Object.assign(post, { status: "error", error: String(e.message ?? e).slice(0, 300) });
