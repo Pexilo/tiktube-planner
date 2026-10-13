@@ -1,0 +1,11 @@
+import type { AppContent, VoiceTrack } from "../src/lib/types";
+export const FPS: number;
+export const BEAT: number;
+export const BAR: number;
+export const FORMATS: { short: { width: number; height: number }; long: { width: number; height: number }; thumb: { width: number; height: number } };
+export type Kind = "short" | "long" | "story" | "keynote";
+export type Scene = { type: string; from: number; dur: number; featureId?: string; featureIndex?: number; lines?: number; voiceSeg?: number; detailId?: string };
+export type Timeline = { scenes: Scene[]; totalFrames: number; bars: number; dropBar: number; ctaBar: number };
+export function buildTimeline(app: AppContent, kind: Kind, shortIndex?: number, voice?: VoiceTrack | null): Timeline;
+export function videoId(slug: string, kind: Kind, lang: string, shortIndex?: number): string;
+export function musicFor(app: AppContent, kind: Kind, shortIndex?: number, voice?: VoiceTrack | null): { file: string; style: string; bars: number; drop: number; cta: number; seed: number };

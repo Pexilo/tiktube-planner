@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Setup</title>
+<script>try { const t = localStorage.getItem("theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f5f5f7; --surface: #fff; --surface2: #f2f2f5; --hover: #ebebf0; --line: #e5e5ea; --line2: #d6d6de;
+    --text: #111116; --muted: #6b6b76; --faint: #9c9ca7; --accent: #5b4cff; --ok: #16a34a; --warn: #d97706; --err: #dc2626;
+    --shadow: 0 1px 2px rgba(17,17,22,.04), 0 6px 24px rgba(17,17,22,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { color-scheme: dark; --bg: #09090b; --surface: #131316; --surface2: #1b1b20; --hover: #222228; --line: #24242a; --line2: #33333b; --text: #f4f4f6; --muted: #9a9aa6; --faint: #6c6c78; --accent: #7c6cff; --ok: #4ade80; --warn: #fbbf24; --err: #f87171; --shadow: 0 8px 28px rgba(0,0,0,.35); }
+  }
+  :root[data-theme="dark"] { color-scheme: dark; --bg: #09090b; --surface: #131316; --surface2: #1b1b20; --hover: #222228; --line: #24242a; --line2: #33333b; --text: #f4f4f6; --muted: #9a9aa6; --faint: #6c6c78; --accent: #7c6cff; --ok: #4ade80; --warn: #fbbf24; --err: #f87171; --shadow: 0 8px 28px rgba(0,0,0,.35); }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14.5px/1.6 Inter, system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: var(--accent); }
+  .wrap { display: grid; grid-template-columns: 270px minmax(0, 1fr); min-height: 100vh; }
+  aside { position: sticky; top: 0; height: 100vh; padding: 22px 14px; border-right: 1px solid var(--line); background: var(--surface); display: flex; flex-direction: column; gap: 4px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; padding: 0 8px 18px; }
+  .brand .logo { width: 30px; height: 30px; border-radius: 9px; background: linear-gradient(135deg, #ff1f4b, #7c5cff); display: grid; place-items: center; color: #fff; font-size: 13px; }
+  .brand small { display: block; color: var(--muted); font-weight: 500; font-size: 12px; }
+  .steps a { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 10px; color: var(--muted); font-weight: 600; text-decoration: none; cursor: pointer; }
+  .steps a:hover { background: var(--hover); color: var(--text); }
+  .steps a.on { background: var(--surface2); color: var(--text); box-shadow: inset 0 0 0 1px var(--line); }
+  .steps .n { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800; background: var(--surface2); border: 1px solid var(--line2); flex: none; }
+  .steps a.done .n { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .steps .opt { margin-left: auto; font-size: 10.5px; font-weight: 700; color: var(--faint); text-transform: uppercase; }
+  .foot { margin-top: auto; display: flex; gap: 6px; }
+  main { padding: 40px 48px 120px; max-width: 920px; }
+  h1 { font-size: 28px; letter-spacing: -.025em; margin: 0 0 6px; }
+  .lead { color: var(--muted); margin: 0 0 26px; font-size: 15px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); padding: 20px 22px; margin-bottom: 16px; }
+  .card h3 { margin: 0 0 10px; font-size: 15px; }
+  ol.how { margin: 0; padding: 0; list-style: none; counter-reset: s; }
+  ol.how > li { counter-increment: s; position: relative; padding: 0 0 16px 40px; }
+  ol.how > li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 8px; background: color-mix(in srgb, var(--accent) 13%, transparent); color: var(--accent); font-weight: 800; font-size: 13px; display: grid; place-items: center; }
+  ol.how > li b { font-weight: 700; }
+  code, .copy { background: var(--surface2); border: 1px solid var(--line); padding: 1px 7px; border-radius: 6px; font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .copy { cursor: pointer; display: inline-flex; gap: 6px; align-items: center; padding: 3px 8px; }
+  .copy:hover { border-color: var(--accent); }
+  .copy::after { content: "⧉"; color: var(--muted); }
+  .copy.done::after { content: "✓"; color: var(--ok); }
+  .btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 15px; border-radius: 10px; border: 1px solid var(--line2); background: var(--surface); color: var(--text); font: inherit; font-weight: 600; cursor: pointer; text-decoration: none; white-space: nowrap; }
+  .btn:hover { background: var(--hover); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.sm { padding: 5px 10px; font-size: 13px; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .nav { display: flex; justify-content: space-between; margin-top: 24px; }
+  input, select { background: var(--surface); border: 1px solid var(--line2); color: var(--text); border-radius: 9px; padding: 8px 11px; font: inherit; width: 100%; outline: none; }
+  input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+  .form { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 10px 14px; align-items: center; }
+  .form label { color: var(--muted); font-size: 13.5px; }
+  .check { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); }
+  .check:first-child { border-top: 0; }
+  .check .d { width: 9px; height: 9px; border-radius: 50%; background: var(--faint); flex: none; }
+  .check .d.ok { background: var(--ok); } .check .d.warn { background: var(--warn); } .check .d.err { background: var(--err); }
+  .check .t { flex: 1; } .check .s { color: var(--muted); font-size: 13px; }
+  .status { display: inline-flex; align-items: center; gap: 7px; padding: 4px 11px; border-radius: 99px; font-size: 12.5px; font-weight: 700; }
+  .status.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 13%, transparent); }
+  .status.no { color: var(--muted); background: var(--surface2); }
+  .msg { margin-top: 10px; font-size: 13.5px; }
+  .msg.ok { color: var(--ok); } .msg.err { color: var(--err); }
+  .drop { border: 1.5px dashed var(--line2); border-radius: 14px; padding: 18px; text-align: center; color: var(--muted); cursor: pointer; }
+  .drop:hover, .drop.over { border-color: var(--accent); color: var(--text); background: color-mix(in srgb, var(--accent) 6%, var(--surface)); }
+  .note { color: var(--muted); font-size: 13px; }
+  .tip { border-left: 3px solid var(--accent); padding: 8px 14px; background: color-mix(in srgb, var(--accent) 6%, var(--surface)); border-radius: 0 10px 10px 0; font-size: 13.5px; margin: 10px 0; }
+  .warnbox { border-left-color: var(--warn); background: color-mix(in srgb, var(--warn) 8%, var(--surface)); }
+  pre { background: var(--surface2); border: 1px solid var(--line); border-radius: 12px; padding: 14px; overflow: auto; font: 12px/1.5 ui-monospace, Menlo, monospace; max-height: 340px; }
+  .seg { display: inline-flex; background: var(--surface2); border: 1px solid var(--line); border-radius: 9px; padding: 2px; }
+  .seg button { border: 0; background: none; color: var(--muted); font: inherit; font-weight: 700; font-size: 12px; padding: 4px 10px; border-radius: 7px; cursor: pointer; }
+  .seg button.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  @media (max-width: 860px) {
+    .wrap { grid-template-columns: 1fr; }
+    aside { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+    main { padding: 24px 16px 100px; }
+    .form { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <aside>
+    <div class="brand"><span class="logo">▶</span><div>Studio<small id="tagline"></small></div></div>
+    <nav class="steps" id="steps"></nav>
+    <div class="foot">
+      <div class="seg" id="langSeg"><button data-l="fr">FR</button><button data-l="en">EN</button></div>
+      <a class="btn sm" href="/" id="toDash" style="margin-left:auto"></a>
+    </div>
+  </aside>
+  <main id="main"></main>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const api = (url, body, method) => fetch(url, { method: method ?? (body ? "POST" : "GET"), headers: { "content-type": "application/json" }, body: body ? JSON.stringify(body) : undefined }).then((r) => r.json());
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const getLang = () => { try { return localStorage.getItem("setupLang") || (navigator.language.startsWith("fr") ? "fr" : "en"); } catch { return "fr"; } };
+let L = getLang();
+let ST = null;
+let step = Number(location.hash.slice(1)) || 0;
+const copy = (t) => `<span class="copy" data-copy="${esc(t)}">${esc(t)}</span>`;
+const ext = (url, label) => `<a href="${url}" target="_blank" rel="noopener">${label ?? url.replace(/^https:\/\//, "")} ↗</a>`;
+
+/* ------------------------------------------------------------------ textes FR / EN */
+const T = {
+  fr: {
+    tagline: "Guide d'installation", dash: "Dashboard →", next: "Continuer →", prev: "← Retour", skip: "Passer cette étape →", optional: "option",
+    steps: ["Bienvenue", "Ton profil", "Tes apps", "YouTube", "TikTok", "Photos TikTok", "Dossier TikTok", "C'est prêt"],
+    s0: { h: "Bienvenue 👋", lead: "En quelques étapes, tu vas connecter ta chaîne YouTube et ton compte TikTok. Tout reste sur ton Mac : tes clés sont enregistrées dans le dossier <code>data/</code>, jamais envoyées ailleurs.",
+      checks: "Vérification de ton Mac", node: "Node.js", ffmpeg: "ffmpeg (encodage vidéo)", python: "Python + numpy/scipy (musique)", ocr: "OCR macOS (lecture des slides TikTok)", claude: "Claude Code CLI (légendes automatiques)", say: "Voix macOS (Shorts narrés)",
+      missing: "Relance <code>./install.sh</code> pour installer ce qui manque.", claudeNote: "Facultatif : sans Claude Code, l'import de dossiers TikTok fonctionne mais sans légendes écrites automatiquement. Installe-le sur claude.com/claude-code." },
+    s1: { h: "Ton profil", lead: "Ton prénom s'affiche sur le dashboard ; la signature est ajoutée en bas de chaque description YouTube.",
+      name: "Prénom", sigFr: "Signature FR (tu)", sigFrV: "Signature FR (vous)", sigEn: "Signature EN", save: "Enregistrer", saved: "Enregistré ✓",
+      ph: { name: "Alex", fr: "Fait avec ❤️ par Alex, développeur indépendant. Abonne-toi pour voir mes autres apps !", frv: "… Abonnez-vous pour voir mes autres apps !", en: "Made with ❤️ by Alex, indie developer. Subscribe to see my other apps!" } },
+    s2: { h: "Tes apps", lead: "Chaque app = un fichier <code>content/apps/&lt;slug&gt;.json</code> + ses captures dans <code>public/apps/&lt;slug&gt;/</code>. Les vidéos (Shorts, 16:9, série Keynote) sont générées à partir de ce fichier.",
+      found: "Apps trouvées", how: "Ajouter ton app",
+      list: [
+        "Duplique <code>content/apps/mrrkit.json</code> en <code>content/apps/monapp.json</code> et change <code>slug</code>, <code>name</code>, les couleurs (<code>brand</code>), le prix, les liens et les textes FR/EN.",
+        "Mets ton icône (<code>icon.png</code>, 1024×1024) et tes captures d'écran (PNG, idéalement 1290×2796) dans <code>public/apps/monapp/</code>, avec les noms utilisés dans le JSON (<code>features[].screens</code>, <code>keynote.details[].src</code>).",
+        "Reviens sur le dashboard → <b>Vidéos</b> → « Rendre » une vidéo pour la prévisualiser. Pour ajuster les animations en direct : bouton <b>Studio</b> (Remotion Studio).",
+      ],
+      tip: "Astuce : demande à Claude Code « crée le fichier content/apps pour mon app à partir de mon site / de mes captures » — il connaît le format." },
+    s3: { h: "YouTube", lead: "La plateforme envoie tes vidéos en <b>privé programmé</b> : c'est YouTube qui les publie à l'heure prévue. Il faut un identifiant Google gratuit (≈ 10 min).",
+      list: () => [
+        `Ouvre ${ext("https://console.cloud.google.com/projectcreate", "Google Cloud Console")} et crée un projet (ex. « Studio YouTube »).`,
+        `Active ${ext("https://console.cloud.google.com/apis/library/youtube.googleapis.com", "YouTube Data API v3")} → <b>Activer</b>.`,
+        `Va dans ${ext("https://console.cloud.google.com/auth/overview", "Google Auth Platform")} → <b>Commencer</b> : nom de l'app, ton e-mail, audience <b>Externe</b>. Puis <b>Audience → Utilisateurs test → Ajouter</b> ton adresse Gmail (celle de ta chaîne).`,
+        `Va dans ${ext("https://console.cloud.google.com/auth/clients", "Clients")} → <b>Créer un client</b> → type <b>Application de bureau</b> → Créer → <b>Télécharger le JSON</b>.`,
+        "Glisse ce fichier JSON ci-dessous.",
+        "Clique « Connecter ma chaîne », choisis ta chaîne. Google affiche « Application non validée » : clique <b>Continuer</b> (c'est ta propre app).",
+      ],
+      drop: "Glisse ici le fichier <b>client_secret….json</b> (ou clique)", secretOk: "Identifiant Google enregistré ✓", connect: "Connecter ma chaîne YouTube", connected: "Chaîne connectée",
+      warn: "En mode « Test », Google demande de te reconnecter tous les 7 jours. Pour éviter ça : Google Auth Platform → <b>Audience</b> → <b>Publier l'application</b> (pas besoin de validation pour ton propre usage). Si tes vidéos restent bloquées en privé, remplis le formulaire d'audit de l'API YouTube." },
+    s4: { h: "TikTok (Sandbox)", lead: "Les posts arrivent en <b>brouillon dans ta boîte TikTok</b> à l'heure prévue : tu ajoutes un son et tu publies. Le mode Sandbox fonctionne tout de suite pour ton propre compte, sans validation de TikTok.",
+      list: (r) => [
+        `Ouvre ${ext("https://developers.tiktok.com/apps/", "TikTok for Developers")} → connecte-toi → <b>Connect an app</b>.`,
+        `<b>App details</b> : nom, catégorie, description courte. Icône : <a href="/api/setup/tiktok-icon">télécharge celle-ci (1024×1024)</a>. Plateforme : <b>Desktop</b>. Les URL Terms / Privacy pourront être générées à l'étape suivante.`,
+        "En haut, passe sur l'onglet <b>Sandbox</b> → <b>Create Sandbox</b>.",
+        `<b>Products → Add products</b> : <b>Login Kit</b> (onglet <b>Desktop</b>, Redirect URI : ${copy(r)}) et <b>Content Posting API</b> (laisse « Direct Post » désactivé).`,
+        "<b>Scopes</b> : coche <code>user.info.basic</code> et <code>video.upload</code>.",
+        "<b>Sandbox settings → Target users</b> : ajoute ton compte TikTok.",
+        "Copie le <b>Client key</b> et le <b>Client secret</b> du Sandbox ci-dessous, puis connecte ton compte.",
+      ],
+      key: "Client key", secret: "Client secret", save: "Enregistrer", connect: "Connecter mon TikTok", connected: "Compte connecté", saved: "Clés enregistrées ✓",
+      tip: "Plus tard, tu pourras soumettre l'app en « Production » (formulaire + vidéo de démo) : remplace alors les clés par celles de Production et reconnecte-toi." },
+    s5: { h: "Photos TikTok (carrousels)", lead: "Pour les carrousels, TikTok va chercher les images sur <b>un site à toi</b> (vérifié). La plateforme les y dépose par FTP/SFTP. Pas besoin pour les vidéos — tu peux passer cette étape.",
+      form: "Accès FTP / SFTP de ton hébergement", proto: "Protocole", host: "Serveur", port: "Port", user: "Utilisateur", pass: "Mot de passe", dir: "Dossier distant", url: "URL publique",
+      phDir: "/public_html/tiktok (ou / si le compte FTP arrive déjà dedans)", phUrl: "https://monsite.com/tiktok",
+      test: "Enregistrer et tester", testing: "Test en cours…", ok: "Connexion OK : un fichier de test a été déposé puis relu en ligne ✓",
+      hint: "Chez certains hébergeurs (Hostinger…), l'utilisateur FTP complet est préfixé : <code>u123456.monuser</code>.",
+      verifyH: "Vérifier ton domaine dans TikTok", verify: (u) => [
+        `Portail TikTok (onglet Sandbox) → <b>URL properties</b> → <b>Add URL property</b> → type <b>URL prefix</b> → ${u ? copy(u.replace(/\/?$/, "/")) : "ton URL publique avec un / final"}.`,
+        "TikTok te donne un fichier <code>tiktok….txt</code> : télécharge-le et glisse-le ci-dessous, je le dépose sur ton site.",
+        "Reviens dans le portail et clique <b>Verify</b>.",
+      ],
+      drop: "Glisse ici le fichier <b>tiktok….txt</b>", privacyH: "Page de confidentialité (exigée par TikTok)", privacyBtn: "Générer et publier ma page", privacyOk: "Page en ligne :" },
+    sW: { h: "Dossier TikTok", lead: "Le plus simple pour programmer TikTok : <b>un dossier sur ton Mac</b>. Tout ce que tu (ou Claude) y déposes est analysé, associé à sa légende, programmé, puis rangé dans <code>Programmés</code>.",
+      create: "Créer le dossier", created: "Dossier prêt ✓", open: "Ouvrir dans le Finder", path: "Emplacement", on: "Surveillance active (toutes les 2 min)", off: "Surveillance désactivée",
+      structH: "Comment ranger un lot", struct: "Un dossier par lot. Dedans : un sous-dossier d'images par carrousel (dans <code>fr/</code> et <code>en/</code>), les vidéos, et un fichier de légendes au format libre. Sans légende, Claude en écrit une à partir du texte des slides. Les aperçus sont ignorés.",
+      claudeH: "Laisse Claude le remplir", claude: "Tu peux demander à Claude (Claude Code, Claude Desktop avec accès aux fichiers…) de créer les slides <b>et de les déposer directement dans ce dossier</b> : la plateforme s'occupe du reste. Copie ce prompt :",
+      prompt: (d) => `Crée 3 carrousels TikTok pour mon app <NOM DE L'APP> (6 slides 1080×1920 chacun, en français et en anglais) et dépose-les dans ${d}/<NOM>-<DATE>/ : un sous-dossier par carrousel dans fr/ et en/ (01.png, 02.png…), plus un fichier LEGENDES.md avec, pour chaque carrousel, le titre et la légende FR / EN (texte + hashtags).`,
+      slots: (s) => `Créneaux : FR ${s.fr.join(" · ")} — EN ${s.en.join(" · ")}. Modifiables dans le dashboard → Réglages → TikTok.`,
+      inbox: "TikTok accepte ~5 brouillons non publiés dans ta boîte : publie-les au fil de l'eau, sinon la plateforme réessaie toutes les 2 h." },
+    s6: { h: "C'est prêt 🎉", lead: "Ta plateforme est configurée. Voici comment l'utiliser au quotidien.",
+      list: [
+        "<b>Vidéos</b> : rends tes vidéos, puis active l'<b>autopilote</b> (Réglages) — il rend et programme sur YouTube ce qui sort dans les prochains jours.",
+        "<b>Calendrier</b> : tout ce qui sort sur YouTube et TikTok, jour par jour.",
+        "<b>TikTok</b> : dépose un dossier dans <code>~/Desktop/Tiktok</code> (sous-dossiers <code>fr/</code> <code>en/</code> d'images + un fichier de légendes) : il est analysé, programmé, puis rangé dans <code>Programmés</code>.",
+        "Optionnel : <code>npm run menubar</code> installe une icône dans la barre des menus pour démarrer/arrêter la plateforme.",
+      ],
+      go: "Ouvrir le dashboard" },
+  },
+  en: {
+    tagline: "Setup guide", dash: "Dashboard →", next: "Continue →", prev: "← Back", skip: "Skip this step →", optional: "optional",
+    steps: ["Welcome", "Your profile", "Your apps", "YouTube", "TikTok", "TikTok photos", "TikTok folder", "All set"],
+    s0: { h: "Welcome 👋", lead: "In a few steps you'll connect your YouTube channel and TikTok account. Everything stays on your Mac: keys are saved in the <code>data/</code> folder and never sent anywhere else.",
+      checks: "Checking your Mac", node: "Node.js", ffmpeg: "ffmpeg (video encoding)", python: "Python + numpy/scipy (music)", ocr: "macOS OCR (reads TikTok slides)", claude: "Claude Code CLI (automatic captions)", say: "macOS voices (narrated Shorts)",
+      missing: "Run <code>./install.sh</code> again to install what's missing.", claudeNote: "Optional: without Claude Code, TikTok folder import still works but captions aren't written for you. Get it at claude.com/claude-code." },
+    s1: { h: "Your profile", lead: "Your first name shows on the dashboard; the signature is appended to every YouTube description.",
+      name: "First name", sigFr: "FR signature (tu)", sigFrV: "FR signature (vous)", sigEn: "EN signature", save: "Save", saved: "Saved ✓",
+      ph: { name: "Alex", fr: "Fait avec ❤️ par Alex, développeur indépendant. Abonne-toi pour voir mes autres apps !", frv: "… Abonnez-vous pour voir mes autres apps !", en: "Made with ❤️ by Alex, indie developer. Subscribe to see my other apps!" } },
+    s2: { h: "Your apps", lead: "Each app = one <code>content/apps/&lt;slug&gt;.json</code> file + its screenshots in <code>public/apps/&lt;slug&gt;/</code>. Videos (Shorts, 16:9, Keynote series) are generated from that file.",
+      found: "Apps found", how: "Add your app",
+      list: [
+        "Duplicate <code>content/apps/mrrkit.json</code> as <code>content/apps/myapp.json</code> and change <code>slug</code>, <code>name</code>, colors (<code>brand</code>), price, links and FR/EN copy.",
+        "Put your icon (<code>icon.png</code>, 1024×1024) and screenshots (PNG, ideally 1290×2796) in <code>public/apps/myapp/</code>, using the file names referenced in the JSON (<code>features[].screens</code>, <code>keynote.details[].src</code>).",
+        "Back on the dashboard → <b>Videos</b> → “Render” one video to preview it. To tweak animations live: the <b>Studio</b> button (Remotion Studio).",
+      ],
+      tip: "Tip: ask Claude Code “create the content/apps file for my app from my website / screenshots” — it knows the format." },
+    s3: { h: "YouTube", lead: "Videos are uploaded as <b>scheduled private</b> videos: YouTube publishes them at the planned time. You need a free Google credential (≈ 10 min).",
+      list: () => [
+        `Open ${ext("https://console.cloud.google.com/projectcreate", "Google Cloud Console")} and create a project (e.g. “Studio YouTube”).`,
+        `Enable ${ext("https://console.cloud.google.com/apis/library/youtube.googleapis.com", "YouTube Data API v3")} → <b>Enable</b>.`,
+        `Go to ${ext("https://console.cloud.google.com/auth/overview", "Google Auth Platform")} → <b>Get started</b>: app name, your email, audience <b>External</b>. Then <b>Audience → Test users → Add</b> your Gmail address (the one that owns the channel).`,
+        `Go to ${ext("https://console.cloud.google.com/auth/clients", "Clients")} → <b>Create client</b> → type <b>Desktop app</b> → Create → <b>Download JSON</b>.`,
+        "Drop that JSON file below.",
+        "Click “Connect my channel” and pick your channel. Google shows “App not verified”: click <b>Continue</b> (it's your own app).",
+      ],
+      drop: "Drop the <b>client_secret….json</b> file here (or click)", secretOk: "Google credential saved ✓", connect: "Connect my YouTube channel", connected: "Channel connected",
+      warn: "In “Testing” mode Google asks you to reconnect every 7 days. To avoid it: Google Auth Platform → <b>Audience</b> → <b>Publish app</b> (no verification needed for personal use). If your videos stay locked as private, fill in the YouTube API audit form." },
+    s4: { h: "TikTok (Sandbox)", lead: "Posts land as <b>drafts in your TikTok inbox</b> at the planned time: add a sound and publish. Sandbox mode works right away for your own account, no TikTok review needed.",
+      list: (r) => [
+        `Open ${ext("https://developers.tiktok.com/apps/", "TikTok for Developers")} → log in → <b>Connect an app</b>.`,
+        `<b>App details</b>: name, category, short description. Icon: <a href="/api/setup/tiktok-icon">download this one (1024×1024)</a>. Platform: <b>Desktop</b>. Terms / Privacy URLs can be generated in the next step.`,
+        "At the top, switch to the <b>Sandbox</b> tab → <b>Create Sandbox</b>.",
+        `<b>Products → Add products</b>: <b>Login Kit</b> (<b>Desktop</b> tab, Redirect URI: ${copy(r)}) and <b>Content Posting API</b> (leave “Direct Post” off).`,
+        "<b>Scopes</b>: tick <code>user.info.basic</code> and <code>video.upload</code>.",
+        "<b>Sandbox settings → Target users</b>: add your TikTok account.",
+        "Copy the Sandbox <b>Client key</b> and <b>Client secret</b> below, then connect your account.",
+      ],
+      key: "Client key", secret: "Client secret", save: "Save", connect: "Connect my TikTok", connected: "Account connected", saved: "Keys saved ✓",
+      tip: "Later you can submit the app for “Production” (form + demo video): then swap in the Production keys and reconnect." },
+    s5: { h: "TikTok photos (carousels)", lead: "For carousels, TikTok pulls the images from <b>a website you own</b> (verified). The platform uploads them there over FTP/SFTP. Not needed for videos — you can skip this step.",
+      form: "Your hosting's FTP / SFTP access", proto: "Protocol", host: "Server", port: "Port", user: "User", pass: "Password", dir: "Remote folder", url: "Public URL",
+      phDir: "/public_html/tiktok (or / if the FTP account already lands there)", phUrl: "https://mysite.com/tiktok",
+      test: "Save and test", testing: "Testing…", ok: "Connected: a test file was uploaded and read back online ✓",
+      hint: "Some hosts (Hostinger…) prefix the full FTP user: <code>u123456.myuser</code>.",
+      verifyH: "Verify your domain in TikTok", verify: (u) => [
+        `TikTok portal (Sandbox tab) → <b>URL properties</b> → <b>Add URL property</b> → type <b>URL prefix</b> → ${u ? copy(u.replace(/\/?$/, "/")) : "your public URL with a trailing /"}.`,
+        "TikTok gives you a <code>tiktok….txt</code> file: download it and drop it below, I'll upload it to your site.",
+        "Go back to the portal and click <b>Verify</b>.",
+      ],
+      drop: "Drop the <b>tiktok….txt</b> file here", privacyH: "Privacy policy page (required by TikTok)", privacyBtn: "Generate and publish my page", privacyOk: "Page online:" },
+    sW: { h: "TikTok folder", lead: "The easiest way to schedule TikTok: <b>a folder on your Mac</b>. Whatever you (or Claude) drop in is analysed, matched with its caption, scheduled, then moved to <code>Programmés</code>.",
+      create: "Create the folder", created: "Folder ready ✓", open: "Open in Finder", path: "Location", on: "Watching (every 2 min)", off: "Watching disabled",
+      structH: "How to lay out a batch", struct: "One folder per batch. Inside: one image subfolder per carousel (under <code>fr/</code> and <code>en/</code>), videos, and a captions file in any format. No caption? Claude writes one from the slide text. Previews are ignored.",
+      claudeH: "Let Claude fill it", claude: "You can ask Claude (Claude Code, Claude Desktop with file access…) to create the slides <b>and drop them straight into this folder</b>: the platform does the rest. Copy this prompt:",
+      prompt: (d) => `Create 3 TikTok carousels for my app <APP NAME> (6 slides of 1080×1920 each, in French and English) and save them in ${d}/<NAME>-<DATE>/: one subfolder per carousel under fr/ and en/ (01.png, 02.png…), plus a CAPTIONS.md file with, for each carousel, the title and the FR / EN caption (text + hashtags).`,
+      slots: (s) => `Slots: FR ${s.fr.join(" · ")} — EN ${s.en.join(" · ")}. Change them in the dashboard → Settings → TikTok.`,
+      inbox: "TikTok accepts ~5 unpublished drafts in your inbox: publish them as they come, otherwise the platform retries every 2 h." },
+    s6: { h: "All set 🎉", lead: "Your platform is configured. Here's how to use it day to day.",
+      list: [
+        "<b>Videos</b>: render your videos, then turn on the <b>autopilot</b> (Settings) — it renders and schedules on YouTube whatever comes out in the next few days.",
+        "<b>Calendar</b>: everything going out on YouTube and TikTok, day by day.",
+        "<b>TikTok</b>: drop a folder into <code>~/Desktop/Tiktok</code> (<code>fr/</code> <code>en/</code> image subfolders + a captions file): it's analysed, scheduled, then moved to <code>Programmés</code>.",
+        "Optional: <code>npm run menubar</code> installs a menu bar icon to start/stop the platform.",
+      ],
+      go: "Open the dashboard" },
+  },
+};
+
+/* ------------------------------------------------------------------ rendu */
+const t = () => T[L];
+const done = () => [
+  ST.checks.ffmpeg && ST.checks.python,
+  !!ST.profile.ownerName,
+  ST.apps.length > 0,
+  ST.youtube.connected,
+  ST.tiktok.connected,
+  !!ST.hosting?.host,
+  ST.watch.exists && ST.watch.enabled,
+  !!ST.profile.setupDone,
+];
+const OPTIONAL = [false, false, false, false, true, true, true, false];
+const LAST = 7;
+
+function renderNav() {
+  const d = done();
+  $("#steps").innerHTML = t().steps.map((s, i) => `<a data-step="${i}" class="${i === step ? "on" : ""} ${d[i] ? "done" : ""}"><span class="n">${d[i] ? "✓" : i + 1}</span>${s}${OPTIONAL[i] ? `<span class="opt">${t().optional}</span>` : ""}</a>`).join("");
+  $("#tagline").textContent = t().tagline;
+  $("#toDash").textContent = t().dash;
+  document.querySelectorAll("#langSeg button").forEach((b) => b.classList.toggle("on", b.dataset.l === L));
+  document.documentElement.lang = L;
+}
+const navBtns = (canSkip) => `<div class="nav">${step > 0 ? `<button class="btn" data-go="${step - 1}">${t().prev}</button>` : "<span></span>"}
+  ${step < LAST ? `<button class="btn ${canSkip ? "" : "primary"}" data-go="${step + 1}">${canSkip ? t().skip : t().next}</button>` : ""}</div>`;
+const how = (items) => `<ol class="how">${items.map((x) => `<li>${x}</li>`).join("")}</ol>`;
+const stat = (ok, yes, no) => `<span class="status ${ok ? "ok" : "no"}">${ok ? "● " + yes : "○ " + no}</span>`;
+
+const VIEWS = [
+  () => {
+    const c = ST.checks, x = t().s0;
+    const line = (ok, label, extra = "", level = "err") => `<div class="check"><span class="d ${ok ? "ok" : level}"></span><span class="t">${label}</span><span class="s">${extra}</span></div>`;
+    return `<h1>${x.h}</h1><p class="lead">${x.lead}</p>
+      <div class="card"><h3>${x.checks}</h3>
+        ${line(true, x.node, `v${c.node}`)}${line(c.ffmpeg, x.ffmpeg)}${line(c.python, x.python)}${line(c.ocr, x.ocr, "", "warn")}${line(c.claude, x.claude, "", "warn")}${line(c.say, x.say, "", "warn")}
+        ${!c.ffmpeg || !c.python ? `<div class="tip warnbox">${x.missing}</div>` : ""}
+        ${!c.claude ? `<div class="note" style="margin-top:8px">${x.claudeNote}</div>` : ""}
+      </div>${navBtns(false)}`;
+  },
+  () => {
+    const x = t().s1, p = ST.profile;
+    return `<h1>${x.h}</h1><p class="lead">${x.lead}</p>
+      <div class="card"><div class="form">
+        <label>${x.name}</label><input id="pName" value="${esc(p.ownerName)}" placeholder="${esc(x.ph.name)}">
+        <label>${x.sigFr}</label><input id="pFr" value="${esc(p.signature.fr)}" placeholder="${esc(x.ph.fr)}">
+        <label>${x.sigFrV}</label><input id="pFrV" value="${esc(p.signature.fr_vous)}" placeholder="${esc(x.ph.frv)}">
+        <label>${x.sigEn}</label><input id="pEn" value="${esc(p.signature.en)}" placeholder="${esc(x.ph.en)}">
+        <span></span><div class="row"><button class="btn primary" id="saveProfile">${x.save}</button><span class="msg ok" id="profileMsg"></span></div>
+      </div></div>${navBtns(false)}`;
+  },
+  () => {
+    const x = t().s2;
+    return `<h1>${x.h}</h1><p class="lead">${x.lead}</p>
+      <div class="card"><h3>${x.found}</h3><div class="row">${ST.apps.map((a) => `<code>${esc(a)}</code>`).join("")}</div></div>
+      <div class="card"><h3>${x.how}</h3>${how(x.list)}<div class="tip">${x.tip}</div></div>${navBtns(false)}`;
+  },
+  () => {
+    const x = t().s3, y = ST.youtube;
+    return `<h1>${x.h}</h1><p class="lead">${x.lead}</p>
+      <div class="card">${how(x.list())}
+        <label class="drop" id="ytDrop"><input type="file" accept=".json,application/json" hidden id="ytFile">${y.hasSecret ? `✓ ${x.secretOk}` : x.drop}</label>
+        <div class="msg" id="ytMsg"></div>
+        <div class="row" style="margin-top:14px">${y.hasSecret ? `<a class="btn primary" href="/api/youtube/auth">${x.connect}</a>` : ""}${stat(y.connected, `${x.connected}${y.channel?.title ? ` · ${esc(y.channel.title)}` : ""}`, x.connected)}</div>
+        <div class="tip warnbox">${x.warn}</div>
+      </div>${navBtns(!y.connected)}`;
+  },
+  () => {
+    const x = t().s4, k = ST.tiktok;
+    return `<h1>${x.h}</h1><p class="lead">${x.lead}</p>
+      <div class="card">${how(x.list(ST.redirect.tiktok))}
+        <div class="form">
+          <label>${x.key}</label><input id="ttKey" placeholder="${k.clientKeyHint ? esc(k.clientKeyHint) + " (✓)" : "sbaw…"}" autocomplete="off">
+          <label>${x.secret}</label><input id="ttSecret" type="password" placeholder="${k.hasKeys ? "••••••••" : ""}" autocomplete="off">
+          <span></span><div class="row"><button class="btn" id="saveTT">${x.save}</button><span class="msg" id="ttMsg"></span></div>
+        </div>
+        <div class="row" style="margin-top:14px">${k.hasKeys ? `<a class="btn primary" href="/api/tiktok/auth">${x.connect}</a>` : ""}${stat(k.connected, `${x.connected}${k.user?.display_name ? ` · ${esc(k.user.display_name)}` : ""}`, x.connected)}</div>
+        <div class="tip">${x.tip}</div>
+      </div>${navBtns(!k.connected)}`;
+  },
+  () => {
+    const x = t().s5, h = ST.hosting ?? {};
+    return `<h1>${x.h}</h1><p class="lead">${x.lead}</p>
+      <div class="card"><h3>${x.form}</h3>
+        <div class="form">
+          <label>${x.proto}</label><select id="hProto">${["ftp", "ftps", "sftp"].map((p) => `<option ${h.protocol === p ? "selected" : ""}>${p}</option>`).join("")}</select>
+          <label>${x.host}</label><input id="hHost" value="${esc(h.host ?? "")}" placeholder="ftp.monsite.com">
+          <label>${x.port}</label><input id="hPort" value="${esc(h.port ?? "")}" placeholder="21 / 22" style="max-width:120px">
+          <label>${x.user}</label><input id="hUser" value="${esc(h.user ?? "")}" autocomplete="off">
+          <label>${x.pass}</label><input id="hPass" type="password" value="${esc(h.password ?? "")}" autocomplete="off">
+          <label>${x.dir}</label><input id="hDir" value="${esc(h.remoteDir ?? "")}" placeholder="${esc(x.phDir)}">
+          <label>${x.url}</label><input id="hUrl" value="${esc(h.publicBaseUrl ?? "")}" placeholder="${esc(x.phUrl)}">
+          <span></span><div class="row"><button class="btn primary" id="saveHost">${x.test}</button></div>
+        </div>
+        <div class="msg" id="hMsg"></div><div class="note" style="margin-top:8px">${x.hint}</div>
+      </div>
+      <div class="card"><h3>${x.verifyH}</h3>${how(x.verify(h.publicBaseUrl))}
+        <label class="drop" id="vDrop"><input type="file" accept=".txt" hidden id="vFile">${x.drop}</label><div class="msg" id="vMsg"></div></div>
+      <div class="card"><h3>${x.privacyH}</h3><div class="row"><button class="btn" id="privacy" ${h.host ? "" : "disabled"}>${x.privacyBtn}</button><span class="msg" id="prMsg"></span></div></div>
+      ${navBtns(!h.host)}`;
+  },
+  () => {
+    const x = t().sW, w = ST.watch;
+    const tree = `${w.dir.replace(/^\/Users\/[^/]+/, "~")}/\n  MonApp-2026-10-20/\n    LEGENDES.md\n    fr/01-accroche/01.png 02.png …\n    en/01-hook/01.png …\n    teaser.mp4\n  Programmés/`;
+    return `<h1>${x.h}</h1><p class="lead">${x.lead}</p>
+      <div class="card"><div class="form">
+        <label>${x.path}</label><input id="wDir" value="${esc(w.dir.replace(/^\/Users\/[^/]+/, "~"))}">
+        <span></span><div class="row"><button class="btn primary" id="wCreate">${w.exists ? x.created : x.create}</button>${w.exists ? `<button class="btn" id="wOpen">${x.open}</button>` : ""}
+          <span class="status ${w.exists && w.enabled ? "ok" : "no"}">${w.enabled ? "● " + x.on : "○ " + x.off}</span></div>
+      </div><div class="msg" id="wMsg"></div></div>
+      <div class="card"><h3>${x.structH}</h3><p class="note" style="margin-top:0">${x.struct}</p><pre>${esc(tree)}</pre></div>
+      <div class="card"><h3>${x.claudeH}</h3><p class="note" style="margin-top:0">${x.claude}</p>
+        <pre style="white-space:pre-wrap">${esc(x.prompt(w.dir.replace(/^\/Users\/[^/]+/, "~")))}</pre>
+        <button class="btn sm" data-copy="${esc(x.prompt(w.dir.replace(/^\/Users\/[^/]+/, "~")))}">⧉ Copier</button></div>
+      <div class="tip">${x.slots(w.slots)}<br>${x.inbox}</div>
+      ${navBtns(!(w.exists && w.enabled))}`;
+  },
+  () => {
+    const x = t().s6;
+    return `<h1>${x.h}</h1><p class="lead">${x.lead}</p><div class="card">${how(x.list)}</div>
+      <div class="nav"><button class="btn" data-go="6">${t().prev}</button><button class="btn primary" id="finish">${x.go}</button></div>`;
+  },
+];
+
+function render(force) {
+  renderNav();
+  if (!force && $("#main").contains(document.activeElement) && document.activeElement.tagName === "INPUT") return; // ne pas écraser une saisie
+  $("#main").innerHTML = VIEWS[step]();
+}
+let lastRaw = "";
+async function load(force) {
+  const raw = await fetch("/api/setup/status").then((r) => r.text());
+  if (!force && raw === lastRaw) return; // rien n'a changé : on garde la page (et les messages) telle quelle
+  lastRaw = raw;
+  ST = JSON.parse(raw);
+  render(force);
+}
+
+/* ------------------------------------------------------------------ actions */
+const msg = (id, ok, text) => { const el = $(id); el.className = `msg ${ok ? "ok" : "err"}`; el.innerHTML = text; };
+async function uploadFile(url, file) { const fd = new FormData(); fd.append("file", file); return fetch(url, { method: "POST", body: fd }).then((r) => r.json()); }
+function bindDrop(zoneId, inputId, onFile) {
+  const z = $(zoneId); if (!z) return;
+  z.ondragover = (e) => { e.preventDefault(); z.classList.add("over"); };
+  z.ondragleave = () => z.classList.remove("over");
+  z.ondrop = (e) => { e.preventDefault(); z.classList.remove("over"); if (e.dataTransfer.files[0]) onFile(e.dataTransfer.files[0]); };
+  $(inputId).onchange = (e) => e.target.files[0] && onFile(e.target.files[0]);
+}
+
+document.body.addEventListener("click", async (e) => {
+  const el = e.target.closest("[data-step],[data-go],[data-copy],[data-l],#saveProfile,#saveTT,#saveHost,#privacy,#finish,#wCreate,#wOpen");
+  if (!el) return;
+  if (el.dataset.step ?? el.dataset.go) { step = Number(el.dataset.step ?? el.dataset.go); history.replaceState(null, "", `#${step}`); await load(true); bindAll(); window.scrollTo(0, 0); return; }
+  if (el.dataset.copy) { await navigator.clipboard.writeText(el.dataset.copy); el.classList.add("done"); setTimeout(() => el.classList.remove("done"), 1500); return; }
+  if (el.dataset.l) { L = el.dataset.l; try { localStorage.setItem("setupLang", L); } catch {} render(true); bindAll(); return; }
+  if (el.id === "saveProfile") {
+    await api("/api/setup/profile", { ownerName: $("#pName").value.trim(), lang: L, signature: { fr: $("#pFr").value.trim(), fr_vous: $("#pFrV").value.trim(), en: $("#pEn").value.trim() } });
+    $("#profileMsg").textContent = t().s1.saved; ST = await api("/api/setup/status"); renderNav();
+  }
+  if (el.id === "saveTT") {
+    const r = await api("/api/setup/tiktok", { clientKey: $("#ttKey").value, clientSecret: $("#ttSecret").value });
+    if (r.error) return msg("#ttMsg", false, esc(r.error));
+    await load(true); bindAll(); msg("#ttMsg", true, t().s4.saved);
+  }
+  if (el.id === "saveHost") {
+    el.disabled = true; el.textContent = t().s5.testing;
+    const r = await api("/api/setup/hosting", { protocol: $("#hProto").value, host: $("#hHost").value, port: $("#hPort").value, user: $("#hUser").value, password: $("#hPass").value, remoteDir: $("#hDir").value, publicBaseUrl: $("#hUrl").value });
+    await load(true); bindAll();
+    msg("#hMsg", !!r.ok, r.ok ? t().s5.ok : esc(r.error));
+  }
+  if (el.id === "privacy") {
+    el.disabled = true;
+    const r = await api("/api/setup/privacy", {});
+    el.disabled = false;
+    msg("#prMsg", !r.error && r.ok, r.error ? esc(r.error) : `${t().s5.privacyOk} <a href="${r.url}" target="_blank">${esc(r.url)}</a> — ${copy(r.url)}`);
+  }
+  if (el.id === "wCreate") {
+    const r = await api("/api/setup/watch-folder", { dir: $("#wDir").value });
+    await load(true); bindAll();
+    msg("#wMsg", !r.error, r.error ? esc(r.error) : `${t().sW.created} ${esc(r.dir)}`);
+  }
+  if (el.id === "wOpen") await api("/api/setup/open-folder", {});
+  if (el.id === "finish") { await api("/api/setup/profile", { setupDone: true }); location.href = "/"; }
+});
+
+function bindAll() {
+  bindDrop("#ytDrop", "#ytFile", async (f) => {
+    const r = await uploadFile("/api/setup/youtube-secret", f);
+    if (r.error) return msg("#ytMsg", false, esc(r.error));
+    await load(true); bindAll(); msg("#ytMsg", true, t().s3.secretOk);
+  });
+  bindDrop("#vDrop", "#vFile", async (f) => {
+    const r = await uploadFile("/api/setup/hosting-file", f);
+    msg("#vMsg", !r.error && r.ok, r.error ? esc(r.error) : r.ok ? `✓ <a href="${r.url}" target="_blank">${esc(r.url)}</a> — Verify ✓` : `${esc(r.url)} → HTTP ${r.status}`);
+  });
+}
+
+(async () => {
+  sessionStorage.setItem("skipSetup", "1"); // le dashboard reste accessible pendant l'installation
+  await load(true);
+  bindAll();
+  setInterval(() => { if (!document.hidden) load(false).then(() => { if (!$("#main").contains(document.activeElement)) bindAll(); }); }, 4000);
+})();
+</script>
+</body>
+</html>

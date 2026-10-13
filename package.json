@@ -1,0 +1,36 @@
+{
+  "name": "tiktube-planner",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local motion-design video studio + YouTube & TikTok autopilot for your apps",
+  "scripts": {
+    "start": "node server/index.mjs",
+    "studio": "remotion studio src/index.ts",
+    "audio": "node scripts/gen-all-audio.mjs",
+    "setup": "bash install.sh",
+    "typecheck": "tsc --noEmit",
+    "voice": "node scripts/gen-voice.mjs",
+    "menubar": "bash scripts/install-menubar.sh"
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.530",
+    "@remotion/cli": "4.0.530",
+    "@remotion/google-fonts": "4.0.530",
+    "@remotion/media-utils": "^4.0.530",
+    "@remotion/renderer": "4.0.530",
+    "@remotion/transitions": "^4.0.530",
+    "basic-ftp": "^6.2.3",
+    "express": "^5.2.1",
+    "googleapis": "^182.0.0",
+    "multer": "^2.4.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "remotion": "4.0.530",
+    "ssh2-sftp-client": "^12.1.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.0",
+    "typescript": "^5.8.0"
+  }
+}

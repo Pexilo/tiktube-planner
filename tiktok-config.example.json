@@ -1,0 +1,14 @@
+{
+  "_comment": "Rempli automatiquement par le guide d'installation (http://localhost:4321/setup.html). Copie réelle : data/tiktok-config.json (ignorée par git).",
+  "clientKey": "TON_CLIENT_KEY_SANDBOX",
+  "clientSecret": "TON_CLIENT_SECRET_SANDBOX",
+  "hosting": {
+    "protocol": "ftp",
+    "host": "ftp.monsite.com",
+    "port": 21,
+    "user": "utilisateur-ftp",
+    "password": "",
+    "remoteDir": "/",
+    "publicBaseUrl": "https://monsite.com/tiktok"
+  }
+}

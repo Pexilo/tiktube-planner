@@ -1,0 +1,804 @@
+{
+  "slug": "mrrkit",
+  "name": "MRRKit",
+  "url": "mrrkit.app",
+  "links": [
+    {
+      "label": {
+        "fr": "📲 Télécharger MRRKit",
+        "en": "📲 Download MRRKit"
+      },
+      "url": "https://mrrkit.app/download"
+    },
+    {
+      "label": {
+        "fr": "🌐 Site",
+        "en": "🌐 Website"
+      },
+      "url": "https://mrrkit.app"
+    }
+  ],
+  "platforms": [
+    "iPhone",
+    "iPad",
+    "Apple Watch",
+    "Android",
+    "Garmin"
+  ],
+  "music": "synthwave",
+  "icon": "icon.png",
+  "brand": {
+    "mode": "dark",
+    "bg": "#07060D",
+    "bg2": "#1A1036",
+    "text": "#F4F2FF",
+    "muted": "#A7A3C0",
+    "primary": "#7C5CFF",
+    "secondary": "#FF5C8A",
+    "accent": "#3DA9FC",
+    "heading": "Inter",
+    "body": "Inter",
+    "headingWeight": 800,
+    "tracking": -0.045
+  },
+  "tagline": {
+    "fr": "Ton MRR, toujours sous les yeux.",
+    "en": "Your MRR, always in sight."
+  },
+  "category": {
+    "fr": "Le dashboard revenus des devs indé",
+    "en": "The revenue dashboard for indie makers"
+  },
+  "cta": {
+    "title": {
+      "fr": "Télécharge *MRRKit* gratuitement",
+      "en": "Get *MRRKit* for free"
+    },
+    "sub": {
+      "fr": "iPhone · Apple Watch · Android · Garmin",
+      "en": "iPhone · Apple Watch · Android · Garmin"
+    },
+    "badge": {
+      "fr": "Lien en description",
+      "en": "Link in description"
+    }
+  },
+  "problems": [
+    {
+      "fr": "Rafraîchir Stripe 20 fois par jour",
+      "en": "Refreshing Stripe 20 times a day"
+    },
+    {
+      "fr": "Des revenus éparpillés partout",
+      "en": "Revenue scattered everywhere"
+    },
+    {
+      "fr": "Aucune vue sur ta croissance",
+      "en": "Zero visibility on your growth"
+    }
+  ],
+  "benefits": [
+    {
+      "fr": "Stripe, RevenueCat, Paddle, App Store…",
+      "en": "Stripe, RevenueCat, Paddle, App Store…"
+    },
+    {
+      "fr": "Widgets, Apple Watch & Garmin",
+      "en": "Widgets, Apple Watch & Garmin"
+    },
+    {
+      "fr": "Clés stockées sur ton iPhone",
+      "en": "Keys stay on your iPhone"
+    },
+    {
+      "fr": "Pro à vie, pas d'abonnement",
+      "en": "Lifetime Pro, no subscription"
+    }
+  ],
+  "price": {
+    "fr": "Gratuit · Pro 9,99 € une fois",
+    "en": "Free · Pro €9.99 once"
+  },
+  "features": [
+    {
+      "id": "dashboard",
+      "title": {
+        "fr": "Ton MRR. *Toujours sous les yeux.*",
+        "en": "Your MRR. *Always in sight.*"
+      },
+      "text": {
+        "fr": "MRR, ARR, revenus, abonnés, essais — tous tes projets.",
+        "en": "MRR, ARR, revenue, subscribers, trials — every project."
+      },
+      "stat": {
+        "value": "$9,297",
+        "label": {
+          "fr": "MRR (données démo)",
+          "en": "MRR (demo data)"
+        }
+      },
+      "screens": [
+        {
+          "src": "overview-standard-{lang}.png"
+        }
+      ]
+    },
+    {
+      "id": "sources",
+      "title": {
+        "fr": "Toutes tes sources. *Un seul dashboard.*",
+        "en": "All your sources. *One dashboard.*"
+      },
+      "text": {
+        "fr": "Stripe, RevenueCat, Lemon Squeezy, Paddle, App Store Connect…",
+        "en": "Stripe, RevenueCat, Lemon Squeezy, Paddle, App Store Connect…"
+      },
+      "chip": {
+        "fr": "8 sources",
+        "en": "8 sources"
+      },
+      "screens": [
+        {
+          "src": "overview-obsidian-{lang}.png"
+        }
+      ]
+    },
+    {
+      "id": "alerts",
+      "title": {
+        "fr": "Chaque vente. *En temps réel.*",
+        "en": "Every sale. *In real time.*"
+      },
+      "text": {
+        "fr": "Nouvelle vente, nouvel abonné, palier de MRR : tu le sens.",
+        "en": "New sale, new subscriber, MRR milestone: feel it."
+      },
+      "chip": {
+        "fr": "Notifications",
+        "en": "Notifications"
+      },
+      "screens": [
+        {
+          "src": "alerts-{lang}.png"
+        }
+      ]
+    },
+    {
+      "id": "charts",
+      "title": {
+        "fr": "Projections jusqu'à *3 ans*",
+        "en": "Projections up to *3 years*"
+      },
+      "text": {
+        "fr": "Graphiques interactifs, objectifs et scénarios de croissance.",
+        "en": "Interactive charts, goals and growth scenarios."
+      },
+      "chip": {
+        "fr": "+24 % ce mois",
+        "en": "+24% this month"
+      },
+      "screens": [
+        {
+          "src": "customchart-{lang}.png"
+        },
+        {
+          "src": "detail-{lang}.png"
+        }
+      ]
+    },
+    {
+      "id": "styles",
+      "title": {
+        "fr": "4 styles. *À ton image.*",
+        "en": "4 styles. *Make it yours.*"
+      },
+      "text": {
+        "fr": "Standard, Obsidian, Crystal, Retro.",
+        "en": "Standard, Obsidian, Crystal, Retro."
+      },
+      "screens": [
+        {
+          "src": "overview-crystal-{lang}.png"
+        },
+        {
+          "src": "overview-retro-{lang}.png"
+        }
+      ]
+    },
+    {
+      "id": "share",
+      "title": {
+        "fr": "Partage tes *victoires*",
+        "en": "Share your *wins*"
+      },
+      "text": {
+        "fr": "Des cartes MRR prêtes pour tes stories et X.",
+        "en": "MRR cards ready for stories and X."
+      },
+      "chip": {
+        "fr": "Share Studio",
+        "en": "Share Studio"
+      },
+      "screens": [
+        {
+          "src": "share-crystal-{lang}.png"
+        }
+      ]
+    },
+    {
+      "id": "privacy",
+      "title": {
+        "fr": "Tes clés ne quittent *jamais* ton iPhone",
+        "en": "Your keys *never* leave your phone"
+      },
+      "text": {
+        "fr": "Clés en lecture seule, Keychain, Face ID.",
+        "en": "Read-only keys, Keychain, Face ID."
+      },
+      "chip": {
+        "fr": "Privé par design",
+        "en": "Private by design"
+      },
+      "screens": [
+        {
+          "src": "detail-{lang}.png"
+        }
+      ]
+    }
+  ],
+  "shorts": [
+    {
+      "hook": {
+        "fr": "Arrête de rafraîchir *Stripe*.",
+        "en": "Stop refreshing *Stripe*."
+      },
+      "features": [
+        "dashboard",
+        "alerts",
+        "sources"
+      ],
+      "yt": {
+        "title": {
+          "fr": "Arrête de rafraîchir Stripe 🙃 #shorts",
+          "en": "Stop refreshing Stripe 🙃 #shorts"
+        }
+      }
+    },
+    {
+      "hook": {
+        "fr": "Combien tu gagnes *ce mois-ci* ?",
+        "en": "How much are you making *this month*?"
+      },
+      "features": [
+        "dashboard",
+        "charts",
+        "share"
+      ],
+      "yt": {
+        "title": {
+          "fr": "Ton MRR en un coup d'œil 📈 #shorts",
+          "en": "Your MRR at a glance 📈 #shorts"
+        }
+      }
+    },
+    {
+      "hook": {
+        "fr": "Indie hacker ? Il te faut *ça*.",
+        "en": "Indie maker? You need *this*."
+      },
+      "features": [
+        "sources",
+        "alerts",
+        "styles"
+      ],
+      "yt": {
+        "title": {
+          "fr": "L'app indispensable des indie hackers 🚀 #shorts",
+          "en": "The must-have app for indie makers 🚀 #shorts"
+        }
+      }
+    },
+    {
+      "hook": {
+        "fr": "Tes clés API chez un inconnu ? *Non.*",
+        "en": "Your API keys on someone's server? *No.*"
+      },
+      "features": [
+        "privacy",
+        "dashboard",
+        "styles"
+      ],
+      "yt": {
+        "title": {
+          "fr": "Suis ton MRR sans donner tes clés 🔒 #shorts",
+          "en": "Track your MRR without giving away your keys 🔒 #shorts"
+        }
+      }
+    },
+    {
+      "hook": {
+        "fr": "Ton MRR *dans 3 ans* ?",
+        "en": "Your MRR *in 3 years*?"
+      },
+      "features": [
+        "charts",
+        "dashboard",
+        "share"
+      ],
+      "yt": {
+        "title": {
+          "fr": "Projette ton MRR sur 3 ans 🔮 #shorts",
+          "en": "Project your MRR 3 years out 🔮 #shorts"
+        }
+      }
+    }
+  ],
+  "long": {
+    "hook": [
+      {
+        "fr": "Stripe. RevenueCat. App Store.",
+        "en": "Stripe. RevenueCat. App Store."
+      },
+      {
+        "fr": "10 onglets pour voir *ton MRR*.",
+        "en": "10 tabs just to see *your MRR*."
+      },
+      {
+        "fr": "Il y a *mieux*.",
+        "en": "There's a *better way*."
+      }
+    ],
+    "features": [
+      "dashboard",
+      "sources",
+      "alerts",
+      "charts",
+      "styles",
+      "share"
+    ],
+    "yt": {
+      "title": {
+        "fr": "MRRKit : ton MRR Stripe & RevenueCat en widgets sur iPhone, Apple Watch et Garmin",
+        "en": "MRRKit: your Stripe & RevenueCat MRR in widgets on iPhone, Apple Watch and Garmin"
+      }
+    }
+  },
+  "description": {
+    "fr": "MRRKit réunit le MRR, l'ARR, les revenus et les abonnés de tous tes projets (Stripe, RevenueCat, Lemon Squeezy, Paddle, Polar, Gumroad, App Store Connect, Google Play) dans un dashboard et des widgets, sur iPhone, iPad, Apple Watch, Android et Garmin. Notifications à chaque vente, projections sur 3 ans, clés en lecture seule stockées sur ton iPhone. Gratuit, Pro 9,99 € une fois. (Chiffres affichés = données de démo.)",
+    "en": "MRRKit brings MRR, ARR, revenue and subscribers from all your projects (Stripe, RevenueCat, Lemon Squeezy, Paddle, Polar, Gumroad, App Store Connect, Google Play) into one dashboard and widgets, on iPhone, iPad, Apple Watch, Android and Garmin. Notifications for every sale, 3-year projections, read-only keys stored on your iPhone. Free, Pro €9.99 once. (Figures shown are demo data.)"
+  },
+  "tags": [
+    "mrrkit",
+    "mrr",
+    "indie hacker",
+    "stripe",
+    "revenuecat",
+    "saas metrics",
+    "ios widgets",
+    "apple watch",
+    "build in public",
+    "indie developer"
+  ],
+  "seo": {
+    "category": "28",
+    "keywords": {
+      "fr": [
+        "mrrkit",
+        "mrr",
+        "suivre son mrr",
+        "dashboard stripe",
+        "revenuecat",
+        "widget stripe iphone",
+        "indie hacker",
+        "saas",
+        "revenus récurrents",
+        "build in public",
+        "développeur indépendant",
+        "app apple watch"
+      ],
+      "en": [
+        "mrrkit",
+        "mrr",
+        "mrr tracker",
+        "stripe dashboard",
+        "revenuecat",
+        "stripe widget iphone",
+        "indie hacker",
+        "saas metrics",
+        "monthly recurring revenue",
+        "build in public",
+        "indie developer",
+        "apple watch app"
+      ]
+    },
+    "hashtags": {
+      "fr": [
+        "indiehacker",
+        "saas"
+      ],
+      "en": [
+        "indiehacker",
+        "buildinpublic"
+      ]
+    }
+  },
+  "musicPool": [
+    "synthwave",
+    "futurebass",
+    "lofi"
+  ],
+  "stories": [
+    {
+      "hook": {
+        "fr": "Tu rafraîchis encore *Stripe* ?",
+        "en": "Still refreshing *Stripe*?"
+      },
+      "features": [
+        "dashboard",
+        "sources",
+        "alerts"
+      ],
+      "narration": {
+        "fr": [
+          "Tu rafraîchis encore Stripe vingt fois par jour ?",
+          "MRRKit affiche ton MRR sur ton iPhone, en widget et sur ta montre.",
+          "Stripe, RevenueCat, Paddle, App Store : tout est réuni.",
+          "Et tu reçois une notification à chaque nouvelle vente.",
+          "MRRKit est gratuit. Le lien est en description."
+        ],
+        "en": [
+          "Still refreshing Stripe twenty times a day?",
+          "MRRKit puts your MRR on your iPhone, in widgets and on your watch.",
+          "Stripe, RevenueCat, Paddle, App Store: all in one place.",
+          "And you get a notification for every new sale.",
+          "MRRKit is free. Link in the description."
+        ]
+      },
+      "yt": {
+        "title": {
+          "fr": "Ton MRR Stripe en widget sur iPhone 📈 #shorts",
+          "en": "Your Stripe MRR as an iPhone widget 📈 #shorts"
+        }
+      }
+    },
+    {
+      "hook": {
+        "fr": "Ton SaaS *dans trois ans* ?",
+        "en": "Your SaaS *in three years*?"
+      },
+      "features": [
+        "charts",
+        "privacy",
+        "share"
+      ],
+      "narration": {
+        "fr": [
+          "Combien vaudra ton SaaS dans trois ans ?",
+          "MRRKit projette ta croissance avec des scénarios réalistes.",
+          "Tes clés restent sur ton iPhone, jamais sur un serveur.",
+          "Et tu partages tes victoires en un tap, sur X ou en story.",
+          "Télécharge MRRKit gratuitement."
+        ],
+        "en": [
+          "What will your SaaS be worth in three years?",
+          "MRRKit projects your growth with realistic scenarios.",
+          "Your keys stay on your iPhone, never on a server.",
+          "And you share your wins in one tap, on X or in your stories.",
+          "Download MRRKit for free."
+        ]
+      },
+      "yt": {
+        "title": {
+          "fr": "Projeter la croissance de ton SaaS 🔮 #shorts",
+          "en": "Project your SaaS growth 🔮 #shorts"
+        }
+      }
+    }
+  ],
+  "keynote": {
+    "musicPool": [
+      "ambient",
+      "chill",
+      "piano"
+    ],
+    "details": [
+      {
+        "id": "mrr",
+        "src": "overview-standard-{lang}.png",
+        "rect": [
+          0.06,
+          0.31,
+          0.6,
+          0.13
+        ],
+        "label": {
+          "fr": "MRR",
+          "en": "MRR"
+        },
+        "title": {
+          "fr": "Ton MRR, en grand",
+          "en": "Your MRR, front and center"
+        },
+        "text": {
+          "fr": "Avec l'évolution sur 90 jours.",
+          "en": "With your 90-day trend."
+        },
+        "aspect": 2.1741
+      },
+      {
+        "id": "overview",
+        "src": "overview-standard-{lang}.png",
+        "rect": [
+          0.03,
+          0.23,
+          0.94,
+          0.55
+        ],
+        "label": {
+          "fr": "Tableau de bord",
+          "en": "Dashboard"
+        },
+        "title": {
+          "fr": "MRR, ARR, revenus, abonnés",
+          "en": "MRR, ARR, revenue, subscribers"
+        },
+        "text": {
+          "fr": "Un onglet par métrique.",
+          "en": "One tab per metric."
+        },
+        "aspect": 2.1741
+      },
+      {
+        "id": "chart",
+        "src": "customchart-{lang}.png",
+        "rect": [
+          0.03,
+          0.38,
+          0.94,
+          0.45
+        ],
+        "label": {
+          "fr": "Graphique",
+          "en": "Chart"
+        },
+        "title": {
+          "fr": "Toutes tes courbes, superposées",
+          "en": "All your curves, layered"
+        },
+        "text": {
+          "fr": "Chaque courbe a sa propre échelle.",
+          "en": "Each line has its own scale."
+        },
+        "aspect": 2.1741
+      },
+      {
+        "id": "project",
+        "src": "detail-{lang}.png",
+        "rect": [
+          0.1,
+          0.13,
+          0.8,
+          0.24
+        ],
+        "label": {
+          "fr": "Projet",
+          "en": "Project"
+        },
+        "title": {
+          "fr": "Chaque projet a son identité",
+          "en": "Every project has its identity"
+        },
+        "text": {
+          "fr": "Logo, couleurs, tagline… remplis par l'IA.",
+          "en": "Logo, colors, tagline… filled in by AI."
+        },
+        "aspect": 2.1741
+      },
+      {
+        "id": "alerts",
+        "src": "alerts-{lang}.png",
+        "rect": [
+          0.03,
+          0.32,
+          0.94,
+          0.18
+        ],
+        "label": {
+          "fr": "Notifications",
+          "en": "Notifications"
+        },
+        "title": {
+          "fr": "Tu choisis ce qui te notifie",
+          "en": "You choose what pings you"
+        },
+        "text": {
+          "fr": "Nouvelle vente, nouvel abonné, baisse de MRR.",
+          "en": "New sale, new subscriber, MRR drop."
+        },
+        "aspect": 2.1727
+      },
+      {
+        "id": "milestones",
+        "src": "alerts-{lang}.png",
+        "rect": [
+          0.03,
+          0.6,
+          0.94,
+          0.18
+        ],
+        "label": {
+          "fr": "Paliers",
+          "en": "Milestones"
+        },
+        "title": {
+          "fr": "Fête chaque palier",
+          "en": "Celebrate every milestone"
+        },
+        "text": {
+          "fr": "500 €, 1 000 €, 10 k€… jusqu'à 100 k€.",
+          "en": "€500, €1,000, €10k… all the way to €100k."
+        },
+        "aspect": 2.1727
+      },
+      {
+        "id": "share",
+        "src": "share-crystal-{lang}.png",
+        "rect": [
+          0.25,
+          0.15,
+          0.5,
+          0.37
+        ],
+        "label": {
+          "fr": "Share Studio",
+          "en": "Share Studio"
+        },
+        "title": {
+          "fr": "Une carte prête à partager",
+          "en": "A card ready to share"
+        },
+        "text": {
+          "fr": "Story, carré ou format X.",
+          "en": "Story, square or X format."
+        },
+        "aspect": 2.1741
+      },
+      {
+        "id": "widget",
+        "src": "widget-large-{lang}.png",
+        "rect": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "label": {
+          "fr": "Widget",
+          "en": "Widget"
+        },
+        "title": {
+          "fr": "Ton MRR sur l'écran d'accueil",
+          "en": "Your MRR on your Home Screen"
+        },
+        "text": {
+          "fr": "Petit, moyen ou grand.",
+          "en": "Small, medium or large."
+        },
+        "device": "plain",
+        "aspect": 0.4722
+      },
+      {
+        "id": "watch",
+        "src": "watch-{lang}.png",
+        "rect": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "label": {
+          "fr": "Apple Watch",
+          "en": "Apple Watch"
+        },
+        "title": {
+          "fr": "Et au poignet",
+          "en": "And on your wrist"
+        },
+        "text": {
+          "fr": "Complications et Smart Stack.",
+          "en": "Complications and Smart Stack."
+        },
+        "device": "plain",
+        "aspect": 1.1923
+      },
+      {
+        "id": "lock",
+        "src": "widget-lock-{lang}.png",
+        "rect": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "label": {
+          "fr": "Écran verrouillé",
+          "en": "Lock Screen"
+        },
+        "title": {
+          "fr": "Même sur l'écran verrouillé",
+          "en": "Even on the Lock Screen"
+        },
+        "text": {
+          "fr": "Un coup d'œil suffit.",
+          "en": "One glance is enough."
+        },
+        "device": "plain",
+        "aspect": 0.8043
+      }
+    ],
+    "videos": [
+      {
+        "format": "short",
+        "intro": {
+          "fr": "Ton MRR, *partout*.",
+          "en": "Your MRR, *everywhere*."
+        },
+        "details": [
+          "mrr",
+          "widget",
+          "lock",
+          "watch"
+        ],
+        "yt": {
+          "title": {
+            "fr": "MRRKit en détail : ton MRR partout sur ton iPhone 📱 #shorts",
+            "en": "MRRKit up close: your MRR everywhere on your iPhone 📱 #shorts"
+          }
+        }
+      },
+      {
+        "format": "short",
+        "intro": {
+          "fr": "Chaque vente, *chaque palier*.",
+          "en": "Every sale, *every milestone*."
+        },
+        "details": [
+          "chart",
+          "alerts",
+          "milestones",
+          "share"
+        ],
+        "yt": {
+          "title": {
+            "fr": "Notifications de ventes et paliers de MRR 🔔 #shorts",
+            "en": "Sales notifications and MRR milestones 🔔 #shorts"
+          }
+        }
+      },
+      {
+        "format": "long",
+        "intro": {
+          "fr": "MRRKit, *pièce par pièce*.",
+          "en": "MRRKit, *piece by piece*."
+        },
+        "details": [
+          "overview",
+          "mrr",
+          "chart",
+          "project",
+          "alerts",
+          "milestones",
+          "share",
+          "widget",
+          "watch"
+        ],
+        "yt": {
+          "title": {
+            "fr": "MRRKit : visite guidée du dashboard MRR pour indie hackers",
+            "en": "MRRKit: a guided tour of the MRR dashboard for indie makers"
+          }
+        }
+      }
+    ]
+  }
+}

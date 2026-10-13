@@ -1,0 +1,14 @@
+node_modules/
+out/
+data/
+.venv/
+.DS_Store
+client_secret*.json
+content/profile.json
+content/external.json
+content/voices.json
+public/audio/
+public/voice/
+tools/ocr
+
+# Toutes tes clés et jetons vivent dans data/ : ne jamais retirer cette ligne.

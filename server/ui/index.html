@@ -1,0 +1,1099 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Studio</title>
+<script>try { const t = localStorage.getItem("theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  /* ---------------------------------------------------------------- Thèmes */
+  :root {
+    color-scheme: light;
+    --bg: #f5f5f7; --surface: #ffffff; --surface2: #f2f2f5; --hover: #ebebf0; --line: #e5e5ea; --line2: #d6d6de;
+    --text: #111116; --muted: #6b6b76; --faint: #9c9ca7;
+    --accent: #5b4cff; --accent-text: #fff;
+    --shadow: 0 1px 2px rgba(17,17,22,.04), 0 6px 24px rgba(17,17,22,.05);
+    --shadow-lg: 0 24px 64px rgba(17,17,22,.18);
+    --c-todo: #8a8a96; --c-ready: #2563eb; --c-sched: #7c3aed; --c-pub: #16a34a; --c-work: #d97706; --c-err: #dc2626;
+    --yt: #ff0033; --tt: #111116;
+    --track: #ececf1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #09090b; --surface: #131316; --surface2: #1b1b20; --hover: #222228; --line: #24242a; --line2: #33333b;
+      --text: #f4f4f6; --muted: #9a9aa6; --faint: #6c6c78;
+      --accent: #7c6cff; --accent-text: #fff;
+      --shadow: 0 1px 0 rgba(255,255,255,.03) inset, 0 8px 28px rgba(0,0,0,.35);
+      --shadow-lg: 0 24px 64px rgba(0,0,0,.6);
+      --c-todo: #8b8b97; --c-ready: #60a5fa; --c-sched: #a78bfa; --c-pub: #4ade80; --c-work: #fbbf24; --c-err: #f87171;
+      --tt: #f4f4f6; --track: #232329;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #09090b; --surface: #131316; --surface2: #1b1b20; --hover: #222228; --line: #24242a; --line2: #33333b;
+    --text: #f4f4f6; --muted: #9a9aa6; --faint: #6c6c78;
+    --accent: #7c6cff; --accent-text: #fff;
+    --shadow: 0 1px 0 rgba(255,255,255,.03) inset, 0 8px 28px rgba(0,0,0,.35);
+    --shadow-lg: 0 24px 64px rgba(0,0,0,.6);
+    --c-todo: #8b8b97; --c-ready: #60a5fa; --c-sched: #a78bfa; --c-pub: #4ade80; --c-work: #fbbf24; --c-err: #f87171;
+    --tt: #f4f4f6; --track: #232329;
+  }
+
+  /* ---------------------------------------------------------------- Base */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--text); font: 14px/1.5 Inter, system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; text-decoration: none; }
+  svg.i { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  [hidden] { display: none !important; }
+  input, select, textarea { background: var(--surface); border: 1px solid var(--line2); color: var(--text); border-radius: 9px; padding: 7px 10px; font: inherit; outline: none; }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+  input[type="checkbox"] { accent-color: var(--accent); }
+
+  /* ---------------------------------------------------------------- Layout */
+  .app { display: grid; grid-template-columns: 236px minmax(0, 1fr); min-height: 100vh; }
+  aside { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 4px; padding: 18px 12px; border-right: 1px solid var(--line); background: var(--surface); }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 18px; font-weight: 800; font-size: 15px; letter-spacing: -.01em; }
+  .brand .logo { width: 30px; height: 30px; border-radius: 9px; background: linear-gradient(135deg, #ff1f4b, #7c5cff); display: grid; place-items: center; color: #fff; }
+  .brand small { display: block; font-weight: 500; color: var(--muted); font-size: 11.5px; letter-spacing: 0; }
+  .nav a { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 9px; color: var(--muted); font-weight: 600; cursor: pointer; }
+  .nav a:hover { background: var(--hover); color: var(--text); }
+  .nav a.on { background: var(--surface2); color: var(--text); box-shadow: inset 0 0 0 1px var(--line); }
+  .nav a .n { margin-left: auto; font-size: 11.5px; font-weight: 700; color: var(--muted); background: var(--surface2); padding: 1px 7px; border-radius: 99px; }
+  .nav a.on .n { background: var(--surface); }
+  .side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
+  .conn { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 10px; background: var(--surface2); font-size: 12.5px; font-weight: 600; }
+  .conn img { width: 22px; height: 22px; border-radius: 50%; }
+  .conn .st { margin-left: auto; width: 8px; height: 8px; border-radius: 50%; background: var(--c-pub); }
+  .conn .st.off { background: var(--c-todo); }
+  .conn .lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .side-row { display: flex; gap: 6px; }
+  main { padding: 28px 36px 120px; min-width: 0; max-width: 1480px; width: 100%; }
+  .page-head { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
+  .page-head h1 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -.025em; }
+  .page-head p { margin: 4px 0 0; color: var(--muted); }
+  .spacer { flex: 1; }
+
+  /* ---------------------------------------------------------------- Composants */
+  .btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 13px; border-radius: 9px; border: 1px solid var(--line2); background: var(--surface); color: var(--text); font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background .12s, border-color .12s; }
+  .btn:hover { background: var(--hover); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .btn.yt { background: var(--yt); border-color: var(--yt); color: #fff; }
+  .btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+  .btn.ghost:hover { background: var(--hover); color: var(--text); }
+  .btn.sm { padding: 5px 9px; font-size: 12.5px; border-radius: 8px; gap: 5px; }
+  .btn.icon { padding: 6px; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
+  .card.pad { padding: 18px 20px; }
+  .card-h { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .card-h h3 { margin: 0; font-size: 14px; font-weight: 700; }
+  .card-h .sub { color: var(--muted); font-size: 12.5px; }
+  .muted { color: var(--muted); }
+  .note { color: var(--muted); font-size: 12.5px; line-height: 1.55; }
+  code { background: var(--surface2); border: 1px solid var(--line); padding: 1px 6px; border-radius: 6px; font-size: 12px; }
+  .chip { --c: var(--c-todo); display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px 2px 7px; border-radius: 99px; font-size: 11.5px; font-weight: 700; white-space: nowrap; color: var(--c); background: color-mix(in srgb, var(--c) 13%, transparent); }
+  .chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--c); }
+  .chip.plain::before { display: none; }
+  .chip.plain { padding: 2px 8px; }
+  .chip.todo { --c: var(--c-todo); } .chip.ready { --c: var(--c-ready); } .chip.sched { --c: var(--c-sched); } .chip.pub { --c: var(--c-pub); } .chip.work { --c: var(--c-work); } .chip.err { --c: var(--c-err); }
+  .chip.work::before { animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: .25; } }
+  .tag { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 6px; font-size: 11px; font-weight: 700; color: var(--muted); background: var(--surface2); border: 1px solid var(--line); white-space: nowrap; }
+  .seg { display: inline-flex; background: var(--surface2); border: 1px solid var(--line); border-radius: 10px; padding: 3px; gap: 2px; flex-wrap: wrap; }
+  .seg button { border: 0; background: none; color: var(--muted); font: inherit; font-weight: 600; font-size: 13px; padding: 5px 11px; border-radius: 7px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .seg button .n { font-size: 11px; color: var(--faint); font-weight: 700; }
+  .seg button.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .seg button.on .n { color: var(--muted); }
+  .alert { display: flex; gap: 10px; align-items: flex-start; border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; font-size: 13px; line-height: 1.5; border: 1px solid color-mix(in srgb, var(--c-work) 35%, transparent); background: color-mix(in srgb, var(--c-work) 9%, var(--surface)); }
+  .alert.red { border-color: color-mix(in srgb, var(--c-err) 35%, transparent); background: color-mix(in srgb, var(--c-err) 8%, var(--surface)); }
+  .alert svg { color: var(--c-work); margin-top: 2px; } .alert.red svg { color: var(--c-err); }
+  .bar { height: 8px; border-radius: 99px; background: var(--track); overflow: hidden; display: flex; }
+  .bar > i { display: block; height: 100%; transition: width .5s ease; }
+  .bar.lg { height: 10px; }
+  .bar.thin { height: 6px; }
+  .live { width: 8px; height: 8px; border-radius: 50%; background: var(--c-pub); box-shadow: 0 0 0 0 color-mix(in srgb, var(--c-pub) 60%, transparent); animation: pulse 1.8s infinite; flex: none; }
+  .live.off { background: var(--c-todo); animation: none; }
+  @keyframes pulse { 70% { box-shadow: 0 0 0 9px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+  .spin { width: 12px; height: 12px; border: 2px solid color-mix(in srgb, currentColor 25%, transparent); border-top-color: currentColor; border-radius: 50%; animation: sp .8s linear infinite; flex: none; }
+  @keyframes sp { to { transform: rotate(360deg); } }
+  .appic { width: 22px; height: 22px; border-radius: 6px; flex: none; }
+  .empty { text-align: center; padding: 34px 12px; color: var(--muted); }
+  .empty b { display: block; color: var(--text); font-size: 15px; margin-bottom: 4px; }
+  .toggle { position: relative; width: 40px; height: 23px; background: var(--line2); border-radius: 99px; cursor: pointer; flex: none; transition: background .15s; }
+  .toggle.on { background: var(--c-pub); }
+  .toggle::after { content: ""; position: absolute; top: 2.5px; left: 2.5px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: left .15s; }
+  .toggle.on::after { left: 19.5px; }
+
+  /* ---------------------------------------------------------------- Aujourd'hui */
+  .hero { display: flex; gap: 14px; align-items: center; margin-bottom: 18px; padding: 16px 18px; }
+  .hero .ic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: color-mix(in srgb, var(--c-pub) 14%, transparent); color: var(--c-pub); flex: none; }
+  .hero.warn .ic { background: color-mix(in srgb, var(--c-work) 14%, transparent); color: var(--c-work); }
+  .hero b { font-size: 15px; }
+  .pipe { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .pipe .stage { padding: 16px 18px; cursor: pointer; position: relative; transition: transform .12s, border-color .12s; }
+  .pipe .stage:hover { border-color: var(--line2); transform: translateY(-1px); }
+  .pipe .stage .top { display: flex; align-items: center; gap: 8px; color: var(--muted); font-weight: 600; font-size: 13px; }
+  .pipe .stage .dot { width: 9px; height: 9px; border-radius: 3px; }
+  .pipe .stage .num { font-size: 32px; font-weight: 800; letter-spacing: -.03em; margin: 6px 0 2px; line-height: 1.1; }
+  .pipe .stage .desc { font-size: 12.5px; color: var(--muted); }
+  .pipe .stage .arrow { position: absolute; right: -11px; top: 50%; width: 20px; height: 20px; margin-top: -10px; border-radius: 50%; background: var(--bg); border: 1px solid var(--line); display: grid; place-items: center; color: var(--faint); z-index: 1; }
+  .pipe .stage .arrow svg { width: 12px; height: 12px; }
+  .overview { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .job { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+  .job img { width: 44px; height: 44px; border-radius: 11px; }
+  .job .t { font-weight: 700; }
+  .steps { display: flex; gap: 5px; flex-wrap: wrap; margin: 10px 0 12px; }
+  .step { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 99px; font-size: 12px; font-weight: 600; color: var(--faint); background: var(--surface2); }
+  .step.done { color: var(--c-pub); background: color-mix(in srgb, var(--c-pub) 11%, transparent); }
+  .step.act { color: var(--accent); background: color-mix(in srgb, var(--accent) 13%, transparent); }
+  .prow { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; color: var(--muted); margin-top: 7px; }
+  .row-item { display: flex; align-items: center; gap: 11px; padding: 9px 4px; border-top: 1px solid var(--line); min-width: 0; }
+  .row-item:first-child { border-top: 0; }
+  .row-item .tt { min-width: 0; flex: 1; }
+  .row-item .tt b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row-item .tt span { font-size: 12px; color: var(--muted); }
+  .row-item .when { text-align: right; font-size: 12.5px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .row-item .when b { display: block; color: var(--text); font-weight: 600; }
+  .mini { width: 34px; height: 34px; border-radius: 9px; object-fit: cover; background: var(--surface2); flex: none; }
+  .plat { width: 20px; height: 20px; border-radius: 6px; display: grid; place-items: center; flex: none; color: #fff; }
+  .plat svg { width: 12px; height: 12px; }
+  .plat.yt { background: var(--yt); } .plat.tt { background: #111116; box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); }
+  .approw { display: grid; grid-template-columns: 22px 104px minmax(0, 1fr) 46px; gap: 10px; align-items: center; padding: 6px 0; font-size: 13px; }
+  .approw span:last-child { text-align: right; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 12px; }
+  .legend span { display: inline-flex; gap: 6px; align-items: center; }
+  .legend i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+  .ev { display: flex; gap: 10px; padding: 6px 0; font-size: 12.5px; border-top: 1px solid var(--line); }
+  .ev:first-child { border-top: 0; }
+  .ev .t { color: var(--faint); width: 42px; flex: none; font-variant-numeric: tabular-nums; }
+  .ev.error { color: var(--c-err); }
+
+  /* ---------------------------------------------------------------- Calendrier */
+  .strip { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 6px; margin-bottom: 18px; }
+  .strip .d { padding: 9px 4px 10px; border-radius: 12px; text-align: center; cursor: pointer; border: 1px solid var(--line); background: var(--surface); }
+  .strip .d:hover { border-color: var(--line2); }
+  .strip .d.today { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .strip .d small { display: block; color: var(--muted); font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .strip .d b { display: block; font-size: 17px; font-weight: 800; margin: 1px 0 5px; }
+  .strip .d .dots { display: flex; gap: 3px; justify-content: center; flex-wrap: wrap; min-height: 7px; padding: 0 4px; }
+  .strip .d .dots i { width: 7px; height: 7px; border-radius: 50%; }
+  .day { margin-bottom: 18px; scroll-margin-top: 20px; }
+  .day-h { display: flex; align-items: baseline; gap: 10px; margin: 0 0 8px 2px; }
+  .day-h b { font-size: 14px; }
+  .day-h span { color: var(--muted); font-size: 12.5px; }
+  .day.past { opacity: .82; }
+  .ev-row { display: grid; grid-template-columns: 52px 20px 44px minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 10px 14px; border-top: 1px solid var(--line); }
+  .ev-row:first-child { border-top: 0; }
+  .ev-row .time { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .ev-row .th { width: 44px; height: 44px; border-radius: 9px; object-fit: cover; background: var(--surface2); }
+  .ev-row .th.v { width: 26px; height: 44px; margin: 0 9px; }
+  .ev-row .th.h { height: 26px; margin: 9px 0; }
+  .ev-row .tt { min-width: 0; }
+  .ev-row .tt b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ev-row .tt .s { display: flex; gap: 6px; align-items: center; color: var(--muted); font-size: 12px; margin-top: 2px; flex-wrap: wrap; }
+  .ev-row .acts { display: flex; gap: 4px; justify-content: flex-end; }
+  .ev-row input[type="datetime-local"] { padding: 4px 7px; font-size: 12.5px; }
+
+  /* ---------------------------------------------------------------- Bibliothèque */
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+  .appchips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .appchips button { display: inline-flex; align-items: center; gap: 7px; padding: 4px 11px 4px 4px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); font: inherit; font-weight: 600; font-size: 13px; cursor: pointer; }
+  .appchips button img { width: 22px; height: 22px; border-radius: 6px; }
+  .appchips button.on { color: var(--text); border-color: var(--c); box-shadow: 0 0 0 1px var(--c) inset; }
+  .appchips button.all { padding-left: 11px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(208px, 1fr)); gap: 14px; }
+  .vc { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--shadow); transition: border-color .12s; }
+  .vc:hover { border-color: var(--line2); }
+  .vc.sel { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+  .vc .th { position: relative; aspect-ratio: 9/16; background: #0b0b0e; cursor: pointer; overflow: hidden; display: grid; place-items: center; }
+  .vc.wide .th { aspect-ratio: 16/9; }
+  .vc .th img.cover { width: 100%; height: 100%; object-fit: cover; }
+  .vc .th .ph { text-align: center; color: rgba(255,255,255,.75); font-size: 12px; font-weight: 600; }
+  .vc .th .ph img { width: 48px; height: 48px; border-radius: 12px; display: block; margin: 0 auto 8px; }
+  .vc .th .tl { position: absolute; top: 8px; left: 8px; right: 8px; display: flex; gap: 5px; align-items: center; }
+  .vc .th .tl .chip { backdrop-filter: blur(8px); background: color-mix(in srgb, var(--c) 22%, rgba(10,10,12,.72)); color: #fff; }
+  .vc .th .tl .chip::before { background: color-mix(in srgb, var(--c) 70%, #fff); }
+  .vc .th .lang { margin-left: auto; font-size: 10.5px; font-weight: 800; padding: 2px 6px; border-radius: 6px; background: rgba(10,10,12,.6); color: #fff; backdrop-filter: blur(8px); }
+  .vc .th .play { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,.3); opacity: 0; transition: opacity .15s; color: #fff; }
+  .vc .th .play svg { width: 44px; height: 44px; fill: rgba(255,255,255,.95); stroke: none; }
+  .vc .th:hover .play { opacity: 1; }
+  .vc .th .chk { position: absolute; bottom: 8px; left: 8px; width: 20px; height: 20px; opacity: 0; transition: opacity .12s; }
+  .vc:hover .chk, .vc.sel .chk, .grid.selecting .chk { opacity: 1; }
+  .vc .th .prog { position: absolute; left: 0; bottom: 0; height: 4px; background: var(--c-work); transition: width .5s; }
+  .vc .body { padding: 11px 12px 12px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .vc .app { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); font-weight: 600; }
+  .vc .app img { width: 18px; height: 18px; border-radius: 5px; }
+  .vc .app .tag { margin-left: auto; }
+  .vc .title { font-weight: 650; font-size: 13.5px; line-height: 1.32; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .vc .date { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 5px; }
+  .vc .date svg { width: 13px; height: 13px; }
+  .vc .errtxt { font-size: 12px; color: var(--c-err); }
+  .vc .acts { display: flex; gap: 5px; margin-top: auto; padding-top: 4px; flex-wrap: wrap; }
+  .bulk { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 16px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line2); box-shadow: var(--shadow-lg); z-index: 30; font-weight: 600; }
+
+  /* ---------------------------------------------------------------- TikTok */
+  .ttbar { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; margin-bottom: 16px; }
+  .drop { border: 1.5px dashed var(--line2); border-radius: 16px; padding: 22px; display: flex; gap: 16px; align-items: center; cursor: pointer; background: var(--surface); transition: .15s; }
+  .drop:hover, .drop.over, .imgdrop.over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--surface)); }
+  .drop .ic { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 13%, transparent); color: var(--accent); flex: none; }
+  .drop .ic svg { width: 22px; height: 22px; }
+  .drop b { display: block; font-size: 14.5px; }
+  .ttactions { display: flex; flex-direction: column; gap: 8px; padding: 14px; }
+  .ttactions .r { display: flex; gap: 6px; align-items: center; }
+  .ttactions .r > select, .ttactions .r > input { flex: 1; min-width: 0; }
+  .ttlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 14px; }
+  .ttcard { padding: 14px; display: flex; flex-direction: column; gap: 9px; }
+  .ttcard .row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .ttcard input[type="text"], .ttcard textarea { width: 100%; }
+  .ttcard textarea { min-height: 92px; resize: vertical; }
+  .count { color: var(--faint); font-size: 11px; text-align: right; margin-top: -5px; }
+  .count.over { color: var(--c-err); }
+  .imgs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .imgs .im { position: relative; width: 60px; height: 104px; border-radius: 8px; overflow: hidden; background: #000; }
+  .imgs .im img { width: 100%; height: 100%; object-fit: cover; }
+  .imgs .im button { position: absolute; top: 3px; right: 3px; width: 19px; height: 19px; border-radius: 50%; border: 0; background: rgba(0,0,0,.7); color: #fff; cursor: pointer; font-size: 12px; line-height: 19px; padding: 0; }
+  .imgs .im .n { position: absolute; left: 4px; bottom: 3px; font-size: 10px; font-weight: 800; color: #fff; text-shadow: 0 1px 3px #000; }
+  .imgdrop { width: 60px; height: 104px; border: 1.5px dashed var(--line2); border-radius: 8px; display: grid; place-items: center; color: var(--muted); font-size: 11px; text-align: center; cursor: pointer; padding: 4px; }
+  .report { margin-bottom: 16px; }
+  .ttcard.done { opacity: .5; filter: grayscale(.7); transition: opacity .15s, filter .15s; }
+  .ttcard.done:hover { opacity: 1; filter: none; }
+  .ttsep { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; margin: 14px 0 2px; color: var(--muted); font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+  .ttsep::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+  /* ---------------------------------------------------------------- Réglages */
+  .settings { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; align-items: start; }
+  .field { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .field:first-of-type { border-top: 0; }
+  .field label { color: var(--muted); }
+
+  /* ---------------------------------------------------------------- Overlays */
+  #dock { position: fixed; right: 20px; bottom: 20px; width: 320px; padding: 14px 16px; z-index: 25; display: none; box-shadow: var(--shadow-lg); }
+  dialog { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 0; max-width: 94vw; max-height: 94vh; color: var(--text); box-shadow: var(--shadow-lg); overflow: hidden; }
+  dialog::backdrop { background: rgba(0,0,0,.7); backdrop-filter: blur(4px); }
+  dialog video { display: block; max-height: 78vh; max-width: 90vw; background: #000; }
+  dialog .dbar { display: flex; gap: 8px; padding: 10px 12px; align-items: center; flex-wrap: wrap; }
+  dialog .dbar b { flex: 1; min-width: 200px; }
+
+  /* ---------------------------------------------------------------- Responsive */
+  @media (max-width: 1100px) { .overview { grid-template-columns: 1fr; } .ttbar { grid-template-columns: 1fr; } .strip { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
+  @media (max-width: 860px) {
+    .app { grid-template-columns: 1fr; }
+    aside { position: sticky; z-index: 20; height: auto; flex-direction: row; align-items: center; padding: 8px 12px; border-right: 0; border-bottom: 1px solid var(--line); overflow-x: auto; }
+    .brand { padding: 0 8px 0 0; } .brand small { display: none; }
+    .nav { display: flex; gap: 2px; } .nav a { padding: 7px 9px; white-space: nowrap; } .nav a .n { display: none; }
+    .side-foot { display: none; }
+    main { padding: 18px 16px 120px; }
+    .pipe { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pipe .stage .arrow { display: none; }
+    .ev-row { grid-template-columns: 46px 20px minmax(0, 1fr) auto; } .ev-row .th, .ev-row .acts { display: none; }
+    .ttlist { grid-template-columns: 1fr; }
+    #dock { left: 16px; right: 16px; width: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand"><span class="logo"><svg class="i" viewBox="0 0 24 24" style="fill:#fff;stroke:none"><path d="M8 5.5v13l10.5-6.5z"/></svg></span><div>Studio<small>YouTube · TikTok</small></div></div>
+    <nav class="nav" id="nav"></nav>
+    <div class="side-foot">
+      <div id="sideConn"></div>
+      <div class="side-row">
+        <button class="btn sm" id="themeBtn" style="flex:1" title="Thème"></button>
+        <button class="btn sm" id="studioBtn" style="flex:1" title="Prévisualiser et ajuster les animations en direct"></button>
+      </div>
+      <a class="btn sm ghost" href="/setup.html" style="justify-content:center">Guide d'installation</a>
+    </div>
+  </aside>
+
+  <main>
+    <div id="alerts"></div>
+
+    <!-- ============================================================ Aujourd'hui -->
+    <section id="tab-today">
+      <div class="page-head"><div><h1 id="hello">Aujourd'hui</h1><p id="todayDate"></p></div></div>
+      <div class="card hero" id="hero"></div>
+      <div class="pipe" id="pipe"></div>
+      <div class="overview">
+        <div class="col">
+          <div class="card pad" id="pNow"></div>
+          <div class="card pad" id="pNext"></div>
+        </div>
+        <div class="col">
+          <div class="card pad" id="pRecent"></div>
+          <div class="card pad" id="pApps"></div>
+          <div class="card pad" id="pAuto"></div>
+          <div class="card pad" id="pLog"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ Calendrier -->
+    <section id="tab-calendar" hidden>
+      <div class="page-head">
+        <div><h1>Calendrier</h1><p>Tout ce qui sort, sur YouTube et TikTok, jour par jour.</p></div>
+        <div class="spacer"></div>
+        <div class="seg" id="calPlat"><button data-v="" class="on">Tout</button><button data-v="yt">YouTube</button><button data-v="tt">TikTok</button></div>
+        <div class="seg" id="calRange"><button data-v="future" class="on">À venir</button><button data-v="past">Déjà publié</button></div>
+        <button class="btn" id="regen" title="Les vidéos déjà envoyées ou dont tu as modifié la date (cadenas) ne bougent pas."><svg class="i" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>Recalculer le planning</button>
+      </div>
+      <div class="strip" id="strip"></div>
+      <div id="agenda"></div>
+    </section>
+
+    <!-- ============================================================ Bibliothèque -->
+    <section id="tab-library" hidden>
+      <div class="page-head">
+        <div><h1>Vidéos</h1><p>Toutes les vidéos du catalogue et où elles en sont.</p></div>
+        <div class="spacer"></div>
+        <button class="btn primary" id="renderAll"><svg class="i" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Rendre tout ce qui manque</button>
+      </div>
+      <div class="toolbar"><div class="seg" id="fStatus"></div></div>
+      <div class="toolbar">
+        <div class="appchips" id="appFilter"></div>
+        <div class="spacer"></div>
+        <input type="search" id="fSearch" placeholder="Rechercher…" style="width:180px" />
+        <select id="fKind"><option value="">Tous formats</option><option value="short">Shorts motion</option><option value="story">Shorts narrés</option><option value="keynote">Série Keynote</option><option value="long">Vidéos 16:9</option><option value="external">Vidéos importées</option></select>
+        <div class="seg" id="fLang"><button data-v="" class="on">FR + EN</button><button data-v="fr">FR</button><button data-v="en">EN</button></div>
+      </div>
+      <div class="grid" id="grid"></div>
+      <div class="bulk" id="bulk" hidden>
+        <span id="bulkN"></span>
+        <button class="btn sm" id="selAll">Tout le filtre</button>
+        <button class="btn sm" id="renderSel">Rendre</button>
+        <button class="btn sm yt" id="uploadSel">Programmer sur YouTube</button>
+        <button class="btn sm ghost" id="selNone">Annuler</button>
+      </div>
+    </section>
+
+    <!-- ============================================================ TikTok -->
+    <section id="tab-tiktok" hidden>
+      <div class="page-head">
+        <div><h1>TikTok</h1><p>Carrousels et vidéos envoyés en brouillon dans ta boîte TikTok, à l'heure prévue.</p></div>
+        <div class="spacer"></div>
+        <div id="ttStatus"></div>
+      </div>
+      <div id="ttAlert"></div>
+      <div class="card pad" id="ttWatch" style="margin-bottom:16px"></div>
+      <div class="ttbar">
+        <label class="drop" id="mdDrop"><input type="file" multiple hidden id="mdInput" />
+          <span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg></span>
+          <span><b>Glisse un dossier, des .md et des images, en vrac</b><span class="note">Je lis le texte des slides, je remets les carrousels dans l'ordre et je les associe à la bonne légende. Rien ne part sans date.</span><br><span id="importProgress" style="font-weight:600"></span></span>
+        </label>
+        <div class="card ttactions">
+          <button class="btn primary" id="ttNewPhoto"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Nouveau carrousel</button>
+          <div class="r"><select id="ttVideoSel"></select><button class="btn" id="ttNewVideo">Ajouter</button></div>
+          <button class="btn" id="ttAuto">${ic("cal")}Programmer tous les brouillons</button>
+          <div class="note" id="ttSlots"></div>
+        </div>
+      </div>
+      <div id="ttReport"></div>
+      <div class="toolbar"><div class="seg" id="ttFilter"></div><span class="spacer"></span><span class="note">Les modifications sont enregistrées automatiquement.</span></div>
+      <div id="ttPosts" class="ttlist"></div>
+    </section>
+
+    <!-- ============================================================ Réglages -->
+    <section id="tab-settings" hidden>
+      <div class="page-head"><div><h1>Réglages</h1><p>Rythme de publication, autopilote et connexions.</p></div></div>
+      <div class="settings">
+        <div class="card pad">
+          <div class="card-h"><h3>Apparence</h3></div>
+          <div class="field"><label>Thème</label><div class="seg" id="themeSeg"><button data-v="system">Auto</button><button data-v="light">Clair</button><button data-v="dark">Sombre</button></div></div>
+        </div>
+        <div class="card pad">
+          <div class="card-h"><h3>Rythme YouTube</h3></div>
+          <div class="field"><label>Début du planning</label><input type="date" data-s="startDate" /></div>
+          <div class="field"><label>Fuseau horaire</label><input data-s="timezone" /></div>
+          <div class="field"><label>Shorts par jour</label><input type="number" min="1" max="4" data-s="shortsPerDay" style="width:80px" /></div>
+          <div class="field"><label>Heure du 1er Short</label><input type="time" data-s="shortTime" /></div>
+          <div class="field"><label>Heure du 2e Short</label><input type="time" data-s="shortTime2" /></div>
+          <div class="field"><label>Jour de la vidéo 16:9</label>
+            <select data-s="longWeekday"><option value="1">Lundi</option><option value="2">Mardi</option><option value="3">Mercredi</option><option value="4">Jeudi</option><option value="5">Vendredi</option><option value="6">Samedi</option><option value="0">Dimanche</option></select></div>
+          <div class="field"><label>Heure de la vidéo 16:9</label><input type="time" data-s="longTime" /></div>
+          <p class="note">Après un changement, clique « Recalculer le planning » dans le Calendrier.</p>
+        </div>
+        <div class="card pad">
+          <div class="card-h"><h3>Autopilote</h3></div>
+          <div class="field"><label>Activé</label><div class="toggle" id="autoToggle"></div></div>
+          <div class="field"><label>Horizon d'envoi (jours)</label><input type="number" min="1" max="90" data-s="uploadHorizonDays" style="width:80px" /></div>
+          <div class="field"><label>Envois max / jour (quota API)</label><input type="number" min="1" max="50" data-s="maxUploadsPerDay" style="width:80px" /></div>
+          <p class="note">Toutes les 10 minutes, tant que la plateforme tourne : rend les vidéos qui sortent dans l'horizon puis les envoie sur YouTube en privé programmé. C'est YouTube qui publie à l'heure prévue, ton Mac peut être éteint à ce moment-là.</p>
+        </div>
+        <div class="card pad"><div class="card-h"><h3>YouTube</h3></div><div id="ytBox"></div></div>
+        <div class="card pad"><div class="card-h"><h3>TikTok</h3></div><div id="ttBox"></div></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="card" id="dock"></div>
+<dialog id="player"><video id="pv" controls autoplay playsinline></video><div class="dbar" id="pbar"></div></dialog>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const api = (url, body, method) => fetch(url, { method: method ?? (body ? "POST" : "GET"), headers: { "content-type": "application/json" }, body: body ? JSON.stringify(body) : undefined }).then((r) => r.json());
+const ttApi = api;
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const bust = (v) => (v.renderedAt ? `?t=${encodeURIComponent(v.renderedAt)}` : "");
+/** N'écrit le HTML que s'il a changé : pas de clignotement, pas de vidéo qui redémarre. */
+const setHTML = (el, html) => { if (el && el._h !== html) { el.innerHTML = html; el._h = html; } };
+
+/* ------------------------------------------------------------------ Icônes */
+const P = {
+  home: '<path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/>',
+  cal: '<rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+  grid: '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
+  tiktok: '<path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5"/><path d="M14 3c.4 2.6 2.2 4.4 5 4.6"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  play: '<path d="M8 5.5v13l10.5-6.5z" style="fill:currentColor;stroke:none"/>',
+  playc: '<path d="M8 5.5v13l10.5-6.5z"/>',
+  bolt: '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+  up: '<path d="M12 19V5M5 12l7-7 7 7"/>',
+  check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  alert: '<path d="M12 3.5 2.5 20h19z"/><path d="M12 10v4.5M12 17.5v.01"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
+  auto: '<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17" /><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" style="fill:currentColor"/>',
+  ext: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+  folder: '<path d="M3.5 7a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/>',
+  copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>',
+  trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>',
+  lock: '<rect x="5" y="11" width="14" height="9.5" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  redo: '<path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>',
+  sliders: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+  send: '<path d="M21 3 10 14M21 3l-7 18-4-7-7-4z"/>',
+  yt: '<path d="M9.5 8.5v7l6-3.5z" style="fill:#fff;stroke:none"/>',
+  sparkle: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/>',
+};
+const ic = (n, extra = "") => `<svg class="i" viewBox="0 0 24 24" ${extra}>${P[n]}</svg>`;
+const platIc = (p) => p === "yt" ? `<span class="plat yt" title="YouTube"><svg class="i" viewBox="0 0 24 24">${P.yt}</svg></span>` : `<span class="plat tt" title="TikTok"><svg class="i" viewBox="0 0 24 24" style="stroke:#fff;stroke-width:2.4">${P.tiktok}</svg></span>`;
+
+/* ------------------------------------------------------------------ Dates */
+const LOCALE = "fr-BE";
+const fmtDate = (iso) => iso ? new Date(iso).toLocaleString(LOCALE, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
+const hhmm = (ts) => new Date(ts).toLocaleTimeString(LOCALE, { hour: "2-digit", minute: "2-digit" });
+const dayKey = (d) => { d = new Date(d); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+const dayLabel = (d) => {
+  const k = dayKey(d), t = dayKey(Date.now());
+  if (k === t) return "Aujourd'hui";
+  if (k === dayKey(Date.now() + 864e5)) return "Demain";
+  if (k === dayKey(Date.now() - 864e5)) return "Hier";
+  const s = new Date(d).toLocaleDateString(LOCALE, { weekday: "long", day: "numeric", month: "long" });
+  return s[0].toUpperCase() + s.slice(1);
+};
+const rel = (iso) => {
+  const s = (new Date(iso) - Date.now()) / 1000, a = Math.abs(s);
+  const v = a < 3600 ? `${Math.max(1, Math.round(a / 60))} min` : a < 86400 ? `${Math.round(a / 3600)} h` : `${Math.round(a / 86400)} j`;
+  return s >= 0 ? `dans ${v}` : `il y a ${v}`;
+};
+const fmtDur = (sec) => { sec = Math.max(0, Math.round(sec)); const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60; return h ? `${h} h ${String(m).padStart(2, "0")}` : m ? `${m} min ${String(s).padStart(2, "0")}` : `${s} s`; };
+const toLocalInput = (iso) => { if (!iso) return ""; const d = new Date(iso); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
+
+/* ------------------------------------------------------------------ État */
+let S = null, TT = null;
+const sel = new Set();
+const filters = { app: "", kind: "", lang: "", status: "", q: "" };
+const cal = { plat: "", range: "future" };
+let ttFilterVal = "";
+let tab = "today";
+
+const kindLabel = (v) => v.external ? (v.format === "long" ? "Importée 16:9" : "Importée") : v.kind === "keynote" ? `Keynote ${v.format === "long" ? "16:9" : "9:16"}` : v.kind === "short" ? "Short" : v.kind === "story" ? "Short narré" : "16:9";
+const isWide = (v) => v.format === "long" || v.kind === "long";
+const appOf = (slug) => S.apps.find((a) => a.slug === slug) ?? { icon: "", name: slug, color: "#888" };
+
+/** Étape d'une vidéo dans le parcours : à rendre → prête → programmée → publiée. */
+function stageOf(v) {
+  if (v.published) return "pub";
+  if (v.youtubeId) return "sched";
+  if (v.rendered) return "ready";
+  return "todo";
+}
+const STAGE = {
+  todo: { label: "À rendre", cls: "todo", color: "var(--c-todo)", desc: "pas encore fabriquées" },
+  ready: { label: "Prête", cls: "ready", color: "var(--c-ready)", desc: "rendues, pas encore sur YouTube" },
+  sched: { label: "Programmée", cls: "sched", color: "var(--c-sched)", desc: "sur YouTube, sortie automatique" },
+  pub: { label: "Publiée", cls: "pub", color: "var(--c-pub)", desc: "en ligne" },
+};
+/** Statut affiché (inclut ce qui se passe en direct et les erreurs). */
+function statusOf(v) {
+  const c = S.render.current, u = S.upload;
+  if (c.id === v.id) return ["work", c.stageIndex === 3 ? `Rendu ${Math.round(c.progress * 100)} %` : c.stage || "Rendu…"];
+  if (S.render.queue.includes(v.id)) return ["work", "En file de rendu"];
+  if (u.id === v.id) return ["work", `Envoi ${Math.round(u.progress * 100)} %`];
+  if (v.renderError && !v.rendered) return ["err", "Erreur de rendu"];
+  if (v.uploadError && !v.youtubeId) return transient(v.uploadError) ? ["ready", "Prête · nouvel essai auto"] : ["err", "Erreur d'envoi"];
+  const st = STAGE[stageOf(v)];
+  return [st.cls, st.label];
+}
+const chip = ([cls, label]) => `<span class="chip ${cls}">${esc(label)}</span>`;
+const TT_ST = { draft: ["todo", "Brouillon"], scheduled: ["sched", "Programmé"], sending: ["work", "Envoi…"], sent: ["pub", "Envoyé dans TikTok"], error: ["err", "Erreur"] };
+const ttThumb = (p) => p.type === "photo" ? (p.images[0] ? `/tiktok-media/${p.id}/${p.images[0]}` : "") : p.videoId ? `/out/${p.videoId}.jpg` : "";
+const ttTitle = (p) => p.title || p.description.split("\n")[0] || (p.type === "photo" ? "Carrousel sans titre" : "Vidéo sans titre");
+
+/** Tous les éléments datés (YouTube + TikTok) pour le calendrier et les listes. */
+function timeline() {
+  const yt = S.videos.filter((v) => v.publishAt).map((v) => ({ plat: "yt", at: v.publishAt, v, done: v.published }));
+  const tt = (TT?.posts ?? []).filter((p) => p.publishAt || p.sentAt).map((p) => ({ plat: "tt", at: p.sentAt ?? p.publishAt, p, done: p.status === "sent" }));
+  return [...yt, ...tt].sort((a, b) => a.at.localeCompare(b.at));
+}
+
+/* ------------------------------------------------------------------ Navigation */
+const TABS = [
+  ["today", "Aujourd'hui", "home"],
+  ["calendar", "Calendrier", "cal"],
+  ["library", "Vidéos", "grid"],
+  ["tiktok", "TikTok", "tiktok"],
+  ["settings", "Réglages", "gear"],
+];
+function go(t) {
+  tab = TABS.some((x) => x[0] === t) ? t : "today";
+  document.querySelectorAll("main > section").forEach((s) => (s.hidden = s.id !== `tab-${tab}`));
+  if (location.hash.slice(1) !== tab) history.replaceState(null, "", `#${tab}`);
+  renderAll();
+  window.scrollTo(0, 0);
+}
+window.addEventListener("hashchange", () => go(location.hash.slice(1)));
+function renderNav() {
+  const week = timeline().filter((x) => !x.done && new Date(x.at) > Date.now() && new Date(x.at) < Date.now() + 7 * 864e5).length;
+  const drafts = (TT?.posts ?? []).filter((p) => p.status === "draft" || p.status === "error").length;
+  const counts = { calendar: week, library: S.videos.length, tiktok: drafts || "" };
+  setHTML($("#nav"), TABS.map(([k, l, i]) => `<a data-go="${k}" class="${tab === k ? "on" : ""}">${ic(i)}${l}${counts[k] ? `<span class="n">${counts[k]}</span>` : ""}</a>`).join(""));
+  const y = S.youtube, t = TT?.status;
+  setHTML($("#sideConn"), `
+    <a class="conn" href="${y.connected ? `https://studio.youtube.com` : y.hasSecret ? "/api/youtube/auth" : "#settings"}" ${y.connected ? 'target="_blank"' : ""}>${y.channel?.thumb ? `<img src="${y.channel.thumb}">` : platIc("yt")}<span class="lbl">${esc(y.connected ? y.channel?.title ?? "YouTube" : "Connecter YouTube")}</span><span class="st ${y.connected ? "" : "off"}"></span></a>
+    <a class="conn" href="${t?.connected ? "#tiktok" : t?.configured ? "/api/tiktok/auth" : "#settings"}" style="margin-top:6px">${t?.user?.avatar_url ? `<img src="${t.user.avatar_url}" onerror="this.replaceWith(document.createRange().createContextualFragment(platIc('tt')))">` : platIc("tt")}<span class="lbl">${esc(t?.connected ? t.user?.display_name ?? "TikTok" : "Connecter TikTok")}</span><span class="st ${t?.connected ? "" : "off"}"></span></a>`);
+}
+
+/* ------------------------------------------------------------------ Thème */
+const THEMES = { system: ["auto", "Auto"], light: ["sun", "Clair"], dark: ["moon", "Sombre"] };
+const getTheme = () => { try { return localStorage.getItem("theme") || "system"; } catch { return "system"; } };
+function setTheme(t) {
+  try { localStorage.setItem("theme", t); } catch {}
+  if (t === "system") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t;
+  renderTheme();
+}
+function renderTheme() {
+  const t = getTheme();
+  $("#themeBtn").innerHTML = `${ic(THEMES[t][0])}${THEMES[t][1]}`;
+  document.querySelectorAll("#themeSeg button").forEach((b) => b.classList.toggle("on", b.dataset.v === t));
+}
+$("#themeBtn").onclick = () => setTheme({ system: "light", light: "dark", dark: "system" }[getTheme()]);
+$("#themeSeg").onclick = (e) => { const b = e.target.closest("button"); if (b) setTheme(b.dataset.v); };
+$("#studioBtn").innerHTML = `${ic("sliders")}Studio`;
+
+/* ------------------------------------------------------------------ Alertes */
+function renderAlerts() {
+  const y = S.youtube;
+  let a = "";
+  if (!y.hasSecret) a += `<div class="alert">${ic("alert")}<div><b>YouTube n'est pas encore configuré.</b> Suis <code>docs/YOUTUBE_SETUP.md</code> puis place <code>client_secret.json</code> à la racine du projet. Tu peux déjà rendre les vidéos.</div></div>`;
+  else if (!y.connected) a += `<div class="alert">${ic("alert")}<div><b>YouTube est déconnecté</b> : les envois sont en pause. <a href="/api/youtube/auth" style="text-decoration:underline">Reconnecter</a></div></div>`;
+  if (S.upload.lastError) a += transient(S.upload.lastError) ? `<div class="alert">${ic("clock")}<div>${esc(/quota/i.test(S.upload.lastError) ? S.upload.lastError : "Un envoi YouTube a été interrompu : nouvel essai automatique au prochain passage de l'autopilote.")}</div></div>` : `<div class="alert red">${ic("alert")}<div>${esc(S.upload.lastError)}</div></div>`;
+  setHTML($("#alerts"), a);
+}
+
+/* ------------------------------------------------------------------ Aujourd'hui */
+function jobProgress(c) {
+  if (c.stageIndex < 3) return 0.02 * (c.stageIndex + 1);
+  if (c.stageIndex === 3) return 0.06 + c.progress * 0.86;
+  return c.stageIndex === 4 ? 0.94 : 0.98;
+}
+
+function renderToday() {
+  const now = Date.now();
+  const d = new Date().toLocaleDateString(LOCALE, { weekday: "long", day: "numeric", month: "long" });
+  $("#todayDate").textContent = d[0].toUpperCase() + d.slice(1);
+  const h = new Date().getHours();
+  const who = S.profile?.ownerName ? ` ${S.profile.ownerName}` : "";
+  $("#hello").textContent = (h < 6 ? "Bonne nuit" : h < 18 ? "Bonjour" : "Bonsoir") + who;
+
+  const all = timeline();
+  const upcoming = all.filter((x) => !x.done && new Date(x.at) > now);
+  const week = upcoming.filter((x) => new Date(x.at) < now + 7 * 864e5);
+  const errors = S.videos.filter(isErr).length + (TT?.posts ?? []).filter((p) => p.status === "error").length;
+  const next = upcoming[0];
+  const nextName = next ? (next.plat === "yt" ? next.v.appName : "TikTok") : "";
+  const warn = errors || !S.youtube.connected;
+  setHTML($("#hero"), `<div class="ic">${ic(warn ? "alert" : "check")}</div><div><b>${warn ? (errors ? `${errors} élément(s) en erreur à regarder` : "YouTube est déconnecté") : "Tout roule."}</b>
+    <div class="muted">${week.length} sortie(s) prévue(s) ces 7 prochains jours${next ? ` · prochaine : <b style="font-size:inherit">${esc(nextName)}</b> ${rel(next.at)} (${fmtDate(next.at)})` : ""}.</div></div>
+    <div class="spacer"></div><a class="btn sm" href="#calendar">${ic("cal")}Voir le calendrier</a>`);
+  $("#hero").classList.toggle("warn", !!warn);
+
+  // Parcours des vidéos
+  const n = { todo: 0, ready: 0, sched: 0, pub: 0 };
+  S.videos.forEach((v) => n[stageOf(v)]++);
+  const ttSent = (TT?.posts ?? []).filter((p) => p.status === "sent").length;
+  const ttSched = (TT?.posts ?? []).filter((p) => p.status === "scheduled").length;
+  const extra = { sched: ttSched ? `+ ${ttSched} TikTok programmé(s)` : "", pub: ttSent ? `+ ${ttSent} TikTok envoyé(s)` : "" };
+  setHTML($("#pipe"), ["todo", "ready", "sched", "pub"].map((k, i) => `<div class="card stage" data-stage="${k}">
+      <div class="top"><span class="dot" style="background:${STAGE[k].color}"></span>${STAGE[k].label}${k === "pub" ? "s" : k === "sched" ? "s" : k === "ready" ? "s" : ""}</div>
+      <div class="num">${n[k]}</div><div class="desc">${STAGE[k].desc}${extra[k] ? `<br>${extra[k]}` : ""}</div>
+      ${i < 3 ? `<span class="arrow"><svg class="i" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></span>` : ""}</div>`).join(""));
+
+  // En ce moment
+  const c = S.render.current, q = S.render.queue, u = S.upload, avg = S.render.avgSec;
+  const byId = Object.fromEntries(S.videos.map((v) => [v.id, v]));
+  let html = `<div class="card-h"><span class="live ${c.id || u.id ? "" : "off"}"></span><h3>En ce moment</h3><span class="spacer"></span>${q.length ? `<span class="sub">${q.length} en file</span><button class="btn sm ghost" id="cancelQ">Vider la file</button>` : ""}</div>`;
+  if (c.id && byId[c.id]) {
+    const v = byId[c.id], p = jobProgress(c), elapsed = (now - c.startedAt) / 1000;
+    const left = p > 0.1 ? elapsed / p - elapsed : Math.max(0, (avg[v.kind] ?? 150) - elapsed);
+    html += `<div class="job"><img src="${appOf(v.slug).icon}"><div style="min-width:0"><div class="t">Rendu · ${esc(v.title)}</div><div class="note">${esc(v.appName)} · ${kindLabel(v)} · ${v.lang.toUpperCase()} · ${Math.round(v.durationSec)} s</div></div></div>
+      <div class="steps">${S.render.stages.map((st, i) => `<span class="step ${i < c.stageIndex ? "done" : i === c.stageIndex ? "act" : ""}">${i < c.stageIndex ? ic("check", 'style="width:12px;height:12px"') : i === c.stageIndex ? '<span class="spin"></span>' : ""}${st}${i === 3 && i === c.stageIndex ? ` ${Math.round(c.progress * 100)} %` : ""}</span>`).join("")}</div>
+      <div class="bar lg"><i style="width:${p * 100}%;background:var(--accent)"></i></div>
+      <div class="prow"><span>${Math.round(p * 100)} % · depuis ${fmtDur(elapsed)}</span><span>reste ~${fmtDur(left)} · fini vers ${hhmm(now + left * 1000)}</span></div>`;
+  }
+  if (u.id && byId[u.id]) {
+    const v = byId[u.id], done = (u.total ?? 1) - u.queue.length;
+    html += `<div class="job" style="margin-top:${c.id ? 18 : 0}px"><img src="${appOf(v.slug).icon}"><div style="min-width:0"><div class="t">Envoi YouTube · ${esc(v.title)}</div><div class="note">Sortira ${fmtDate(v.publishAt)} · ${done + 1}/${u.total ?? 1} de ce lot</div></div></div>
+      <div class="bar lg"><i style="width:${u.progress * 100}%;background:var(--yt)"></i></div><div class="prow"><span>${Math.round(u.progress * 100)} % envoyé</span><span>${u.queue.length > 1 ? `${u.queue.length - 1} autre(s) après` : "dernière du lot"}</span></div>`;
+  }
+  if (!c.id && !u.id) html += `<div class="empty" style="padding:18px 0 8px"><b>Rien ne tourne</b>${S.settings.autopilot ? `L'autopilote repasse ${rel(new Date(S.autopilot.nextRun).toISOString())}.` : "L'autopilote est désactivé (Réglages)."}</div>`;
+  if (q.length) {
+    let t = now + (c.id && byId[c.id] ? Math.max(0, (avg[byId[c.id].kind] ?? 150) - (now - c.startedAt) / 1000) * 1000 : 0);
+    const items = q.map((id) => { const v = byId[id]; t += (avg[v?.kind] ?? 150) * 1000; return { v, end: t }; }).filter((x) => x.v);
+    html += `<div style="margin-top:16px"><div class="card-h" style="margin-bottom:4px"><h3 style="font-size:13px">File de rendu</h3><span class="sub">tout fini vers ${hhmm(t)}${dayKey(t) !== dayKey(now) ? " (demain)" : ""}</span></div>
+      ${items.slice(0, 5).map(({ v, end }) => `<div class="row-item"><img class="appic" src="${appOf(v.slug).icon}"><div class="tt"><b>${esc(v.title)}</b><span>${esc(v.appName)} · ${kindLabel(v)} ${v.lang.toUpperCase()}</span></div><div class="when">~${hhmm(end)}</div></div>`).join("")}
+      ${items.length > 5 ? `<div class="note" style="margin-top:6px">+ ${items.length - 5} autre(s)</div>` : ""}</div>`;
+  }
+  setHTML($("#pNow"), html);
+
+  // Prochaines sorties
+  setHTML($("#pNext"), `<div class="card-h"><h3>Prochaines sorties</h3><span class="spacer"></span><a class="btn sm ghost" href="#calendar">Tout voir</a></div>
+    ${upcoming.slice(0, 8).map(itemRow).join("") || `<div class="empty"><b>Rien de prévu</b>Recalcule le planning dans le Calendrier.</div>`}`);
+
+  // Récemment publiées
+  const recent = all.filter((x) => x.done).reverse().slice(0, 6);
+  setHTML($("#pRecent"), `<div class="card-h"><h3>Déjà publié</h3><span class="spacer"></span><a class="btn sm ghost" data-calpast>Historique</a></div>
+    ${recent.map(itemRow).join("") || `<div class="empty"><b>Encore rien de publié</b>Les premières sorties apparaîtront ici.</div>`}`);
+
+  // Par app
+  setHTML($("#pApps"), `<div class="card-h"><h3>Par app</h3><span class="sub">publiées / total</span></div>
+    ${S.apps.map((a) => {
+      const vs = S.videos.filter((v) => v.slug === a.slug); const N = vs.length || 1;
+      const k = { pub: 0, sched: 0, ready: 0 }; vs.forEach((v) => { const s = stageOf(v); if (s in k) k[s]++; });
+      return `<div class="approw"><img class="appic" src="${a.icon}"><span style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(a.name)}</span>
+        <div class="bar thin"><i style="width:${(k.pub / N) * 100}%;background:var(--c-pub)"></i><i style="width:${(k.sched / N) * 100}%;background:var(--c-sched)"></i><i style="width:${(k.ready / N) * 100}%;background:var(--c-ready)"></i></div><span>${k.pub}/${vs.length}</span></div>`;
+    }).join("")}
+    <div class="legend"><span><i style="background:var(--c-pub)"></i>Publiées</span><span><i style="background:var(--c-sched)"></i>Programmées</span><span><i style="background:var(--c-ready)"></i>Prêtes</span><span><i style="background:var(--track)"></i>À rendre</span></div>`);
+
+  // Autopilote
+  const quota = S.settings.maxUploadsPerDay;
+  setHTML($("#pAuto"), `<div class="card-h"><span class="live ${S.settings.autopilot ? "" : "off"}"></span><h3>Autopilote</h3><span class="spacer"></span><div class="toggle ${S.settings.autopilot ? "on" : ""}" data-autotoggle></div></div>
+    <div class="note">${S.autopilot.lastRun ? `Dernier passage à ${hhmm(S.autopilot.lastRun)}` : "Pas encore passé"} · prochain ${rel(new Date(S.autopilot.nextRun).toISOString())}${S.autopilot.lastSummary ? `<br>${esc(S.autopilot.lastSummary)}` : ""}</div>
+    <div class="prow" style="margin-top:12px"><span style="color:var(--text);font-weight:600">Envois YouTube aujourd'hui</span><span>${S.upload.today}/${quota}</span></div>
+    <div class="bar thin" style="margin-top:6px"><i style="width:${Math.min(1, S.upload.today / quota) * 100}%;background:var(--yt)"></i></div>
+    <div class="note" style="margin-top:6px">${S.upload.today >= quota ? "Quota atteint, reprise demain." : `${quota - S.upload.today} envoi(s) encore possible(s) aujourd'hui.`}</div>`);
+
+  // Journal
+  setHTML($("#pLog"), `<div class="card-h"><h3>Journal</h3></div>` + (S.events.length
+    ? S.events.slice(0, 10).map((e) => `<div class="ev ${e.type}"><span class="t">${hhmm(e.at)}</span><span>${esc(e.msg)}</span></div>`).join("")
+    : `<div class="note">Les événements apparaîtront ici.</div>`));
+}
+
+/** Ligne compacte (YouTube ou TikTok) pour les listes de la page Aujourd'hui. */
+function itemRow(x) {
+  if (x.plat === "yt") {
+    const v = x.v;
+    const thumb = v.rendered ? `<img class="mini" src="/out/${v.id}.jpg${bust(v)}" onerror="this.src='${appOf(v.slug).icon}'">` : `<img class="mini" src="${appOf(v.slug).icon}">`;
+    const link = v.youtubeId ? (v.published ? `https://youtu.be/${v.youtubeId}` : `https://studio.youtube.com/video/${v.youtubeId}/edit`) : null;
+    return `<${link ? `a href="${link}" target="_blank"` : `div data-play="${v.rendered ? v.id : ""}" style="cursor:${v.rendered ? "pointer" : "default"}"`} class="row-item">${thumb}${platIc("yt")}
+      <div class="tt"><b>${esc(v.title)}</b><span>${esc(v.appName)} · ${kindLabel(v)} · ${v.lang.toUpperCase()}</span></div>
+      <div class="when"><b>${x.done ? rel(x.at) : rel(x.at)}</b>${chip(statusOf(v))}</div></${link ? "a" : "div"}>`;
+  }
+  const p = x.p, th = ttThumb(p);
+  return `<a href="#tiktok" class="row-item">${th ? `<img class="mini" src="${th}">` : `<span class="mini"></span>`}${platIc("tt")}
+    <div class="tt"><b>${esc(ttTitle(p))}</b><span>${p.type === "photo" ? `Carrousel · ${p.images.length} images` : "Vidéo"}</span></div>
+    <div class="when"><b>${rel(x.at)}</b>${chip(TT_ST[p.status] ?? ["todo", p.status])}</div></a>`;
+}
+
+/* ------------------------------------------------------------------ Calendrier */
+function renderCalendar() {
+  if ($("#tab-calendar").contains(document.activeElement) && document.activeElement.tagName === "INPUT") return;
+  const now = Date.now();
+  const all = timeline().filter((x) => !cal.plat || x.plat === cal.plat);
+  // Bandeau 14 jours
+  const start = new Date(); start.setHours(0, 0, 0, 0);
+  const byDay = {};
+  for (const x of all) (byDay[dayKey(x.at)] ??= []).push(x);
+  let strip = "";
+  for (let i = 0; i < 14; i++) {
+    const d = new Date(start.getTime() + i * 864e5), k = dayKey(d), xs = byDay[k] ?? [];
+    strip += `<div class="d ${i === 0 ? "today" : ""}" data-jump="${k}"><small>${d.toLocaleDateString(LOCALE, { weekday: "short" }).replace(".", "")}</small><b>${d.getDate()}</b>
+      <div class="dots">${xs.slice(0, 8).map((x) => `<i style="background:${x.plat === "tt" ? "var(--text)" : x.v ? STAGE[stageOf(x.v)].color : "var(--c-todo)"}"></i>`).join("")}</div></div>`;
+  }
+  setHTML($("#strip"), cal.range === "future" ? strip : "");
+  $("#strip").hidden = cal.range !== "future";
+
+  const list = cal.range === "future" ? all.filter((x) => !x.done || new Date(x.at) >= start) : all.filter((x) => x.done).reverse();
+  const days = [];
+  for (const x of list) { const k = dayKey(x.at); if (!days.length || days[days.length - 1].k !== k) days.push({ k, at: x.at, xs: [] }); days[days.length - 1].xs.push(x); }
+  setHTML($("#agenda"), days.map((d) => `<div class="day ${new Date(d.at) < start ? "past" : ""}" id="day-${d.k}">
+      <div class="day-h"><b>${dayLabel(d.at)}</b><span>${d.xs.length} sortie(s)</span></div>
+      <div class="card">${d.xs.map(calRow).join("")}</div></div>`).join("")
+    || `<div class="card empty"><b>${cal.range === "future" ? "Rien de prévu" : "Encore rien de publié"}</b>${cal.range === "future" ? "Clique « Recalculer le planning »." : ""}</div>`);
+}
+
+function calRow(x) {
+  if (x.plat === "yt") {
+    const v = x.v, wide = isWide(v);
+    const th = v.rendered ? `<img class="th ${wide ? "h" : "v"}" src="/out/${v.id}.jpg${bust(v)}" onerror="this.style.visibility='hidden'">` : `<img class="th" src="${appOf(v.slug).icon}" style="width:44px;height:44px">`;
+    const editable = !v.youtubeId;
+    return `<div class="ev-row"><span class="time">${hhmm(x.at)}</span>${platIc("yt")}${th}
+      <div class="tt"><b>${esc(v.title)}</b><div class="s"><img class="appic" style="width:16px;height:16px;border-radius:4px" src="${appOf(v.slug).icon}">${esc(v.appName)} <span class="tag">${kindLabel(v)}</span><span class="tag">${v.lang.toUpperCase()}</span>${v.locked && editable ? `<span title="Date fixée à la main">${ic("lock", 'style="width:13px;height:13px"')}</span>` : ""}</div></div>
+      ${chip(statusOf(v))}
+      <div class="acts">
+        ${editable ? `<input type="datetime-local" value="${toLocalInput(v.publishAt)}" data-date="${v.id}" title="Changer la date">` : ""}
+        ${v.rendered ? `<button class="btn sm icon ghost" data-play="${v.id}" title="Voir">${ic("playc")}</button>` : ""}
+        ${v.youtubeId ? `<a class="btn sm icon ghost" target="_blank" href="${v.published ? `https://youtu.be/${v.youtubeId}` : `https://studio.youtube.com/video/${v.youtubeId}/edit`}" title="${v.published ? "Ouvrir sur YouTube" : "Ouvrir dans YouTube Studio"}">${ic("ext")}</a>` : ""}
+      </div></div>`;
+  }
+  const p = x.p, th = ttThumb(p);
+  return `<div class="ev-row"><span class="time">${hhmm(x.at)}</span>${platIc("tt")}${th ? `<img class="th v" src="${th}">` : `<span class="th"></span>`}
+    <div class="tt"><b>${esc(ttTitle(p))}</b><div class="s">TikTok <span class="tag">${p.type === "photo" ? `Carrousel ${p.images.length}` : "Vidéo"}</span>${p.source ? `<span>${esc(p.source)}</span>` : ""}</div></div>
+    ${chip(TT_ST[p.status] ?? ["todo", p.status])}
+    <div class="acts"><a class="btn sm ghost" href="#tiktok">Modifier</a></div></div>`;
+}
+$("#calPlat").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; cal.plat = b.dataset.v; segOn("#calPlat", cal.plat); renderCalendar(); };
+$("#calRange").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; cal.range = b.dataset.v; segOn("#calRange", cal.range); renderCalendar(); };
+const segOn = (sel, v) => document.querySelectorAll(`${sel} button`).forEach((b) => b.classList.toggle("on", b.dataset.v === v));
+
+/* ------------------------------------------------------------------ Bibliothèque */
+function matchKind(v) {
+  if (!filters.kind) return true;
+  if (filters.kind === "external") return !!v.external;
+  if (filters.kind === "long") return v.kind === "long" && !v.external;
+  return v.kind === filters.kind && !v.external;
+}
+function baseFiltered() {
+  const q = filters.q.trim().toLowerCase();
+  return S.videos.filter((v) => (!filters.app || v.slug === filters.app) && matchKind(v) && (!filters.lang || v.lang === filters.lang) && (!q || `${v.title} ${v.appName}`.toLowerCase().includes(q)));
+}
+/** Coupure réseau / quota : l'autopilote retente tout seul, ce n'est pas une vraie erreur. */
+const transient = (msg) => /quota|EPIPE|ECONNRESET|ETIMEDOUT|socket|network|uploadLimitExceeded|rateLimit/i.test(msg ?? "");
+const isErr = (v) => (v.renderError && !v.rendered) || (v.uploadError && !v.youtubeId && !transient(v.uploadError));
+function filtered() {
+  return baseFiltered().filter((v) => !filters.status || (filters.status === "err" ? isErr(v) : stageOf(v) === filters.status));
+}
+function vcard(v) {
+  const app = appOf(v.slug), st = statusOf(v);
+  const prog = S.render.current.id === v.id ? jobProgress(S.render.current) : S.upload.id === v.id ? S.upload.progress : 0;
+  const cover = v.rendered ? `<img class="cover" loading="lazy" src="/out/${v.id}.jpg${bust(v)}" onerror="this.remove()">`
+    : `<div class="ph"><img src="${app.icon}">${kindLabel(v)} · ${Math.round(v.durationSec)} s</div>`;
+  const date = v.published ? `${ic("check")}Publiée ${fmtDate(v.publishAt)}` : v.youtubeId ? `${ic("clock")}Sort ${fmtDate(v.publishAt)}` : v.publishAt ? `${ic("cal")}Créneau prévu ${fmtDate(v.publishAt)}` : `${ic("cal")}Pas encore planifiée`;
+  return `<div class="vc ${isWide(v) ? "wide" : ""} ${sel.has(v.id) ? "sel" : ""}">
+    <div class="th" data-play="${v.rendered ? v.id : ""}" style="${v.rendered ? "" : `background:radial-gradient(circle at 50% 40%, ${v.color}66, #0b0b0e 75%)`}">${cover}${v.rendered ? `<div class="play"><svg class="i" viewBox="0 0 24 24">${P.play}</svg></div>` : ""}
+      <div class="tl">${chip(st)}<span class="lang">${v.lang.toUpperCase()}</span></div>
+      <input type="checkbox" class="chk" data-sel="${v.id}" ${sel.has(v.id) ? "checked" : ""} onclick="event.stopPropagation()">
+      ${prog ? `<div class="prog" style="width:${prog * 100}%"></div>` : ""}
+    </div>
+    <div class="body">
+      <div class="app"><img src="${app.icon}">${esc(v.appName)}<span class="tag">${kindLabel(v)}</span></div>
+      <div class="title">${esc(v.title)}</div>
+      <div class="date">${date}</div>
+      ${isErr(v) ? `<div class="errtxt">${esc((v.renderError || v.uploadError).slice(0, 140))}</div>` : ""}
+      <div class="acts">
+        ${!v.rendered ? `<button class="btn sm" data-render="${v.id}">${ic("bolt")}Rendre</button>` : ""}
+        ${v.rendered && !v.youtubeId ? `<button class="btn sm yt" data-upload="${v.id}" ${S.youtube.connected ? "" : "disabled"}>${ic("up")}YouTube</button>` : ""}
+        ${v.youtubeId ? `<a class="btn sm" target="_blank" href="${v.published ? `https://youtu.be/${v.youtubeId}` : `https://studio.youtube.com/video/${v.youtubeId}/edit`}">${ic("ext")}${v.published ? "Voir" : "Studio"}</a>` : ""}
+        <span class="spacer"></span>
+        ${v.rendered && !v.youtubeId ? `<button class="btn sm icon ghost" data-render="${v.id}" title="Re-rendre">${ic("redo")}</button>` : ""}
+        ${v.youtubeId ? `<button class="btn sm icon ghost" data-unlink="${v.id}" title="Supprimée dans YouTube Studio ? La plateforme la re-rend et la reprogramme.">${ic("trash")}</button>` : ""}
+      </div>
+    </div></div>`;
+}
+function renderLibrary() {
+  const base = baseFiltered();
+  const cnt = { "": base.length, todo: 0, ready: 0, sched: 0, pub: 0, err: 0 };
+  base.forEach((v) => { cnt[stageOf(v)]++; if (isErr(v)) cnt.err++; });
+  setHTML($("#fStatus"), [["", "Toutes"], ["todo", "À rendre"], ["ready", "Prêtes"], ["sched", "Programmées"], ["pub", "Publiées"], ["err", "Erreurs"]]
+    .filter(([k]) => k !== "err" || cnt.err).map(([k, l]) => `<button data-v="${k}" class="${filters.status === k ? "on" : ""}">${k && k !== "err" ? `<span class="chip ${STAGE[k].cls}" style="padding:0;background:none"></span>` : ""}${l}<span class="n">${cnt[k]}</span></button>`).join(""));
+  setHTML($("#appFilter"), `<button class="all ${filters.app ? "" : "on"}" data-app="" style="--c:var(--accent)">Toutes les apps</button>` +
+    S.apps.map((a) => `<button class="${filters.app === a.slug ? "on" : ""}" data-app="${a.slug}" style="--c:${a.color}"><img src="${a.icon}">${esc(a.name)}</button>`).join(""));
+  const list = filtered();
+  setHTML($("#grid"), list.map(vcard).join("") || `<div class="card empty" style="grid-column:1/-1"><b>Aucune vidéo</b>Change les filtres.</div>`);
+  $("#grid").classList.toggle("selecting", sel.size > 0);
+  $("#bulk").hidden = sel.size === 0;
+  $("#bulkN").textContent = `${sel.size} sélectionnée(s)`;
+  $("#uploadSel").disabled = !S.youtube.connected;
+}
+$("#fStatus").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; filters.status = b.dataset.v; renderLibrary(); };
+$("#fLang").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; filters.lang = b.dataset.v; segOn("#fLang", filters.lang); renderLibrary(); };
+$("#fKind").onchange = (e) => { filters.kind = e.target.value; renderLibrary(); };
+$("#fSearch").oninput = (e) => { filters.q = e.target.value; renderLibrary(); };
+
+/* ------------------------------------------------------------------ Réglages */
+function renderSettings() {
+  document.querySelectorAll("[data-s]").forEach((el) => { if (document.activeElement !== el) el.value = S.settings[el.dataset.s]; });
+  $("#autoToggle").classList.toggle("on", !!S.settings.autopilot);
+  const y = S.youtube;
+  setHTML($("#ytBox"), y.hasSecret
+    ? (y.connected ? `<div class="conn" style="margin-bottom:10px">${y.channel?.thumb ? `<img src="${y.channel.thumb}">` : platIc("yt")}<span class="lbl">${esc(y.channel?.title ?? "Chaîne connectée")}</span><span class="note" style="margin-left:auto">${Number(y.channel?.subs ?? 0).toLocaleString(LOCALE)} abonnés</span></div>
+        <p class="note">Envois aujourd'hui : ${S.upload.today}/${S.settings.maxUploadsPerDay}.</p><a class="btn sm" href="/api/youtube/auth">Reconnecter / changer de chaîne</a>`
+      : `<p class="note">client_secret.json trouvé.</p><a class="btn yt" href="/api/youtube/auth">Connecter ma chaîne YouTube</a>`)
+    : `<p class="note">1. Crée un projet Google Cloud et active <b>YouTube Data API v3</b>.<br>2. Crée un identifiant OAuth « Application de bureau ».<br>3. Télécharge le JSON en <code>client_secret.json</code> à la racine du projet.<br>4. Reviens ici et clique « Connecter ».</p>`);
+  const t = TT?.status;
+  if (t) setHTML($("#ttBox"), `${t.connected ? `<div class="conn" style="margin-bottom:10px">${t.user?.avatar_url ? `<img src="${t.user.avatar_url}" onerror="this.replaceWith(document.createRange().createContextualFragment(platIc('tt')))">` : platIc("tt")}<span class="lbl">${esc(t.user?.display_name ?? "Compte connecté")}</span><span class="st"></span></div>` : ""}
+    <div class="field"><label>App TikTok</label>${chip(t.configured ? ["pub", "Configurée"] : ["todo", "À configurer"])}</div>
+    <div class="field"><label>Compte</label>${chip(t.connected ? ["pub", "Connecté"] : ["todo", "Non connecté"])}</div>
+    <div class="field"><label>Hébergement des images</label>${chip(t.hosting ? ["pub", t.hostingDomain ?? "Configuré"] : ["todo", "À configurer"])}</div>
+    ${TT.settings ? `<div class="field"><label>Créneaux FR</label><input data-tts="frTimes" value="${esc(TT.settings.frTimes.join(", "))}" style="width:150px" title="Heures séparées par des virgules"></div>
+    <div class="field"><label>Créneaux EN</label><input data-tts="enTimes" value="${esc(TT.settings.enTimes.join(", "))}" style="width:150px" title="Heures séparées par des virgules"></div>` : ""}
+    ${t.configured ? `<a class="btn sm" href="/api/tiktok/auth" style="margin-top:8px">${t.connected ? "Reconnecter" : "Connecter mon TikTok"}</a>` : `<p class="note">Remplis <code>data/tiktok-config.json</code> (guide : <code>docs/TIKTOK_SETUP.md</code>).</p>`}`);
+}
+
+/* ------------------------------------------------------------------ Dock (progression hors page Aujourd'hui) */
+function renderDock() {
+  const c = S.render.current, q = S.render.queue, u = S.upload;
+  if ((!c.id && !q.length && !u.id) || tab === "today") { $("#dock").style.display = "none"; return; }
+  $("#dock").style.display = "block";
+  const v = S.videos.find((x) => x.id === c.id), uv = S.videos.find((x) => x.id === u.id);
+  setHTML($("#dock"), `
+    ${v ? `<div style="display:flex;gap:8px;align-items:center;font-weight:600;font-size:13px"><span class="spin" style="color:var(--accent)"></span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(v.title)}</span><span class="note">${Math.round(jobProgress(c) * 100)} %</span></div><div class="bar thin" style="margin:8px 0 4px"><i style="width:${jobProgress(c) * 100}%;background:var(--accent)"></i></div><div class="note">${esc(c.stage)}${q.length ? ` · ${q.length} en file` : ""}</div>` : q.length ? `<div class="note">${q.length} vidéo(s) en file de rendu</div>` : ""}
+    ${uv ? `<div style="margin-top:${v ? 12 : 0}px;font-weight:600;font-size:13px">Envoi YouTube · ${esc(uv.title)}</div><div class="bar thin" style="margin-top:8px"><i style="width:${u.progress * 100}%;background:var(--yt)"></i></div>` : ""}
+    <a class="btn sm ghost" href="#today" style="margin-top:8px">Détails</a>`);
+}
+
+/* ------------------------------------------------------------------ TikTok */
+const CONF = { high: ["pub", "Association sûre"], medium: ["work", "À jeter un œil"], low: ["err", "À vérifier"], none: ["err", "Sans légende"] };
+
+function renderTikTokStatus() {
+  const st = TT.status;
+  setHTML($("#ttStatus"), st.connected
+    ? `<div class="conn">${st.user?.avatar_url ? `<img src="${st.user.avatar_url}" onerror="this.replaceWith(document.createRange().createContextualFragment(platIc('tt')))">` : platIc("tt")}<span class="lbl">${esc(st.user?.display_name ?? "Compte connecté")}</span><span class="st ${st.hosting ? "" : "off"}" title="${st.hosting ? "Hébergement des images OK" : "Hébergement des images non configuré"}"></span></div>`
+    : st.configured ? `<a class="btn primary" href="/api/tiktok/auth">Connecter mon TikTok</a>` : `<a class="btn" href="#settings">Configurer TikTok</a>`);
+  setHTML($("#ttAlert"), st.lastError ? `<div class="alert red">${ic("alert")}<div>${esc(st.lastError)}</div></div>` : "");
+  const s = $("#ttVideoSel");
+  if (document.activeElement !== s) setHTML(s, `<option value="">Ajouter une vidéo rendue…</option>` + TT.videos.map((v) => `<option value="${v.id}">${esc(v.appName)} · ${v.lang.toUpperCase()} · ${esc(v.title.slice(0, 60))}</option>`).join(""));
+  const cnt = { "": TT.posts.length, draft: 0, scheduled: 0, sent: 0, error: 0 };
+  TT.posts.forEach((p) => { if (p.status in cnt) cnt[p.status]++; });
+  setHTML($("#ttFilter"), [["", "Tous"], ["draft", "Brouillons"], ["scheduled", "Programmés"], ["sent", "Envoyés"], ["error", "Erreurs"]]
+    .filter(([k]) => k !== "error" || cnt.error).map(([k, l]) => `<button data-v="${k}" class="${ttFilterVal === k ? "on" : ""}">${l}<span class="n">${cnt[k]}</span></button>`).join(""));
+}
+
+function ttCard(p) {
+  const locked = p.status === "sent" || p.status === "sending";
+  const media = p.type === "photo"
+    ? `<div class="imgs">${p.images.map((im, i) => `<div class="im"><img src="/tiktok-media/${p.id}/${im}"><span class="n">${i + 1}</span>${locked ? "" : `<button data-ttdelimg="${p.id}" data-name="${im}" title="Retirer">×</button>`}</div>`).join("")}
+        ${locked || p.images.length >= 35 ? "" : `<label class="imgdrop" data-ttimgdrop="${p.id}"><input type="file" accept="image/*" multiple hidden data-ttimginput="${p.id}">＋<br>Glisse tes images</label>`}</div>
+       <div class="note">${p.images.length}/35 images · la 1re sert de couverture</div>`
+    : !p.videoId && p.videoFile ? `<video src="/tiktok-media/${p.id}/${p.videoFile.split("/").pop()}" muted controls preload="metadata" style="width:150px;border-radius:10px;background:#000"></video>`
+    : `<select data-ttvideo="${p.id}" ${locked ? "disabled" : ""}>${TT.videos.map((v) => `<option value="${v.id}" ${v.id === p.videoId ? "selected" : ""}>${esc(v.appName)} · ${v.lang.toUpperCase()} · ${esc(v.title.slice(0, 50))}</option>`).join("")}</select>
+       ${p.videoId ? `<video src="/out/${p.videoId}.mp4" muted controls preload="metadata" style="width:150px;border-radius:10px;background:#000"></video>` : ""}`;
+  return `<div class="card ttcard ${p.status === "sent" ? "done" : ""}" data-ttid="${p.id}">
+    <div class="row"><span class="tag">${p.type === "photo" ? "Carrousel" : "Vidéo"}</span>${p.lang ? `<span class="tag">${p.lang.toUpperCase()}</span>` : ""}${chip(TT_ST[p.status] ?? ["todo", p.status])}${p.match ? `<span class="chip ${CONF[p.match.confidence][0]}" title="${esc(p.match.reasons.join(" · "))}">${CONF[p.match.confidence][1]}</span>` : ""}<span class="spacer"></span><button class="btn sm icon ghost" data-ttdel="${p.id}" title="Supprimer">${ic("trash")}</button></div>
+    ${p.source ? `<div class="note" style="margin-top:-4px">${esc(p.source)}</div>` : ""}
+    <input type="text" placeholder="Titre (90 caractères max)" value="${esc(p.title)}" data-ttfield="title" maxlength="90" ${locked ? "disabled" : ""}>
+    <div class="count ${p.title.length > 90 ? "over" : ""}">${p.title.length}/90</div>
+    <textarea placeholder="Description + hashtags" data-ttfield="description" ${locked ? "disabled" : ""}>${esc(p.description)}</textarea>
+    <div class="count ${p.description.length > 4000 ? "over" : ""}">${p.description.length}/4000</div>
+    ${media}
+    <div class="row">${ic("cal")}<input type="datetime-local" value="${toLocalInput(p.publishAt)}" data-ttdate="${p.id}" ${locked ? "disabled" : ""}>
+      <span class="spacer"></span>${locked ? "" : `<button class="btn sm" data-ttsend="${p.id}" ${TT.status.connected ? "" : "disabled"}>${ic("send")}Envoyer maintenant</button>`}</div>
+    ${p.waiting ? `<div class="note" style="color:var(--c-work)">${esc(p.waiting)} Nouvel essai ${rel(p.retryAt)}.</div>` : ""}
+    ${p.error ? `<div class="note" style="color:var(--c-err)">${esc(p.error)}</div>` : ""}
+    ${p.sentAt ? `<div class="note">Envoyé ${fmtDate(p.sentAt)} : termine la publication dans l'app TikTok.</div>` : ""}
+  </div>`;
+}
+
+function renderTikTok() {
+  if (!TT) return;
+  renderTikTokStatus();
+  renderWatch();
+  setHTML($("#ttSlots"), slotsTxt());
+  if ($("#tab-tiktok").contains(document.activeElement) && document.activeElement.closest(".ttcard")) return; // ne pas écraser une saisie
+  const list = TT.posts.filter((p) => !ttFilterVal || p.status === ttFilterVal);
+  // À venir en haut (erreurs puis prochain envoi d'abord), déjà envoyés en bas, grisés, du plus récent au plus ancien
+  const rank = (p) => (p.status === "error" ? 0 : p.status === "sending" ? 1 : p.status === "scheduled" ? 2 : 3);
+  const todo = list.filter((p) => p.status !== "sent").sort((a, b) => rank(a) - rank(b) || (a.publishAt ?? "9").localeCompare(b.publishAt ?? "9"));
+  const done = list.filter((p) => p.status === "sent").sort((a, b) => (b.sentAt ?? "").localeCompare(a.sentAt ?? ""));
+  const html = todo.map(ttCard).join("") + (done.length ? `<div class="ttsep">${ic("check")}Déjà envoyés · ${done.length}</div>${done.map(ttCard).join("")}` : "");
+  setHTML($("#ttPosts"), html || `<div class="card empty" style="grid-column:1/-1"><b>Aucun post</b>Glisse un dossier ou des fichiers .md ci-dessus, ou crée un carrousel.</div>`);
+}
+$("#ttFilter").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; ttFilterVal = b.dataset.v; renderTikTok(); };
+
+async function refreshTikTok() { TT = await ttApi("/api/tiktok"); renderTikTok(); if (S) { renderNav(); renderSettings(); } }
+
+/** Parcourt les dossiers déposés (glisser-déposer) et renvoie [{file, path}]. */
+async function collectEntries(dt) {
+  const out = [];
+  const walk = (entry, prefix) => new Promise((resolve) => {
+    if (entry.isFile) entry.file((f) => { out.push({ file: f, path: prefix + f.name }); resolve(); });
+    else if (entry.isDirectory) {
+      const r = entry.createReader();
+      const all = [];
+      const read = () => r.readEntries(async (ents) => { if (!ents.length) { for (const e of all) await walk(e, prefix + entry.name + "/"); resolve(); } else { all.push(...ents); read(); } });
+      read();
+    } else resolve();
+  });
+  const items = [...(dt.items ?? [])].map((i) => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean);
+  if (items.length) { for (const e of items) await walk(e, ""); }
+  else for (const f of dt.files) out.push({ file: f, path: f.webkitRelativePath || f.name });
+  return out.filter((x) => /\.(md|markdown|txt|png|jpe?g|webp|heic)$/i.test(x.path) && !x.path.split("/").some((p) => p.startsWith(".")));
+}
+function renderReport(r) {
+  if (!r) { $("#ttReport").innerHTML = ""; return; }
+  $("#ttReport").innerHTML = `<div class="card pad report"><div class="card-h">${ic("sparkle")}<h3>Rapport d'import</h3><span class="sub">${r.report.length} carrousel(s) · ${r.captions} légende(s)${r.order?.length ? ` · ordre conseillé ${r.order.join(" → ")}` : ""}</span><span class="spacer"></span><button class="btn sm ghost" onclick="renderReport(null)">Fermer</button></div>
+    ${r.report.map((x) => `<div class="row-item">${chip(CONF[x.confidence])}<div class="tt"><b>${x.images} image(s) → ${esc(x.caption ?? "aucune légende trouvée")}</b><span title="${esc(x.reasons.join(" · "))}">${esc((x.reasons[0] ?? "").slice(0, 120))}</span></div></div>`).join("")}
+    ${r.unusedCaptions?.length ? `<div class="note" style="margin-top:8px">Légendes sans images : ${r.unusedCaptions.map(esc).join(", ")}</div>` : ""}
+    <div class="note" style="margin-top:8px">Les carrousels sont créés en brouillon : vérifie ceux marqués « À vérifier », puis programme-les.</div></div>`;
+}
+async function importMdFiles(files) {
+  const list = files.map((f) => (f.file ? f : { file: f, path: f.webkitRelativePath || f.name }));
+  if (!list.length) return alert("Aucun .md ni image dans ce dépôt.");
+  const nImg = list.filter((x) => !/\.(md|markdown|txt)$/i.test(x.path)).length;
+  $("#importProgress").innerHTML = `<span class="spin" style="display:inline-block;vertical-align:-2px;color:var(--accent)"></span> Analyse de ${nImg} image(s) et ${list.length - nImg} texte(s)… (jusqu'à 1 min si l'IA doit trancher)`;
+  const fd = new FormData();
+  list.forEach((x) => fd.append("files", x.file, x.file.name));
+  fd.append("paths", JSON.stringify(list.map((x) => x.path)));
+  const r = await fetch("/api/tiktok/smart-import", { method: "POST", body: fd }).then((x) => x.json());
+  $("#importProgress").textContent = r.error ? `Erreur : ${r.error}` : `${r.report.length} carrousel(s) créé(s)`;
+  renderReport(r.error ? null : r);
+  refreshTikTok();
+}
+async function uploadImages(id, files) {
+  const fd = new FormData();
+  [...files].filter((f) => f.type.startsWith("image/")).forEach((f) => fd.append("images", f));
+  await fetch(`/api/tiktok/posts/${id}/images`, { method: "POST", body: fd });
+  refreshTikTok();
+}
+
+const mdDrop = $("#mdDrop");
+mdDrop.addEventListener("dragover", (e) => { e.preventDefault(); mdDrop.classList.add("over"); });
+mdDrop.addEventListener("dragleave", () => mdDrop.classList.remove("over"));
+mdDrop.addEventListener("drop", async (e) => { e.preventDefault(); mdDrop.classList.remove("over"); importMdFiles(await collectEntries(e.dataTransfer)); });
+$("#mdInput").addEventListener("change", (e) => importMdFiles([...e.target.files]));
+$("#ttAuto").innerHTML = `${ic("cal")}Programmer tous les brouillons`;
+$("#ttAuto").onclick = async () => { const r = await ttApi("/api/tiktok/auto-schedule", {}); alert(`${r.scheduled} brouillon(s) programmé(s) sur les prochains créneaux libres.`); refreshTikTok(); };
+const slotsTxt = () => `Créneaux : FR ${TT.settings.frTimes.join(" · ")} — EN ${TT.settings.enTimes.join(" · ")} (Réglages)`;
+function renderWatch() {
+  const w = TT.watch, st = TT.settings;
+  const r = w.lastResult;
+  setHTML($("#ttWatch"), `<div class="card-h"><span class="live ${st.watch ? "" : "off"}"></span><h3>Dossier surveillé</h3><span class="sub"><code>${esc(w.dir.replace(/^\/Users\/[^/]+/, "~"))}</code></span><span class="spacer"></span>
+      <div class="toggle ${st.watch ? "on" : ""}" data-ttwatch title="Analyse automatique toutes les 2 minutes"></div>
+      <button class="btn sm" id="ttScan" ${w.running ? "disabled" : ""}>${w.running ? '<span class="spin"></span>Analyse…' : `${ic("redo")}Analyser maintenant`}</button></div>
+    <div class="note">Dépose un dossier (images en sous-dossiers <code>fr/</code> <code>en/</code>, vidéos, fichier de légendes) : il est analysé, chaque carrousel reçoit sa légende (celle du fichier, sinon écrite par l'IA), tout est programmé sur les créneaux libres et le dossier part dans <b>Programmés</b>.</div>
+    <div class="note" style="margin-top:6px">💡 Tu peux demander à Claude de créer tes carrousels <b>et de les déposer directement dans ce dossier</b> — <a href="/setup.html#6" style="color:var(--accent)">prompt prêt à copier</a> · <a href="#" data-openwatch style="color:var(--accent)">ouvrir le dossier</a></div>
+    ${w.running ? `<div class="row-item" style="margin-top:10px"><span class="spin" style="color:var(--accent)"></span><div class="tt"><b>${esc(w.current ?? "")}</b><span>${esc(w.step)}</span></div></div>` : ""}
+    ${w.pending.length ? w.pending.map((b) => `<div class="row-item">${ic("folder")}<div class="tt"><b>${esc(b.name)}</b><span>${b.media} fichier(s)</span></div>${chip(b.stable ? ["work", "Prêt à analyser"] : ["todo", "Copie en cours…"])}</div>`).join("") : ""}
+    ${r ? `<div class="note" style="margin-top:10px">Dernière analyse ${rel(r.at)} : ${r.results.map((x) => x.error ? `<span style="color:var(--c-err)">${esc(x.batch)} : ${esc(x.error)}</span>` : `<b>${esc(x.batch)}</b> → ${x.posts} post(s)${x.ai ? ` (${x.ai} légende(s) IA)` : ""}`).join(" · ")}</div>` : ""}`);
+}
+document.body.addEventListener("click", async (e) => {
+  if (e.target.closest("#ttScan")) { await ttApi("/api/tiktok/watch/scan", {}); setTimeout(refreshTikTok, 500); }
+  if (e.target.closest("[data-openwatch]")) { e.preventDefault(); await ttApi("/api/setup/watch-folder", {}); await ttApi("/api/setup/open-folder", {}); }
+  if (e.target.closest("[data-ttwatch]")) { await ttApi("/api/tiktok/settings", { watch: !TT.settings.watch }, "PATCH"); refreshTikTok(); }
+});
+$("#ttNewPhoto").onclick = async () => { await ttApi("/api/tiktok/posts", { type: "photo", title: "", description: "" }); ttFilterVal = ""; refreshTikTok(); };
+$("#ttNewVideo").onclick = async () => { const id = $("#ttVideoSel").value; if (!id) return alert("Choisis d'abord une vidéo."); await ttApi("/api/tiktok/from-video", { videoId: id }); refreshTikTok(); };
+const ttPosts = $("#ttPosts");
+ttPosts.addEventListener("dragover", (e) => { const z = e.target.closest("[data-ttimgdrop]"); if (z) { e.preventDefault(); z.classList.add("over"); } });
+ttPosts.addEventListener("dragleave", (e) => { const z = e.target.closest("[data-ttimgdrop]"); if (z) z.classList.remove("over"); });
+ttPosts.addEventListener("drop", (e) => { const z = e.target.closest("[data-ttimgdrop]"); if (z) { e.preventDefault(); uploadImages(z.dataset.ttimgdrop, e.dataTransfer.files); } });
+ttPosts.addEventListener("change", async (e) => {
+  const t = e.target, card = t.closest(".ttcard"); if (!card) return;
+  const id = card.dataset.ttid;
+  if (t.dataset.ttimginput) return uploadImages(id, t.files);
+  if (t.dataset.ttfield) await ttApi(`/api/tiktok/posts/${id}`, { [t.dataset.ttfield]: t.value }, "PATCH");
+  if (t.dataset.ttdate) await ttApi(`/api/tiktok/posts/${id}`, { publishAt: t.value ? new Date(t.value).toISOString() : null }, "PATCH");
+  if (t.dataset.ttvideo) await ttApi(`/api/tiktok/posts/${id}`, { videoId: t.value, videoFile: null }, "PATCH");
+  t.blur(); refreshTikTok();
+});
+ttPosts.addEventListener("input", (e) => { const t = e.target; if (t.dataset.ttfield) { const c = t.nextElementSibling; const max = t.dataset.ttfield === "title" ? 90 : 4000; c.textContent = `${t.value.length}/${max}`; c.classList.toggle("over", t.value.length > max); } });
+ttPosts.addEventListener("click", async (e) => {
+  const t = e.target.closest("[data-ttdel],[data-ttsend],[data-ttdelimg]"); if (!t) return;
+  if (t.dataset.ttdel) { if (!confirm("Supprimer ce post TikTok ?")) return; await ttApi(`/api/tiktok/posts/${t.dataset.ttdel}`, null, "DELETE"); }
+  if (t.dataset.ttsend) { if (!confirm("Envoyer ce brouillon dans ta boîte TikTok maintenant ?")) return; await ttApi(`/api/tiktok/posts/${t.dataset.ttsend}/send`, {}); }
+  if (t.dataset.ttdelimg) { const p = TT.posts.find((x) => x.id === t.dataset.ttdelimg); await ttApi(`/api/tiktok/posts/${p.id}`, { images: p.images.filter((x) => x !== t.dataset.name) }, "PATCH"); }
+  refreshTikTok();
+});
+
+/* ------------------------------------------------------------------ Lecteur */
+function openPlayer(id) {
+  const v = S.videos.find((x) => x.id === id);
+  $("#pv").src = `/out/${id}.mp4${bust(v)}`;
+  $("#pbar").innerHTML = `<b>${esc(v.title)}</b>${chip(statusOf(v))}
+    <button class="btn sm" id="copyMeta">${ic("copy")}Copier titre + description</button>
+    <button class="btn sm" id="reveal">${ic("folder")}Finder</button>
+    <button class="btn sm ghost" onclick="player.close()">Fermer</button>`;
+  $("#copyMeta").onclick = async () => {
+    const m = await api(`/api/videos/${id}/metadata`);
+    await navigator.clipboard.writeText(`${m.title}\n\n${m.description}\n\nTags: ${m.tags.join(", ")}`);
+    $("#copyMeta").innerHTML = `${ic("check")}Copié`;
+  };
+  $("#reveal").onclick = () => api(`/api/videos/${id}/reveal`, {});
+  $("#player").showModal();
+}
+$("#player").addEventListener("close", () => $("#pv").pause());
+
+/* ------------------------------------------------------------------ Actions globales */
+document.body.addEventListener("click", async (e) => {
+  const t = e.target.closest("[data-go],[data-render],[data-upload],[data-play],[data-app],[data-unlink],[data-stage],[data-jump],[data-calpast],[data-autotoggle],#cancelQ");
+  if (!t) return;
+  if (t.dataset.go) { e.preventDefault(); location.hash = t.dataset.go; }
+  else if (t.dataset.render) { await api("/api/render", { ids: [t.dataset.render], force: true }); refresh(); }
+  else if (t.dataset.upload) { await api("/api/upload", { ids: [t.dataset.upload] }); refresh(); }
+  else if (t.dataset.play) openPlayer(t.dataset.play);
+  else if (t.dataset.stage) { filters.status = t.dataset.stage; location.hash = "library"; }
+  else if (t.dataset.jump) document.getElementById(`day-${t.dataset.jump}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  else if (t.dataset.calpast !== undefined) { cal.range = "past"; segOn("#calRange", "past"); location.hash = "calendar"; }
+  else if (t.dataset.autotoggle !== undefined) { await api("/api/settings", { autopilot: !S.settings.autopilot }, "PATCH"); refresh(); }
+  else if (t.dataset.unlink) {
+    if (!confirm("Confirme que tu as supprimé cette vidéo dans YouTube Studio. Elle sera re-rendue et reprogrammée sur un nouveau créneau.")) return;
+    await api(`/api/videos/${t.dataset.unlink}/unlink`, {});
+    await api("/api/schedule/generate", {});
+    await api("/api/render", { ids: [t.dataset.unlink], force: true });
+    refresh();
+  }
+  else if (t.dataset.app !== undefined) { filters.app = t.dataset.app; renderLibrary(); }
+  else if (t.id === "cancelQ") { await api("/api/render/cancel", {}); refresh(); }
+});
+document.body.addEventListener("change", async (e) => {
+  const t = e.target;
+  if (t.dataset.sel) { t.checked ? sel.add(t.dataset.sel) : sel.delete(t.dataset.sel); renderLibrary(); }
+  if (t.dataset.date) { await api(`/api/videos/${t.dataset.date}`, { publishAt: new Date(t.value).toISOString() }, "PATCH"); t.blur(); refresh(); }
+  if (t.dataset.tts) { const list = t.value.split(/[ ,;]+/).map((x) => x.trim()).filter((x) => /^\d{1,2}:\d{2}$/.test(x)).map((x) => x.padStart(5, "0")); await api("/api/tiktok/settings", { [t.dataset.tts]: list }, "PATCH"); t.blur(); refreshTikTok(); }
+  if (t.dataset.s) { const val = t.type === "number" ? Number(t.value) : t.value; await api("/api/settings", { [t.dataset.s]: val }, "PATCH"); refresh(); }
+});
+$("#renderAll").onclick = async () => { const r = await api("/api/render", { all: true }); alert(`${r.queued} vidéo(s) ajoutée(s) à la file de rendu (~${Math.round(r.queued * 2.2)} min).`); refresh(); };
+$("#renderSel").onclick = async () => { await api("/api/render", { ids: [...sel], force: true }); sel.clear(); refresh(); };
+$("#uploadSel").onclick = async () => {
+  if (!confirm(`Programmer ${sel.size} vidéo(s) sur YouTube aux dates du planning ?`)) return;
+  const r = await api("/api/upload", { ids: [...sel] }); alert(`${r.queued} vidéo(s) rendue(s) ajoutée(s) à la file d'envoi.`); sel.clear(); refresh();
+};
+$("#selAll").onclick = () => { filtered().forEach((v) => sel.add(v.id)); renderLibrary(); };
+$("#selNone").onclick = () => { sel.clear(); renderLibrary(); };
+$("#regen").onclick = async () => { await api("/api/schedule/generate", {}); refresh(); };
+$("#autoToggle").onclick = async () => { await api("/api/settings", { autopilot: !S.settings.autopilot }, "PATCH"); refresh(); };
+$("#studioBtn").onclick = async () => { const r = await api("/api/studio", {}); $("#studioBtn").innerHTML = `<span class="spin"></span>Ouverture…`; setTimeout(() => { window.open(r.url, "_blank"); $("#studioBtn").innerHTML = `${ic("sliders")}Studio`; }, 4000); };
+
+/* ------------------------------------------------------------------ Boucle */
+function renderAll() {
+  if (!S) return;
+  renderNav(); renderAlerts(); renderDock(); renderSettings();
+  if (tab === "today") renderToday();
+  if (tab === "calendar") renderCalendar();
+  if (tab === "library") renderLibrary();
+  if (tab === "tiktok") renderTikTok();
+}
+async function refresh() {
+  S = await api("/api/state");
+  if (S.profile && !S.profile.setupDone && !sessionStorage.getItem("skipSetup")) { location.href = "/setup.html"; return; } // premier lancement → guide
+  renderAll();
+}
+
+renderTheme();
+(async () => {
+  const start = location.hash.slice(1) || "today";
+  await Promise.all([refresh(), refreshTikTok()]);
+  go(start);
+})();
+setInterval(() => { if (!document.hidden) refresh(); }, 2000);
+setInterval(() => { if (!document.hidden) refreshTikTok(); }, 5000);
+</script>
+</body>
+</html>
