@@ -82,7 +82,7 @@ data/       ⚠️ local only (git-ignored): OAuth tokens, TikTok config, state
 
 ## 💜 Support the developer
 
-TikTube Planner is free. If it saves you time, the only thing I ask: **[download one of my apps](https://tapp.be/louis.valli)** and leave a rating if you like it. 🙏
+TikTube Planner is free. If it saves you time, the only thing I ask: **[download one of my apps](https://taap.be/louis.valli)** and leave a rating if you like it. 🙏
 
 Not required, but always appreciated: follow me on [X (@fj_2304)](https://x.com/fj_2304), [TikTok (@smartcom.digital)](https://www.tiktok.com/@smartcom.digital) and [LinkedIn](https://www.linkedin.com/in/louis-valli/).
 
@@ -118,7 +118,7 @@ Dépose un dossier dans `~/Desktop/Tiktok` (sous-dossiers `fr/` / `en/` d'images
 
 ### 💜 Soutenir le développeur
 
-TikTube Planner est gratuit. S'il te fait gagner du temps, tout ce que je demande : **[télécharge une de mes apps](https://tapp.be/louis.valli)** et laisse une note si elle te plaît 🙏 — et si tu veux, suis-moi sur [X](https://x.com/fj_2304), [TikTok](https://www.tiktok.com/@smartcom.digital) et [LinkedIn](https://www.linkedin.com/in/louis-valli/).
+TikTube Planner est gratuit. S'il te fait gagner du temps, tout ce que je demande : **[télécharge une de mes apps](https://taap.be/louis.valli)** et laisse une note si elle te plaît 🙏 — et si tu veux, suis-moi sur [X](https://x.com/fj_2304), [TikTok](https://www.tiktok.com/@smartcom.digital) et [LinkedIn](https://www.linkedin.com/in/louis-valli/).
 
 ### Sécurité
 
