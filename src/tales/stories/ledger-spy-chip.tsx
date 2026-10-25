@@ -29,7 +29,7 @@ import {
   useBeat,
   useEnter,
   useTale,
-} from "../kit";
+} from "../legacy";
 import type { StoryProps } from "../types";
 
 const clampOpt = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;

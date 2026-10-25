@@ -1,9 +1,9 @@
 import React from "react";
 import { interpolate, useCurrentFrame } from "remotion";
 import { evolvePath, getLength, getPointAtLength } from "@remotion/paths";
-import { clamp, EASE_IN_OUT, EASE_OUT, Sfx } from "../../components/fx";
+import { clamp, EASE_IN_OUT, EASE_OUT } from "../../components/fx";
 import { Count } from "../../components/widgets";
-import { GREY, INK, LIME, monoStyle, PAPER, PAPER_2, PINK, useEnter, useProgress } from "./core";
+import { GREY, INK, LIME, monoStyle, PAPER, PAPER_2, PINK, useEnter, useProgress } from "../kit/core";
 
 /*
  * Dessin schématique à l'encre : traits qui se tracent, flèches, transferts de jetons, chaînes de blocs, courbes de prix.
@@ -163,8 +163,6 @@ export const Transfer: React.FC<{ from: Pt; to: Pt; at: number; dur?: number; be
           {amount ? <div style={{ position: "absolute", left: "50%", top: size * 0.62, transform: "translateX(-50%)", ...monoStyle(14, INK), background: PAPER, border: `3px solid ${INK}`, padding: "3px 8px" }}>{amount}</div> : null}
         </div>
       ) : null}
-      <Sfx name="whoosh" at={at + 8} volume={0.4} />
-      <Sfx name="pop" at={at + dur} volume={0.35} />
     </>
   );
 };
@@ -250,7 +248,6 @@ const Block: React.FC<{ i: number; at: number; size: number; gap: number; n: num
         <div style={{ ...monoStyle(size * 0.1, INK), letterSpacing: 0 }}>#{n.toLocaleString("en-US")}</div>
       </div>
       {!last ? <div style={{ position: "absolute", left: left + size + 4, top: size / 2 - 4, width: interpolate(frame, [at + 4, at + 10], [0, gap - 8], clamp), height: 8, background: INK }} /> : null}
-      <Sfx name="click" at={at} volume={0.25} />
     </>
   );
 };

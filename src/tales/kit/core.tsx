@@ -20,9 +20,16 @@ export const CYAN = "#5CE1FF";
 export const ORANGE = "#FF9D2E";
 export const UP = "#4E7A00";
 export const STAGE_W = 1000;
-export const STAGE_H = 1080;
-/** Position de la scène dans l'image 1080 × 1920 (au-dessus des sous-titres). */
-export const STAGE_BOX = { left: 40, top: 300, width: STAGE_W, height: STAGE_H };
+export const STAGE_H = 1250;
+/**
+ * Position de la scène dans l'image 1080 × 1920 : toute la hauteur utile, entre la barre du haut de TikTok / Shorts
+ * (y < 170) et les sous-titres (sous y = 1420), au-dessus du nom et de la légende de la plateforme (y > 1620).
+ */
+export const STAGE_BOX = { left: 40, top: 170, width: STAGE_W, height: STAGE_H };
+/** Boutons de la plateforme (like, commentaires…) à droite : en scène, éviter x > 880 quand y > 700. */
+export const RIGHT_RAIL = { x: 880, y: 700 };
+/** Haut des sous-titres (dans l'image). */
+export const CAPTIONS_Y = 1440;
 
 export type Word = { w: string; s: number; e: number };
 type TaleCtx = { tale: Tale; timeline: TaleTimeline; words: Word[][] };
@@ -166,9 +173,19 @@ export const Appear: React.FC<{ at: number; from?: From; out?: number; children:
   return <div style={{ opacity: Math.min(1, p * 2.2) * (1 - q), transform: tr, ...style }}>{children}</div>;
 };
 
+/** Étiquette de planche : petit tampon mono (tag rose + texte), sans barre de titre. */
+const BoardLabel: React.FC<{ tag?: string; label?: string; ink: boolean }> = ({ tag, label, ink }) =>
+  tag || label ? (
+    <div style={{ position: "absolute", left: 0, top: 0, display: "flex", alignItems: "center", gap: 12 }}>
+      {tag ? <span style={{ ...monoStyle(15, INK), background: PINK, padding: "5px 10px" }}>{tag}</span> : null}
+      {label ? <span style={monoStyle(15, ink ? "rgba(239,234,223,0.75)" : GREY)}>{label}</span> : null}
+    </div>
+  ) : null;
+
 /**
- * Planche de papier (ou d'encre) avec ombre franche colorée et en-tête mono optionnel ("CASE FILE · 2013").
- * Dimensions en unités scène.
+ * Planche de papier (ou d'encre). Par défaut, c'est une **surface plein écran** (toute l'image, sans cadre ni ombre :
+ * pas d'effet « fenêtre ») ; les enfants restent en coordonnées scène (1000 × 1250). `label` / `tag` = petit tampon mono
+ * en haut à gauche (garde y < 60 libre). Avec x / y / w / h plus petits : une fiche papier à bord encre et ombre franche.
  */
 export const Board: React.FC<{
   x?: number;
@@ -186,7 +203,21 @@ export const Board: React.FC<{
   const frame = useCurrentFrame();
   const p = useEnter(at, { damping: 14, stiffness: 150 });
   const ink = tone === "ink";
-  const drift = Math.sin(frame / 50) * 0.3;
+  const lines = ruled ? `linear-gradient(${ink ? "rgba(239,234,223,0.07)" : "rgba(11,11,14,0.07)"} 2px, transparent 2px)` : undefined;
+  const full = x === 0 && y === 0 && w === STAGE_W && h === STAGE_H;
+  if (full) {
+    // Surface plein écran : glisse depuis le bas en 10 frames (aucune rotation, aucun cadre).
+    const wipe = interpolate(frame, [at, at + 10], [0, 1], { ...clamp, easing: EASE_OUT });
+    if (frame < at) return null;
+    return (
+      <div style={{ position: "absolute", left: -STAGE_BOX.left, top: -STAGE_BOX.top, width: 1080, height: 1920, background: ink ? INK : PAPER, backgroundImage: lines, backgroundSize: "100% 54px", clipPath: `inset(${(1 - wipe) * 100}% 0 0 0)` }}>
+        <div style={{ position: "absolute", left: STAGE_BOX.left, top: STAGE_BOX.top, width: STAGE_W, height: STAGE_H }}>
+          <BoardLabel tag={tag} label={label} ink={ink} />
+          {children}
+        </div>
+      </div>
+    );
+  }
   return (
     <div
       style={{
@@ -196,30 +227,19 @@ export const Board: React.FC<{
         width: w,
         height: h,
         background: ink ? INK : PAPER,
+        backgroundImage: lines,
+        backgroundSize: "100% 54px",
         border: `4px solid ${ink ? PAPER : INK}`,
-        boxShadow: `14px 14px 0 ${shadow}`,
-        transform: `translateY(${(1 - p) * 140}px) rotate(${(1 - p) * -5 + drift}deg)`,
+        boxShadow: `12px 12px 0 ${shadow}`,
+        transform: `translateY(${(1 - p) * 120}px)`,
         opacity: Math.min(1, p * 2.5),
         overflow: "hidden",
       }}
     >
-      {ruled ? (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            backgroundImage: `linear-gradient(${ink ? "rgba(239,234,223,0.07)" : "rgba(11,11,14,0.07)"} 2px, transparent 2px)`,
-            backgroundSize: "100% 54px",
-          }}
-        />
-      ) : null}
-      {label || tag ? (
-        <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 58, background: ink ? PAPER : INK, display: "flex", alignItems: "center", gap: 14, padding: "0 18px" }}>
-          {tag ? <span style={{ ...monoStyle(16, INK), background: PINK, padding: "5px 10px" }}>{tag}</span> : null}
-          {label ? <span style={monoStyle(16, ink ? INK : PAPER)}>{label}</span> : null}
-        </div>
-      ) : null}
-      <div style={{ position: "absolute", inset: 0, top: label || tag ? 58 : 0 }}>{children}</div>
+      <div style={{ position: "absolute", left: 16, top: 16 }}>
+        <BoardLabel tag={tag} label={label} ink={ink} />
+      </div>
+      {children}
     </div>
   );
 };

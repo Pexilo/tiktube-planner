@@ -1,7 +1,7 @@
-// Kit "Crypto stories" : tout ce qu'une story (src/tales/stories/<slug>.tsx) a le droit d'utiliser. Mode d'emploi : src/tales/KIT.md.
-export { INK, PAPER, PAPER_2, GREY, PINK, LIME, CYAN, ORANGE, UP, STAGE_W, STAGE_H, Beat, useBeat, useTale, useEnter, useProgress, Camera, At, Appear, Board, monoStyle } from "./core";
-export type { CameraKey, From } from "./core";
-export { InkPath, Arrow, Tag, Transfer, Coin, Chain, PriceChart, Timeline, Callout, Redacted, Gauge } from "./draw";
-export { Icon, ICON_NAMES, Actor, Bubble, Wallet, Headline, Stamp, Counter, Title, Note, Pin } from "./things";
-export type { IconName, ActorKind } from "./things";
-export { Sfx } from "../../components/fx";
+// Kit "Crypto stories" en pixel art : tout ce qu'une story (src/tales/stories/<slug>.tsx) a le droit d'utiliser.
+// Mode d'emploi : src/tales/KIT.md. Règles de style : src/tales/pixel/PIXEL.md. Positions et tailles en cellules (grille 90 × 160).
+export { Beat, useBeat, useTale } from "./core";
+export { P, PAL, COLS, ROWS, GROUND, LOOKS, Person, Sprite, Canvas, PixelArt, useDrop, shade } from "../pixel/engine";
+export type { Look, LookName, Pose } from "../pixel/engine";
+export { Sky, City, Street, Room, Hill, Prop, PROP_NAMES, propSize, Fly, Title, Counter, Label, Bubble, Stamp, Screen, Chart, Bar, Arrow, Pin } from "../pixel/props";
+export type { PropName, SkyKind } from "../pixel/props";

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { createContext, useContext } from "react";
 import { AbsoluteFill, Audio, Easing, interpolate, random, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { alpha, MONO, useTheme } from "../lib/theme";
 
@@ -19,8 +19,10 @@ export type SfxName =
 
 /** Bruitages "boom" retirés (hit, impact, glitch, tick) ; les autres sont joués plus doucement. */
 const MUTED: SfxName[] = ["hit", "impact", "glitch", "tick"];
+/** true = aucun bruitage dans ce sous-arbre (les stories crypto : voix + musique seulement). */
+export const SfxMute = createContext(false);
 export const Sfx: React.FC<{ name: SfxName; at?: number; volume?: number }> = ({ name, at = 0, volume = 0.8 }) =>
-  MUTED.includes(name) ? null : (
+  useContext(SfxMute) || MUTED.includes(name) ? null : (
     <Sequence from={Math.round(at)} layout="none">
       <Audio src={staticFile(`audio/sfx/${name}.wav`)} volume={volume * 0.55} />
     </Sequence>

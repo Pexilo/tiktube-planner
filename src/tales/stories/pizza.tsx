@@ -31,7 +31,7 @@ import {
   Transfer,
   useBeat,
   useTale,
-} from "../kit";
+} from "../legacy";
 import type { StoryProps } from "../types";
 
 const heading = (size: number, color: string = INK): React.CSSProperties => ({

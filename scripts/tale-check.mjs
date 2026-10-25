@@ -45,10 +45,11 @@ for (const [re, why] of [
   [/<Audio\b|<Video\b|<OffthreadVideo\b/, "Pas d'<Audio>/<Video> : la voix, la musique et les sons sont gérés par l'habillage et le kit."],
   [/staticFile\s*\(|<Img\b|<img\b|https?:\/\//, "Pas d'images ni de fichiers externes : tout est dessiné avec le kit (SVG, CSS)."],
   [/\brequire\s*\(|\bfetch\s*\(|Math\.random\s*\(|Date\.now\s*\(/, "Interdit : require, fetch, Math.random, Date.now (le rendu doit être déterministe)."],
+  [/blur\(|rotate\(|filter\s*:/, "Pixel art : pas de flou, pas de rotation, pas de filtre CSS (cf. src/tales/pixel/PIXEL.md)."],
 ])
   if (re.test(src)) errors.push(why);
 const imports = [...src.matchAll(/from\s+["']([^"']+)["']/g)].map((m) => m[1]);
-const ALLOWED = ["react", "remotion", "@remotion/paths", "@remotion/shapes", "../kit", "../types"];
+const ALLOWED = ["react", "remotion", "../kit", "../types"];
 for (const i of imports) if (!ALLOWED.includes(i)) errors.push(`Import non autorisé : "${i}" (autorisés : ${ALLOWED.join(", ")}).`);
 const ids = new Set(tale.beats.map((b) => b.id));
 for (const m of src.matchAll(/<Beat\s+id=["']([^"']+)["']/g)) if (!ids.has(m[1])) errors.push(`<Beat id="${m[1]}"> : beat inconnu (ids : ${[...ids].join(", ")}).`);

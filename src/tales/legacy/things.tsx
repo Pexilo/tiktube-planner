@@ -1,13 +1,13 @@
 import React from "react";
 import { interpolate, useCurrentFrame } from "remotion";
-import { clamp, EASE_OUT, Sfx } from "../../components/fx";
+import { clamp, EASE_OUT } from "../../components/fx";
 import { tokenize } from "../../components/text";
 import { Count } from "../../components/widgets";
-import { CYAN, GREY, INK, LIME, monoStyle, PAPER, PINK, useEnter } from "./core";
+import { CYAN, GREY, INK, LIME, monoStyle, PAPER, PINK, useEnter } from "../kit/core";
 
 /*
  * Objets schématiques : pictos, personnages, wallets, coupures de presse, tampons, compteurs, titres.
- * Chaque objet est centré sur (x, y) dans le repère du parent et apparaît à la frame `at` (avec un petit son discret).
+ * Chaque objet est centré sur (x, y) dans le repère du parent et apparaît à la frame `at` (sans bruitage : la story n'a que voix et musique).
  */
 
 /** Pictos 24 × 24 au trait (encre). */
@@ -85,7 +85,6 @@ export const Icon: React.FC<{ name: IconName; x?: number; y?: number; at?: numbe
   return (
     <div style={{ position: x === undefined ? "relative" : "absolute", left: x, top: y, transform: `${x === undefined ? "" : "translate(-50%, -50%) "}scale(${0.3 + 0.7 * p}) rotate(${rot + (1 - p) * -14}deg)`, opacity: Math.min(1, p * 2) }}>
       {body}
-      <Sfx name="pop" at={at} volume={0.25} />
     </div>
   );
 };
@@ -142,28 +141,47 @@ export const Actor: React.FC<{
   );
 };
 
-const Figure: React.FC<{ dx: number; s: number; c: string; kind: ActorKind }> = ({ dx, s, c, kind }) => {
-  const sw = 6;
-  const tf = `translate(${80 + dx} 220) scale(${s}) translate(-80 -220)`;
+/**
+ * Pictogramme façon ISOTYPE (Gerd Arntz) : pas de visage, tête pleine qui flotte au-dessus d'épaules arrondies,
+ * aplat de couleur à bord encre ; le rôle se lit à un seul accessoire (capuche, casquette, cravate, laptop).
+ * Le liseré papier de la tête la garde lisible sur une planche encre.
+ */
+const Figure: React.FC<{ dx: number; s: number; c: string; kind: ActorKind }> = ({ dx, s: k, c, kind }) => {
+  const tf = `translate(${80 + dx} 220) scale(${k}) translate(-80 -220)`;
+  const BODY = "M30 220 L33 140 Q36 96 80 94 Q124 96 127 140 L130 220 Z";
+  if (kind === "hacker")
+    return (
+      <g transform={tf}>
+        <path d={BODY} fill={INK} stroke={PAPER} strokeWidth={4} strokeLinejoin="round" />
+        <path d="M80 8 C50 8 38 34 38 60 L38 100 L122 100 L122 60 C122 34 110 8 80 8 Z" fill={INK} stroke={PAPER} strokeWidth={4} strokeLinejoin="round" />
+        <ellipse cx={80} cy={58} rx={21} ry={25} fill="#2b2b33" />
+        <path d="M70 56h7M83 56h7" stroke={LIME} strokeWidth={5} strokeLinecap="round" />
+      </g>
+    );
   return (
     <g transform={tf}>
-      {kind === "hacker" ? (
+      <path d={BODY} fill={c} stroke={INK} strokeWidth={6} strokeLinejoin="round" />
+      <circle cx={80} cy={48} r={29} fill={INK} stroke={PAPER} strokeWidth={3} />
+      {kind === "suit" ? (
         <>
-          <path d="M80 18c-34 0-52 26-52 62v14h104V80c0-36-18-62-52-62z" fill={INK} stroke={INK} strokeWidth={sw} />
-          <ellipse cx={80} cy={78} rx={24} ry={28} fill="#24242a" />
-          <path d="M68 74h8M84 74h8" stroke={LIME} strokeWidth={5} strokeLinecap="round" />
-          <path d="M22 216c0-62 22-104 58-104s58 42 58 104z" fill={INK} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
+          <path d="M62 96 L80 136 L98 96 Z" fill={PAPER} stroke={INK} strokeWidth={4} strokeLinejoin="round" />
+          <path d="M80 106 L73 142 L80 156 L87 142 Z" fill={PINK} stroke={INK} strokeWidth={3} strokeLinejoin="round" />
         </>
-      ) : (
+      ) : null}
+      {kind === "cop" ? (
         <>
-          <path d="M22 216c0-62 22-104 58-104s58 42 58 104z" fill={c} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
-          <circle cx={80} cy={66} r={38} fill={PAPER} stroke={INK} strokeWidth={sw} />
-          <path d="M66 62h.5M94 62h.5" stroke={INK} strokeWidth={8} strokeLinecap="round" />
-          {kind === "suit" ? <path d="M80 112l-10 18 10 50 10-50z" fill={PINK} stroke={INK} strokeWidth={4} strokeLinejoin="round" /> : null}
-          {kind === "cop" ? <path d="M40 46h80l-6-20H46zM34 46h92" fill={INK} stroke={INK} strokeWidth={sw} strokeLinejoin="round" /> : null}
-          {kind === "dev" ? <path d="M42 150h76v46H42zM34 200h92" fill={PAPER} stroke={INK} strokeWidth={sw} strokeLinejoin="round" /> : null}
+          <path d="M50 30 Q80 2 110 30 L112 36 H48 Z" fill={INK} stroke={PAPER} strokeWidth={3} strokeLinejoin="round" />
+          <path d="M42 38 H118" stroke={INK} strokeWidth={7} strokeLinecap="round" />
+          <path d="M66 128 l5 10 11 1 -8 7 3 11 -11 -6 -10 6 3 -11 -8 -7 11 -1 z" fill={LIME} stroke={INK} strokeWidth={2.5} strokeLinejoin="round" />
         </>
-      )}
+      ) : null}
+      {kind === "dev" ? (
+        <>
+          <path d="M44 146 H116 L110 194 H50 Z" fill={PAPER} stroke={INK} strokeWidth={5} strokeLinejoin="round" />
+          <circle cx={80} cy={170} r={6} fill={INK} />
+          <path d="M32 200 H128" stroke={INK} strokeWidth={7} strokeLinecap="round" />
+        </>
+      ) : null}
     </g>
   );
 };
@@ -250,7 +268,6 @@ export const Headline: React.FC<{ x: number; y: number; at?: number; outlet: str
         </div>
         <div style={{ marginTop: 14, fontFamily: "var(--heading)", fontWeight: 800, fontSize: 54, lineHeight: 1.02, letterSpacing: "-0.035em", color: INK }}>{text}</div>
       </div>
-      <Sfx name="swipe" at={at} volume={0.4} />
     </div>
   );
 };
@@ -284,7 +301,6 @@ export const Stamp: React.FC<{ at: number; text: string; x?: number; y?: number;
       }}
     >
       {text}
-      <Sfx name="pop" at={at} volume={0.5} />
     </div>
   );
 };

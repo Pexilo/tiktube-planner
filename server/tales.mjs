@@ -23,7 +23,9 @@ const IDEAS_FILE = join(DATA, "tales", "ideas.json");
 const DRAFTS = join(ROOT, "src", "tales", "drafts");
 const FEATURES = ["pnl", "address", "grade", "whatif", "regrets", "gas", "trophies", "math"];
 const ROLES = ["hook", "context", "build", "twist", "product", "payoff", "outro"];
-const COMPOSE_TIMEOUT = 25 * 60 * 1000;
+/** Toutes les étapes des stories (idées, script, visuels) : Claude Opus 5.5, effort maximal (xhigh). */
+const STORY_MODEL = ["--model", "claude-opus-5-5", "--effort", "xhigh"];
+const COMPOSE_TIMEOUT = 45 * 60 * 1000;
 mkdirSync(join(DATA, "tales"), { recursive: true });
 mkdirSync(TALES_DIR, { recursive: true });
 
@@ -222,7 +224,7 @@ export async function searchIdeas() {
   const store = readIdeas();
   const avoid = [...loadTales().map((t) => t.yt?.title ?? t.slug), ...store.ideas.map((i) => i.title)].slice(-60);
   const settings = settingsFile("search", ["WebSearch", "WebFetch", "Skill"], ["Bash", "Edit", "Write"]);
-  const w = await claude(["--model", "sonnet", "--max-turns", "50", "--settings", settings], ideasPrompt(avoid), { timeout: 15 * 60 * 1000 });
+  const w = await claude([...STORY_MODEL, "--max-turns", "50", "--settings", settings], ideasPrompt(avoid), { timeout: 30 * 60 * 1000 });
   const found = (jsonFrom(w.result).ideas ?? []).map(cleanIdea);
   const kept = [];
   for (const i of found) {
@@ -357,7 +359,7 @@ export async function writeScript({ ideaId, topic }) {
   let result = null;
   for (let attempt = 1; attempt <= 2; attempt++) {
     stage(attempt === 1 ? "Écriture du script (Claude)" : "Correction du script (Claude)");
-    const w = await claude(["--model", "opus", "--max-turns", "35", "--settings", settings], scriptPrompt(subject, problems), { timeout: 12 * 60 * 1000 });
+    const w = await claude([...STORY_MODEL, "--max-turns", "35", "--settings", settings], scriptPrompt(subject, problems), { timeout: 25 * 60 * 1000 });
     result = toTale(jsonFrom(w.result), idea);
     if (!result.problems.length) break;
     problems = result.problems.map((p) => `- ${p}`).join("\n");
@@ -449,7 +451,7 @@ async function composeTale(slug) {
   // Recomposition : Claude repart des visuels actuels.
   if (!existsSync(draft) && existsSync(story)) writeFileSync(draft, readFileSync(story));
   const before = existsSync(draft) ? statSync(draft).mtimeMs : 0;
-  stage("Composition des visuels (Claude, jusqu'à 25 min)");
+  stage("Composition des visuels (Claude, jusqu'à 45 min)");
   const rel = "src/tales/drafts/**";
   const abs = `//${DRAFTS.replaceAll("\\", "/").replace(/^\/+/, "")}/**`;
   const settings = settingsFile(
@@ -457,7 +459,7 @@ async function composeTale(slug) {
     ["Read", "Glob", "Grep", "Skill", `Write(${rel})`, `Edit(${rel})`, `Write(${abs})`, `Edit(${abs})`, "Bash(node scripts/tale-check.mjs:*)"],
     ["WebSearch", "WebFetch"],
   );
-  const w = await claude(["--model", "opus", "--settings", settings, "--max-turns", "80"], composePrompt(tale, before > 0), { timeout: COMPOSE_TIMEOUT });
+  const w = await claude([...STORY_MODEL, "--settings", settings, "--max-turns", "80"], composePrompt(tale, before > 0), { timeout: COMPOSE_TIMEOUT });
   const summary = String(w.result ?? "").trim();
   log(summary);
   if (!existsSync(draft) || statSync(draft).mtimeMs === before) throw new Error(`Claude n'a pas écrit src/tales/drafts/${slug}.tsx`);
