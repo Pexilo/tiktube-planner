@@ -83,7 +83,7 @@ const Scenes: React.FC<VideoProps> = ({ app, kind, shortIndex, voice }) => {
               );
           if (s.type === "problem") el = <ProblemScene dur={s.dur} />;
           if (s.type === "reveal") el = <RevealScene dur={s.dur} drop={s.from === dropFrame} />;
-          if (s.type === "feature") el = <FeatureScene feature={byId[s.featureId!]} index={s.featureIndex!} dur={s.dur} />;
+          if (s.type === "feature") el = <FeatureScene feature={byId[s.featureId!]} index={s.featureIndex!} dur={s.dur} compact={kind === "story"} />;
           if (s.type === "montage") el = <MontageScene dur={s.dur} />;
           if (s.type === "benefits") el = <BenefitsScene dur={s.dur} />;
           if (s.type === "cta") el = <CTAScene dur={s.dur} />;
@@ -117,7 +117,7 @@ const Scenes: React.FC<VideoProps> = ({ app, kind, shortIndex, voice }) => {
                   <Sequence from={VOICE_DELAY} layout="none">
                     <Audio src={staticFile(seg.file)} volume={1} />
                   </Sequence>
-                  {s.type !== "hook" ? <Captions words={seg.words} offset={VOICE_DELAY} y={(s.type === "cta" ? 1440 : 1390) * u} /> : null}
+                  {s.type !== "hook" ? <Captions words={seg.words} offset={VOICE_DELAY} y={(s.type === "cta" ? 1440 : s.type === "feature" && byId[s.featureId!]?.widget ? 1500 : 1390) * u} /> : null}
                 </Sequence>
               );
             })

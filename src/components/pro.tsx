@@ -93,6 +93,7 @@ export const Transition: React.FC<{ type: TransitionType }> = ({ type }) => {
 export const Bokeh: React.FC<{ seed?: number; count?: number; opacity?: number }> = ({ seed = 0, count = 6, opacity = 0.35 }) => {
   const { b, W, H, u } = useTheme();
   const frame = useCurrentFrame();
+  if (b.backdrop === "ledger") return null; // style net du registre : pas de halos flous
   const cols = [b.primary, b.secondary, b.accent];
   return (
     <AbsoluteFill style={{ pointerEvents: "none", overflow: "hidden" }}>
@@ -129,6 +130,7 @@ export const Bokeh: React.FC<{ seed?: number; count?: number; opacity?: number }
 export const Particles: React.FC<{ count?: number; seed?: number }> = ({ count = 26, seed = 0 }) => {
   const { b, W, H, u, dark } = useTheme();
   const frame = useCurrentFrame();
+  if (b.backdrop === "ledger") return null;
   return (
     <AbsoluteFill style={{ pointerEvents: "none" }}>
       {Array.from({ length: count }).map((_, i) => {

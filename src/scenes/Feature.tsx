@@ -7,6 +7,7 @@ import { FadeText, Kinetic, plain } from "../components/text";
 import { Device } from "../components/devices";
 import { Chip, StatCard } from "../components/ui";
 import { Bokeh, FloorShadow, MonoTag, Particles } from "../components/pro";
+import { FeatureWidget } from "../components/widgets";
 
 const SWAP = 92; // frame du changement d'écran (si 2 écrans)
 
@@ -60,12 +61,13 @@ const DeviceStage: React.FC<{ screens: Screen[]; dur: number; side: 1 | -1; phon
   );
 };
 
-export const FeatureScene: React.FC<{ feature: Feature; index: number; dur: number }> = ({ feature, index, dur }) => {
+export const FeatureScene: React.FC<{ feature: Feature; index: number; dur: number; compact?: boolean }> = ({ feature, index, dur, compact }) => {
   const { t, u, isShort, b, dark } = useTheme();
   const frame = useCurrentFrame();
   const side: 1 | -1 = index % 2 === 0 ? 1 : -1;
   const isBrowser = feature.screens[0].device === "browser";
-  const two = feature.screens.length > 1;
+  const widget = feature.widget;
+  const two = feature.screens.length > 1 && !widget;
   const big = interpolate(frame, [0, dur], [0, 1]);
 
   const giant = (
@@ -91,8 +93,8 @@ export const FeatureScene: React.FC<{ feature: Feature; index: number; dur: numb
       <MonoTag text={`feature ${String(index + 1).padStart(2, "0")}${feature.chip ? ` · ${plain(t(feature.chip))}` : ""}`} size={(isShort ? 24 : 20) * u} start={2} />
       <Kinetic text={t(feature.title)} size={(isShort ? 104 : 88) * u} start={4} stagger={3} align={align} maxWidth={(isShort ? 960 : 780) * u} />
       <FadeText text={t(feature.text)} size={(isShort ? 40 : 36) * u} start={16} align={align} style={{ maxWidth: (isShort ? 900 : 720) * u }} />
-      {!isShort && feature.chip ? <Chip text={t(feature.chip)} size={28 * u} start={30} style={{ marginTop: 10 * u }} /> : null}
-      {!isShort && feature.stat ? <StatCard value={feature.stat.value} label={t(feature.stat.label)} size={96 * u} start={42} style={{ marginTop: 10 * u }} /> : null}
+      {!isShort && feature.chip && !widget ? <Chip text={t(feature.chip)} size={28 * u} start={30} style={{ marginTop: 10 * u }} /> : null}
+      {!isShort && feature.stat && !widget ? <StatCard value={feature.stat.value} label={t(feature.stat.label)} size={96 * u} start={42} style={{ marginTop: 10 * u }} /> : null}
     </div>
   );
 
@@ -101,7 +103,26 @@ export const FeatureScene: React.FC<{ feature: Feature; index: number; dur: numb
       <Backdrop seed={30 + index * 7} />
       <Particles count={20} seed={index} />
       {giant}
-      {isShort ? (
+      {widget ? (
+        isShort ? (
+          <>
+            <AbsoluteFill style={{ top: 285 * u, bottom: "auto", height: 520 * u, alignItems: "center", padding: `0 ${60 * u}px` }}>{textBlock("center")}</AbsoluteFill>
+            {/* Avec sous-titres (Shorts narrés), le widget est réduit pour leur laisser la place en dessous. */}
+            <div style={{ position: "absolute", top: 770 * u, left: (compact ? 103 : 33) * u }}>
+              <FeatureWidget widget={widget} width={(compact ? 860 : 1000) * u} />
+            </div>
+          </>
+        ) : (
+          <>
+            <AbsoluteFill style={{ justifyContent: "center", ...(side === 1 ? { left: 140 * u, right: "auto" } : { left: "auto", right: 140 * u }), width: 760 * u }}>
+              {textBlock("left")}
+            </AbsoluteFill>
+            <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", ...(side === 1 ? { left: 900 * u, right: 60 * u, width: "auto" } : { left: 60 * u, right: 900 * u, width: "auto" }) }}>
+              <FeatureWidget widget={widget} width={860 * u} />
+            </AbsoluteFill>
+          </>
+        )
+      ) : isShort ? (
         <>
           <AbsoluteFill style={{ top: 285 * u, bottom: "auto", height: 560 * u, alignItems: "center", padding: `0 ${60 * u}px` }}>{textBlock("center")}</AbsoluteFill>
           <AbsoluteFill style={isBrowser ? { top: 820 * u, bottom: 400 * u, height: "auto" } : { top: 770 * u, height: "auto" }}>
@@ -146,8 +167,8 @@ export const FeatureScene: React.FC<{ feature: Feature; index: number; dur: numb
       )}
       <Bokeh seed={index + 3} count={5} opacity={0.28} />
       <Sfx name="whoosh" at={0} volume={0.55} />
-      {feature.chip ? <Sfx name="pop" at={30} volume={0.4} /> : null}
-      {feature.stat ? <Sfx name="tick" at={46} volume={0.4} /> : null}
+      {feature.chip && !widget ? <Sfx name="pop" at={30} volume={0.4} /> : null}
+      {feature.stat && !widget ? <Sfx name="tick" at={46} volume={0.4} /> : null}
       {two ? <Sfx name="swipe" at={SWAP - 2} volume={0.6} /> : null}
     </SceneWrap>
   );

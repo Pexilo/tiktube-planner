@@ -1,6 +1,6 @@
 import React from "react";
 import { AbsoluteFill, Audio, Easing, interpolate, random, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
-import { alpha, useTheme } from "../lib/theme";
+import { alpha, MONO, useTheme } from "../lib/theme";
 
 export const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 export const EASE_OUT = Easing.bezier(0.16, 1, 0.3, 1);
@@ -54,6 +54,7 @@ export const Backdrop: React.FC<{ seed?: number; intensity?: number; grid?: bool
       />
     );
   };
+  if (b.backdrop === "ledger") return <Ledger seed={seed} intensity={intensity} />;
   return (
     <AbsoluteFill style={{ background: b.bg, overflow: "hidden" }}>
       {dark ? (
@@ -74,6 +75,35 @@ export const Backdrop: React.FC<{ seed?: number; intensity?: number; grid?: bool
       {grid ? <PerspectiveGrid /> : null}
       <Grain opacity={dark ? 0.07 : 0.05} />
       <Vignette strength={dark ? 0.55 : 0.12} />
+    </AbsoluteFill>
+  );
+};
+
+/** Fond "registre" (identité du site) : papier ligné sombre, marge rose en pointillés, bandeau mono qui défile. */
+const Ledger: React.FC<{ seed: number; intensity: number }> = ({ seed, intensity }) => {
+  const { app, b, u, W, H, isShort, t } = useTheme();
+  const frame = useCurrentFrame();
+  const rule = 64 * u;
+  const tape = `${t(app.tape) || app.name} · `.repeat(12);
+  const tapeH = 46 * u;
+  const glowX = 0.3 + 0.4 * random(`lg${seed}`) + 0.05 * Math.sin(frame / 50);
+  return (
+    <AbsoluteFill style={{ background: b.bg, overflow: "hidden" }}>
+      <div style={{ position: "absolute", left: glowX * W - 0.6 * H, top: 0.1 * H, width: 1.2 * H, height: 1.2 * H, borderRadius: "50%", background: `radial-gradient(circle, ${alpha(b.primary, 0.16 * intensity)} 0%, transparent 60%)` }} />
+      <AbsoluteFill
+        style={{
+          backgroundImage: `linear-gradient(${alpha(b.text, 0.05)} ${Math.max(1, 1.5 * u)}px, transparent ${Math.max(1, 1.5 * u)}px)`,
+          backgroundSize: `100% ${rule}px`,
+          backgroundPosition: `0 ${(frame * 0.6 * u) % rule}px`,
+        }}
+      />
+      <div style={{ position: "absolute", top: 0, bottom: 0, left: (isShort ? 36 : 70) * u, borderLeft: `${3 * u}px dashed ${alpha(b.primary, 0.55)}` }} />
+      <div style={{ position: "absolute", top: 0, bottom: 0, right: (isShort ? 36 : 70) * u, borderLeft: `${3 * u}px dashed ${alpha(b.primary, 0.25)}` }} />
+      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: tapeH, background: b.primary, display: "flex", alignItems: "center", overflow: "hidden" }}>
+        <div style={{ whiteSpace: "nowrap", fontFamily: MONO, fontWeight: 700, fontSize: 20 * u, letterSpacing: "0.14em", textTransform: "uppercase", color: b.bg, transform: `translateX(${-((frame * 3 * u) % (W * 2))}px)` }}>{tape}</div>
+      </div>
+      <Grain opacity={0.06} />
+      <Vignette strength={0.45} />
     </AbsoluteFill>
   );
 };

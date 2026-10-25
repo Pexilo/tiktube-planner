@@ -24,7 +24,22 @@ export type Feature = {
   chip?: L;
   stat?: { value: string; label: L };
   screens: Screen[];
+  /** Composant du site recréé et animé (remplace l'appareil dans la scène). Cf. components/widgets.tsx. */
+  widget?: Widget;
 };
+
+type Cell = { label: L; value: string; tone?: "up" | "down" | "pink" | "lime" | "cyan" };
+/** Couleurs : "pink" | "lime" | "cyan" | "orange" | "up" | "down". Montants en texte ("−$1,743.20") : ils défilent jusqu'à leur valeur. */
+export type Widget = { form?: string; ledger?: string } & (
+  | { type: "pnl"; value: string; change: string; note?: L; cells: Cell[] }
+  | { type: "address"; title: L; sub: L; inputLabel?: L; address: string; chains: string[]; button: L; tape?: L }
+  | { type: "grade"; wallet: string; grade: string; gradeLabel?: L; stats: Cell[]; scores: { label: L; value: number; color: string }[] }
+  | { type: "whatif"; title: L; you: L; other: L; bestLabel: L; rows: { label: L; delta: string; you: number; other: number; best?: boolean }[] }
+  | { type: "regrets"; title: L; rows: { date: string; label: L; value: string; bar: number }[] }
+  | { type: "gas"; title: L; label: L; burned: string; cells: Cell[]; thats: L; equivalents: { n: string; label: L; emoji: string }[] }
+  | { type: "trophies"; title: L; caseLabel: L; held: string; heldLabel: L; items: { icon: string; color: string; name: L; text: L }[]; almost?: { label: L; hint: L; name: L; progress: number } }
+  | { type: "math"; title: L; formulas: (string | L)[]; lotsLabel: L; lots: { qty: string; at: string; used: number }[] }
+);
 
 export type Brand = {
   mode: "dark" | "light";
@@ -41,6 +56,8 @@ export type Brand = {
   headingWeight: number;
   uppercase?: boolean;
   tracking?: number;
+  /** "ledger" : fond registre (lignes, marge pointillée, bandeau défilant `app.tape`) au lieu des halos. */
+  backdrop?: "aurora" | "ledger";
 };
 
 export type ShortDef = {
@@ -61,6 +78,8 @@ export type AppContent = {
   icon: string;
   tagline: L;
   category: L;
+  /** Texte du bandeau défilant (fond "ledger"). */
+  tape?: L;
   cta: { title: L; sub: L; badge: L };
   problems: L[];
   benefits: L[];

@@ -39,7 +39,8 @@
     "body": "Space Grotesk",
     "headingWeight": 800,
     "uppercase": true,
-    "tracking": -0.04
+    "tracking": -0.04,
+    "backdrop": "ledger"
   },
   "tagline": {
     "fr": "Ton vrai P&L crypto. Gas compris.",
@@ -124,11 +125,60 @@
         {
           "src": "dash-top.png",
           "device": "browser",
-          "focus": [0.3, 0.25],
-          "focusTo": [0.3, 0.6],
+          "focus": [
+            0.3,
+            0.25
+          ],
+          "focusTo": [
+            0.3,
+            0.6
+          ],
           "zoom": 1.25
         }
-      ]
+      ],
+      "widget": {
+        "type": "pnl",
+        "form": "FORM WD-02",
+        "ledger": "LEDGER 0x7a9f…c41e // 46 TX // DEMO",
+        "value": "$17,770.26",
+        "change": "▼ −$1,743.20 −8.9%",
+        "note": {
+          "fr": "latent",
+          "en": "unrealized"
+        },
+        "cells": [
+          {
+            "label": {
+              "fr": "Prix de revient",
+              "en": "Cost basis"
+            },
+            "value": "$19,513"
+          },
+          {
+            "label": {
+              "fr": "Réalisé",
+              "en": "Realized"
+            },
+            "value": "+$5,191",
+            "tone": "up"
+          },
+          {
+            "label": {
+              "fr": "Gas payé",
+              "en": "Gas paid"
+            },
+            "value": "−$323",
+            "tone": "down"
+          },
+          {
+            "label": {
+              "fr": "Lots ouverts",
+              "en": "Open lots"
+            },
+            "value": "13 / 46 TX"
+          }
+        ]
+      }
     },
     {
       "id": "address",
@@ -151,11 +201,48 @@
         {
           "src": "landing.png",
           "device": "browser",
-          "focus": [0.3, 0.3],
-          "focusTo": [0.3, 0.7],
+          "focus": [
+            0.3,
+            0.3
+          ],
+          "focusTo": [
+            0.3,
+            0.7
+          ],
           "zoom": 1.3
         }
-      ]
+      ],
+      "widget": {
+        "type": "address",
+        "form": "FORM WD-01",
+        "ledger": "API ONLINE // NO SIGNATURE REQUIRED",
+        "title": {
+          "fr": "Déclare l'adresse.",
+          "en": "Declare the address."
+        },
+        "sub": {
+          "fr": "On audite le larp.",
+          "en": "We'll audit the larp."
+        },
+        "inputLabel": {
+          "fr": "Adresse / ENS",
+          "en": "Address / ENS"
+        },
+        "address": "0x7a9fE3b1…c41e",
+        "chains": [
+          "ETHEREUM",
+          "BITCOIN",
+          "SOLANA"
+        ],
+        "button": {
+          "fr": "Lancer l'audit",
+          "en": "File the larp-check"
+        },
+        "tape": {
+          "fr": "Pas de wallet connect · pas de signature",
+          "en": "No wallet connect · no signature · no drain"
+        }
+      }
     },
     {
       "id": "grade",
@@ -181,10 +268,83 @@
         {
           "src": "profile.png",
           "device": "browser",
-          "focus": [0.45, 0.5],
+          "focus": [
+            0.45,
+            0.5
+          ],
           "zoom": 1.15
         }
-      ]
+      ],
+      "widget": {
+        "type": "grade",
+        "form": "FORM WD-09",
+        "ledger": "FILER PROFILE // DEMO",
+        "wallet": "0x7a9f…c41e",
+        "grade": "C+",
+        "gradeLabel": {
+          "fr": "Note",
+          "en": "Grade"
+        },
+        "stats": [
+          {
+            "label": {
+              "fr": "Tx au registre",
+              "en": "Tx on record"
+            },
+            "value": "46"
+          },
+          {
+            "label": {
+              "fr": "Trophées",
+              "en": "Trophies"
+            },
+            "value": "13 / 25",
+            "tone": "lime"
+          },
+          {
+            "label": {
+              "fr": "Réalisé à vie",
+              "en": "Lifetime realized"
+            },
+            "value": "+$5,191",
+            "tone": "lime"
+          }
+        ],
+        "scores": [
+          {
+            "label": {
+              "fr": "Poids du gas",
+              "en": "Gas drag"
+            },
+            "value": 62,
+            "color": "lime"
+          },
+          {
+            "label": {
+              "fr": "Timing de sortie",
+              "en": "Exit timing"
+            },
+            "value": 58,
+            "color": "pink"
+          },
+          {
+            "label": {
+              "fr": "Tenue dans le dip",
+              "en": "Held through the dip"
+            },
+            "value": 81,
+            "color": "cyan"
+          },
+          {
+            "label": {
+              "fr": "Concentration",
+              "en": "Concentration"
+            },
+            "value": 88,
+            "color": "orange"
+          }
+        ]
+      }
     },
     {
       "id": "whatif",
@@ -207,11 +367,85 @@
         {
           "src": "dash-whatif.png",
           "device": "browser",
-          "focus": [0.35, 0.55],
-          "focusTo": [0.35, 0.85],
+          "focus": [
+            0.35,
+            0.55
+          ],
+          "focusTo": [
+            0.35,
+            0.85
+          ],
           "zoom": 1.3
         }
-      ]
+      ],
+      "widget": {
+        "type": "whatif",
+        "form": "SCHEDULE W",
+        "title": {
+          "fr": "Et si t'avais pas fait ça…",
+          "en": "What if you hadn't, you did"
+        },
+        "you": {
+          "fr": "Toi",
+          "en": "You"
+        },
+        "other": {
+          "fr": "Autre timeline",
+          "en": "Other timeline"
+        },
+        "bestLabel": {
+          "fr": "Meilleure timeline",
+          "en": "Best timeline"
+        },
+        "rows": [
+          {
+            "label": {
+              "fr": "Tout en ETH",
+              "en": "All in ETH"
+            },
+            "delta": "+$3,120",
+            "you": 0.42,
+            "other": 0.78
+          },
+          {
+            "label": {
+              "fr": "Zéro memecoin",
+              "en": "No memecoins"
+            },
+            "delta": "−$2,310",
+            "you": 0.42,
+            "other": 0.14
+          },
+          {
+            "label": {
+              "fr": "Jamais vendu",
+              "en": "Never sold"
+            },
+            "delta": "+$1,460",
+            "you": 0.42,
+            "other": 0.6
+          },
+          {
+            "label": {
+              "fr": "Zéro gas",
+              "en": "Zero gas"
+            },
+            "delta": "+$323",
+            "you": 0.42,
+            "other": 0.46
+          },
+          {
+            "label": {
+              "fr": "BTC dès le jour 1",
+              "en": "BTC on day one"
+            },
+            "delta": "+$4,890",
+            "you": 0.42,
+            "other": 0.97,
+            "best": true
+          }
+        ]
+      }
     },
     {
       "id": "regrets",
@@ -234,10 +468,59 @@
         {
           "src": "dash-regrets.png",
           "device": "browser",
-          "focus": [0.35, 0.6],
+          "focus": [
+            0.35,
+            0.6
+          ],
           "zoom": 1.3
         }
-      ]
+      ],
+      "widget": {
+        "type": "regrets",
+        "form": "SCHEDULE R",
+        "title": {
+          "fr": "Journal des regrets, mars 2024 → aujourd'hui",
+          "en": "Regret log, Mar 2024 → today"
+        },
+        "rows": [
+          {
+            "date": "2024-03-12",
+            "label": {
+              "fr": "Acheté ETH au top",
+              "en": "Bought ETH at the top"
+            },
+            "value": "−$640",
+            "bar": 0.3
+          },
+          {
+            "date": "2024-03-13",
+            "label": {
+              "fr": "Acheté $ARB au top",
+              "en": "Bought $ARB at the top"
+            },
+            "value": "−$1,550",
+            "bar": 0.9
+          },
+          {
+            "date": "2024-05-21",
+            "label": {
+              "fr": "Vendu $PEPE à 0.0000152",
+              "en": "Sold $PEPE at $0.0000152"
+            },
+            "value": "−$1,310",
+            "bar": 0.8
+          },
+          {
+            "date": "2025-08-22",
+            "label": {
+              "fr": "Vendu ETH avant la chute",
+              "en": "Sold ETH before the drop"
+            },
+            "value": "+$1,870",
+            "bar": 1
+          }
+        ]
+      }
     },
     {
       "id": "gas",
@@ -263,11 +546,83 @@
         {
           "src": "dash-gas.png",
           "device": "browser",
-          "focus": [0.35, 0.6],
-          "focusTo": [0.35, 0.85],
+          "focus": [
+            0.35,
+            0.6
+          ],
+          "focusTo": [
+            0.35,
+            0.85
+          ],
           "zoom": 1.3
         }
-      ]
+      ],
+      "widget": {
+        "type": "gas",
+        "form": "SCHEDULE G",
+        "title": {
+          "fr": "Le gas, traduit",
+          "en": "Gas, translated"
+        },
+        "label": {
+          "fr": "Gas brûlé",
+          "en": "Gas burned"
+        },
+        "burned": "−$323",
+        "cells": [
+          {
+            "label": {
+              "fr": "ETH",
+              "en": "ETH"
+            },
+            "value": "0.1345"
+          },
+          {
+            "label": {
+              "fr": "Tx payées",
+              "en": "Txs paid"
+            },
+            "value": "24"
+          },
+          {
+            "label": {
+              "fr": "du prix de revient",
+              "en": "of basis"
+            },
+            "value": "1.7%"
+          }
+        ],
+        "thats": {
+          "fr": "Soit",
+          "en": "That's"
+        },
+        "equivalents": [
+          {
+            "n": "10",
+            "label": {
+              "fr": "burritos",
+              "en": "burritos"
+            },
+            "emoji": "🌯"
+          },
+          {
+            "n": "64",
+            "label": {
+              "fr": "cafés",
+              "en": "bodega coffees"
+            },
+            "emoji": "☕"
+          },
+          {
+            "n": "1",
+            "label": {
+              "fr": "an de Netflix",
+              "en": "year of Netflix"
+            },
+            "emoji": "📺"
+          }
+        ]
+      }
     },
     {
       "id": "trophies",
@@ -287,7 +642,89 @@
         {
           "src": "m-trophies.png"
         }
-      ]
+      ],
+      "widget": {
+        "type": "trophies",
+        "form": "FORM WD-09",
+        "title": {
+          "fr": "Vitrine à trophées",
+          "en": "Trophy case"
+        },
+        "caseLabel": {
+          "fr": "Trophées",
+          "en": "Trophy case"
+        },
+        "held": "13 / 25",
+        "heldLabel": {
+          "fr": "Obtenu",
+          "en": "Held"
+        },
+        "items": [
+          {
+            "icon": "CHECKBOX",
+            "color": "cyan",
+            "name": {
+              "fr": "First blood",
+              "en": "First blood"
+            },
+            "text": {
+              "fr": "au moins une transaction reconstituée",
+              "en": "at least one reconstructed transaction"
+            }
+          },
+          {
+            "icon": "DROPCUT",
+            "color": "lime",
+            "name": {
+              "fr": "Feather touch",
+              "en": "Feather touch"
+            },
+            "text": {
+              "fr": "une transaction à moins de 1 $ de gas",
+              "en": "a transaction under $1 of gas"
+            }
+          },
+          {
+            "icon": "PUMP",
+            "color": "pink",
+            "name": {
+              "fr": "Gas guzzler",
+              "en": "Gas guzzler"
+            },
+            "text": {
+              "fr": "une transaction à plus de 40 $ de gas",
+              "en": "a single transaction over $40 of gas"
+            }
+          },
+          {
+            "icon": "MOON",
+            "color": "pink",
+            "name": {
+              "fr": "Night owl",
+              "en": "Night owl"
+            },
+            "text": {
+              "fr": "un trade entre 2 h et 5 h du matin",
+              "en": "a trade between 2 and 5 a.m."
+            }
+          }
+        ],
+        "almost": {
+          "label": {
+            "fr": "Presque",
+            "en": "Almost"
+          },
+          "hint": {
+            "fr": "encore 0,20",
+            "en": "0.20 to go"
+          },
+          "name": {
+            "fr": "Veteran",
+            "en": "Veteran"
+          },
+          "progress": 0.9
+        }
+      }
     },
     {
       "id": "math",
@@ -307,18 +744,78 @@
         {
           "src": "math-fees.png",
           "device": "browser",
-          "focus": [0.3, 0.15],
-          "focusTo": [0.3, 0.55],
+          "focus": [
+            0.3,
+            0.15
+          ],
+          "focusTo": [
+            0.3,
+            0.55
+          ],
           "zoom": 1.6
         },
         {
           "src": "math-grade.png",
           "device": "browser",
-          "focus": [0.3, 0.3],
-          "focusTo": [0.3, 0.75],
+          "focus": [
+            0.3,
+            0.3
+          ],
+          "focusTo": [
+            0.3,
+            0.75
+          ],
           "zoom": 1.5
         }
-      ]
+      ],
+      "widget": {
+        "type": "math",
+        "form": "THE MATH",
+        "title": {
+          "fr": "Les frais vont dans le prix de revient",
+          "en": "Fees go into the basis"
+        },
+        "formulas": [
+          {
+            "fr": "prix de revient = valeur + frais d'achat",
+            "en": "cost basis   = value + fee to acquire"
+          },
+          {
+            "fr": "produit net     = valeur − frais de vente",
+            "en": "net proceeds = value − fee to sell"
+          },
+          {
+            "fr": "P&L réalisé     = produit − lots anciens",
+            "en": "realized P&L = proceeds − oldest lots"
+          }
+        ],
+        "lotsLabel": {
+          "fr": "Lots FIFO : premier entré, premier sorti",
+          "en": "FIFO lots: first in, first out"
+        },
+        "lots": [
+          {
+            "qty": "1.2 ETH",
+            "at": "$2,180",
+            "used": 1
+          },
+          {
+            "qty": "0.8 ETH",
+            "at": "$2,940",
+            "used": 1
+          },
+          {
+            "qty": "1.5 ETH",
+            "at": "$3,410",
+            "used": 0.35
+          },
+          {
+            "qty": "0.3 ETH",
+            "at": "$2,650",
+            "used": 0
+          }
+        ]
+      }
     }
   ],
   "shorts": [
@@ -582,7 +1079,12 @@
       {
         "id": "declare",
         "src": "m-landing.png",
-        "rect": [0.05, 0.12, 0.92, 0.17],
+        "rect": [
+          0.05,
+          0.12,
+          0.92,
+          0.17
+        ],
         "label": {
           "fr": "Accueil",
           "en": "Home"
@@ -600,7 +1102,12 @@
       {
         "id": "value",
         "src": "m-dash.png",
-        "rect": [0.06, 0.17, 0.9, 0.14],
+        "rect": [
+          0.06,
+          0.17,
+          0.9,
+          0.14
+        ],
         "label": {
           "fr": "Valeur",
           "en": "Value"
@@ -618,7 +1125,12 @@
       {
         "id": "kpis",
         "src": "m-dash.png",
-        "rect": [0.06, 0.325, 0.9, 0.18],
+        "rect": [
+          0.06,
+          0.325,
+          0.9,
+          0.18
+        ],
         "label": {
           "fr": "Bilan",
           "en": "Summary"
@@ -636,7 +1148,12 @@
       {
         "id": "holding",
         "src": "m-dash.png",
-        "rect": [0.06, 0.685, 0.9, 0.11],
+        "rect": [
+          0.06,
+          0.685,
+          0.9,
+          0.11
+        ],
         "label": {
           "fr": "Positions",
           "en": "Holdings"
@@ -654,7 +1171,12 @@
       {
         "id": "scenarios",
         "src": "m-whatif.png",
-        "rect": [0.03, 0.33, 0.94, 0.52],
+        "rect": [
+          0.03,
+          0.33,
+          0.94,
+          0.52
+        ],
         "label": {
           "fr": "What if",
           "en": "What if"
@@ -672,7 +1194,12 @@
       {
         "id": "regretlog",
         "src": "m-regrets.png",
-        "rect": [0.08, 0.245, 0.88, 0.27],
+        "rect": [
+          0.08,
+          0.245,
+          0.88,
+          0.27
+        ],
         "label": {
           "fr": "Regrets",
           "en": "Regrets"
@@ -690,7 +1217,12 @@
       {
         "id": "gasburned",
         "src": "m-gas.png",
-        "rect": [0.04, 0.395, 0.92, 0.1],
+        "rect": [
+          0.04,
+          0.395,
+          0.92,
+          0.1
+        ],
         "label": {
           "fr": "Gas",
           "en": "Gas"
@@ -708,7 +1240,12 @@
       {
         "id": "burritos",
         "src": "m-gas.png",
-        "rect": [0.04, 0.57, 0.92, 0.125],
+        "rect": [
+          0.04,
+          0.57,
+          0.92,
+          0.125
+        ],
         "label": {
           "fr": "Traduction",
           "en": "Translation"
@@ -726,7 +1263,12 @@
       {
         "id": "card",
         "src": "m-profile.png",
-        "rect": [0.04, 0.075, 0.92, 0.45],
+        "rect": [
+          0.04,
+          0.075,
+          0.92,
+          0.45
+        ],
         "label": {
           "fr": "Profil",
           "en": "Profile"
@@ -744,7 +1286,12 @@
       {
         "id": "trophycase",
         "src": "m-trophies.png",
-        "rect": [0.06, 0.185, 0.88, 0.44],
+        "rect": [
+          0.06,
+          0.185,
+          0.88,
+          0.44
+        ],
         "label": {
           "fr": "Trophées",
           "en": "Trophies"
@@ -825,5 +1372,9 @@
         }
       }
     ]
+  },
+  "tape": {
+    "fr": "Formulaires remplis sur cet appareil · FIFO · gas compris · P&L en direct · aucune signature · aucun wallet connect",
+    "en": "Forms filed on this device · FIFO · gas included · live P&L · no signature · no wallet connect"
   }
 }
