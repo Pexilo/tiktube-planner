@@ -834,6 +834,14 @@
           "fr": "Ton wallet crypto est-il vraiment en gain ? 🧾 #shorts",
           "en": "Is your crypto wallet actually up? 🧾 #shorts"
         }
+      },
+      "music": {
+        "style": "trap",
+        "mood": [
+          "suspense",
+          "question hanging in the air",
+          "dramatic reveal"
+        ]
       }
     },
     {
@@ -851,6 +859,14 @@
           "fr": "Combien le gas t'a vraiment coûté ⛽ #shorts",
           "en": "What gas really cost you ⛽ #shorts"
         }
+      },
+      "music": {
+        "style": "phonk",
+        "mood": [
+          "dark",
+          "something quietly eating your money",
+          "menacing"
+        ]
       }
     },
     {
@@ -868,6 +884,13 @@
           "fr": "Tes trades vs tout en ETH : le verdict 📉 #shorts",
           "en": "Your trades vs all-in ETH: the verdict 📉 #shorts"
         }
+      },
+      "music": {
+        "style": "dreamtrap",
+        "mood": [
+          "what-if daydream",
+          "bittersweet regret"
+        ]
       }
     },
     {
@@ -885,6 +908,14 @@
           "fr": "Ton wallet crypto noté de A à F 🏆 #shorts",
           "en": "Your crypto wallet graded A to F 🏆 #shorts"
         }
+      },
+      "music": {
+        "style": "trap",
+        "mood": [
+          "playful and cheeky",
+          "game-show verdict",
+          "bouncy"
+        ]
       }
     },
     {
@@ -902,6 +933,14 @@
           "fr": "Ton P&L crypto sans connecter ton wallet 🔒 #shorts",
           "en": "Your crypto P&L without connecting your wallet 🔒 #shorts"
         }
+      },
+      "music": {
+        "style": "phonk",
+        "mood": [
+          "defiant",
+          "hard",
+          "refusal"
+        ]
       }
     }
   ],
@@ -935,6 +974,13 @@
         "fr": "Where'd Gains Go? : le vrai P&L de ton wallet crypto (FIFO, gas compris)",
         "en": "Where'd Gains Go?: your crypto wallet's real P&L (FIFO, gas included)"
       }
+    },
+    "music": {
+      "style": "trap",
+      "mood": [
+        "investigation",
+        "suspense building to a reveal"
+      ]
     }
   },
   "description": {
@@ -1001,6 +1047,13 @@
     "aggressive",
     "synthwave"
   ],
+  "sound": [
+    "crypto trading culture",
+    "confident and sly",
+    "gritty",
+    "money on the line",
+    "ironic about losses"
+  ],
   "stories": [
     {
       "hook": {
@@ -1033,6 +1086,13 @@
           "fr": "Ton vrai P&L crypto en 10 secondes 🧾 #shorts",
           "en": "Your real crypto P&L in 10 seconds 🧾 #shorts"
         }
+      },
+      "music": {
+        "style": "trap",
+        "mood": [
+          "suspense",
+          "investigative"
+        ]
       }
     },
     {
@@ -1066,6 +1126,14 @@
           "fr": "Tes trades crypto vs tout en ETH 📉 #shorts",
           "en": "Your crypto trades vs all-in ETH 📉 #shorts"
         }
+      },
+      "music": {
+        "style": "dreamtrap",
+        "mood": [
+          "what-if daydream",
+          "ironic",
+          "bittersweet"
+        ]
       }
     }
   ],
@@ -1325,6 +1393,12 @@
             "fr": "Where'd Gains Go? en détail : l'audit de ton wallet 🧾 #shorts",
             "en": "Where'd Gains Go? up close: your wallet audit 🧾 #shorts"
           }
+        },
+        "music": {
+          "mood": [
+            "clear",
+            "trustworthy audit"
+          ]
         }
       },
       {
@@ -1344,6 +1418,12 @@
             "fr": "Le gas, tes regrets et tes « what if » ⛽ #shorts",
             "en": "Gas, regrets and your what-ifs ⛽ #shorts"
           }
+        },
+        "music": {
+          "mood": [
+            "gently ironic",
+            "reflective"
+          ]
         }
       },
       {
@@ -1369,6 +1449,12 @@
             "fr": "Where'd Gains Go? : visite guidée de l'audit de wallet crypto",
             "en": "Where'd Gains Go?: a guided tour of the crypto wallet audit"
           }
+        },
+        "music": {
+          "mood": [
+            "thoughtful",
+            "detailed walkthrough"
+          ]
         }
       }
     ]

@@ -13,7 +13,7 @@ Everything runs on your Mac. No SaaS, no subscription: your keys stay in `data/`
 | | |
 |---|---|
 | 🎞️ **Videos as code** | [Remotion](https://remotion.dev) (React → MP4). One `content/apps/<app>.json` = Shorts, 16:9 videos and a Keynote series in FR + EN. |
-| 🎵 **Generated music** | 13 styles (house, lo-fi, cinematic, piano…) synthesised in Python on a 120 BPM grid, so animations land on the beat. Mastered at −14 LUFS. |
+| 🎵 **Generated music** | 13 styles (house, lo-fi, cinematic, piano…) composed by ElevenLabs Music (Python synth fallback without a key) on a 120 BPM grid, intro / drop / outro on the video's bars, so animations land on the beat. Mastered at −14 LUFS. |
 | 🎙️ **Narrated Shorts** | macOS voices + burned-in subtitles + music ducking. |
 | ▶️ **YouTube autopilot** | YouTube Data API v3: SEO titles/descriptions/tags FR + EN, scheduled private uploads (`publishAt`), 1–2 Shorts/day + 1 long video/week. YouTube publishes even if your Mac is off. |
 | 🎵 **TikTok scheduler** | Content Posting API (inbox/draft mode). Drop a folder into `~/Desktop/Tiktok`: slides are OCR-read, matched with the right caption from your `.md` (copied verbatim, or written by Claude if missing), scheduled on FR/EN slots, then moved to `Programmés`. |
@@ -130,6 +130,8 @@ Duplique `content/apps/mrrkit.json`, adapte les textes, couleurs, prix et liens,
 ### Voix off ElevenLabs (facultatif)
 
 Guide d'installation → **Voix off** : colle une clé d'API ElevenLabs, choisis une voix française et une voix anglaise, le modèle et le ton (naturel / accrocheur / très expressif), écoute un essai, enregistre. Les Shorts narrés sont alors lus par ElevenLabs, sous-titres calés sur son alignement des mots ; seules les narrations nouvelles ou modifiées sont régénérées. La clé reste dans `data/elevenlabs.json`. Sans clé, la voix du système est utilisée.
+
+La même clé compose aussi la **musique** (ElevenLabs Music, modèle `music_v2_5`) : il faut lui donner la permission **Music Generation** sur elevenlabs.io. Les pistes issues de l'ancienne synthèse sont remplacées au prochain rendu ou avec `npm run audio`. Pour revenir à la synthèse Python : `"music": false` dans `data/elevenlabs.json`.
 
 ### TikTok
 

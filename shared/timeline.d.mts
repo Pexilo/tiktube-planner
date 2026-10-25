@@ -8,4 +8,4 @@ export type Scene = { type: string; from: number; dur: number; featureId?: strin
 export type Timeline = { scenes: Scene[]; totalFrames: number; bars: number; dropBar: number; ctaBar: number };
 export function buildTimeline(app: AppContent, kind: Kind, shortIndex?: number, voice?: VoiceTrack | null): Timeline;
 export function videoId(slug: string, kind: Kind, lang: string, shortIndex?: number): string;
-export function musicFor(app: AppContent, kind: Kind, shortIndex?: number, voice?: VoiceTrack | null): { file: string; style: string; bars: number; drop: number; cta: number; seed: number };
+export function musicFor(app: AppContent, kind: Kind, shortIndex?: number, voice?: VoiceTrack | null): { file: string; style: string; kind: Kind; theme: string[]; bars: number; drop: number; cta: number; seed: number };

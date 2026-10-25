@@ -70,7 +70,7 @@ export function loadCatalog() {
       title: e.title,
       durationSec: e.durationSec,
       // Musique de secours : utilisée si la vidéo est muette (vérifié au rendu, même si "hasAudio").
-      music: { file: `audio/music/v3-ext-${e.slug}-${e.kind}-${seed}-${style}-${bars}b.wav`, style, bars, drop: 1, cta: Math.max(2, bars - 2), seed },
+      music: { file: `audio/music/v3-ext-${e.slug}-${e.kind}-${seed}-${style}-${bars}b.wav`, style, kind: e.kind, theme: app.sound ?? [], bars, drop: 1, cta: Math.max(2, bars - 2), seed },
       color: app.brand.primary,
       external: e,
     });

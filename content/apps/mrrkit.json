@@ -263,6 +263,14 @@
           "fr": "Arrête de rafraîchir Stripe 🙃 #shorts",
           "en": "Stop refreshing Stripe 🙃 #shorts"
         }
+      },
+      "music": {
+        "style": "synthwave",
+        "mood": [
+          "relief and control",
+          "tension released",
+          "calm confidence"
+        ]
       }
     },
     {
@@ -280,6 +288,14 @@
           "fr": "Ton MRR en un coup d'œil 📈 #shorts",
           "en": "Your MRR at a glance 📈 #shorts"
         }
+      },
+      "music": {
+        "style": "electropop",
+        "mood": [
+          "curious",
+          "upbeat",
+          "rewarding payday feeling"
+        ]
       }
     },
     {
@@ -297,6 +313,14 @@
           "fr": "L'app indispensable des indie hackers 🚀 #shorts",
           "en": "The must-have app for indie makers 🚀 #shorts"
         }
+      },
+      "music": {
+        "style": "house",
+        "mood": [
+          "motivating maker anthem",
+          "confident",
+          "driven"
+        ]
       }
     },
     {
@@ -314,6 +338,14 @@
           "fr": "Suis ton MRR sans donner tes clés 🔒 #shorts",
           "en": "Track your MRR without giving away your keys 🔒 #shorts"
         }
+      },
+      "music": {
+        "style": "darksynth",
+        "mood": [
+          "firm and protective",
+          "slightly tense",
+          "secure"
+        ]
       }
     },
     {
@@ -331,6 +363,14 @@
           "fr": "Projette ton MRR sur 3 ans 🔮 #shorts",
           "en": "Project your MRR 3 years out 🔮 #shorts"
         }
+      },
+      "music": {
+        "style": "futurebass",
+        "mood": [
+          "aspirational",
+          "uplifting",
+          "looking to the future"
+        ]
       }
     }
   ],
@@ -362,6 +402,13 @@
         "fr": "MRRKit : ton MRR Stripe & RevenueCat en widgets sur iPhone, Apple Watch et Garmin",
         "en": "MRRKit: your Stripe & RevenueCat MRR in widgets on iPhone, Apple Watch and Garmin"
       }
+    },
+    "music": {
+      "style": "synthwave",
+      "mood": [
+        "journey from chaos to clarity",
+        "confident"
+      ]
     }
   },
   "description": {
@@ -428,6 +475,13 @@
     "futurebass",
     "lofi"
   ],
+  "sound": [
+    "indie maker building at night",
+    "sleek modern tech",
+    "optimistic and focused",
+    "feeling of steady growth",
+    "neon purple glow"
+  ],
   "stories": [
     {
       "hook": {
@@ -460,6 +514,13 @@
           "fr": "Ton MRR Stripe en widget sur iPhone 📈 #shorts",
           "en": "Your Stripe MRR as an iPhone widget 📈 #shorts"
         }
+      },
+      "music": {
+        "style": "lofi",
+        "mood": [
+          "relaxed",
+          "late-night coding session"
+        ]
       }
     },
     {
@@ -493,6 +554,14 @@
           "fr": "Projeter la croissance de ton SaaS 🔮 #shorts",
           "en": "Project your SaaS growth 🔮 #shorts"
         }
+      },
+      "music": {
+        "style": "futurebass",
+        "mood": [
+          "aspirational",
+          "hopeful",
+          "gentle"
+        ]
       }
     }
   ],
@@ -755,6 +824,12 @@
             "fr": "MRRKit en détail : ton MRR partout sur ton iPhone 📱 #shorts",
             "en": "MRRKit up close: your MRR everywhere on your iPhone 📱 #shorts"
           }
+        },
+        "music": {
+          "mood": [
+            "precise",
+            "reassuring"
+          ]
         }
       },
       {
@@ -774,6 +849,13 @@
             "fr": "Notifications de ventes et paliers de MRR 🔔 #shorts",
             "en": "Sales notifications and MRR milestones 🔔 #shorts"
           }
+        },
+        "music": {
+          "mood": [
+            "warm",
+            "small celebrations",
+            "satisfying"
+          ]
         }
       },
       {
@@ -798,6 +880,12 @@
             "fr": "MRRKit : visite guidée du dashboard MRR pour indie hackers",
             "en": "MRRKit: a guided tour of the MRR dashboard for indie makers"
           }
+        },
+        "music": {
+          "mood": [
+            "thoughtful",
+            "detailed walkthrough"
+          ]
         }
       }
     ]

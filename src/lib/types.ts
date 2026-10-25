@@ -60,10 +60,14 @@ export type Brand = {
   backdrop?: "aurora" | "ledger";
 };
 
+/** Direction musicale d'une vidéo (ElevenLabs Music) : genre imposé et humeur propre à l'annonce. */
+export type MusicDef = { style?: string; mood?: string[] };
+
 export type ShortDef = {
   hook: L;
   features: string[];
   yt: { title: L };
+  music?: MusicDef;
 };
 
 export type AppContent = {
@@ -74,6 +78,8 @@ export type AppContent = {
   platforms: string[];
   music: string;
   musicPool?: string[];
+  /** Thème sonore du projet (mots décrivant l'ambiance), ajouté à chaque musique ElevenLabs de l'app. */
+  sound?: string[];
   brand: Brand;
   icon: string;
   tagline: L;
@@ -88,7 +94,7 @@ export type AppContent = {
   shorts: ShortDef[];
   stories?: StoryDef[];
   keynote?: KeynoteDef;
-  long: { hook: L[]; features: string[]; yt: { title: L } };
+  long: { hook: L[]; features: string[]; yt: { title: L }; music?: MusicDef };
   description: L;
   tags: string[];
   seo?: { category: string; keywords: { fr: string[]; en: string[] }; hashtags: { fr: string[]; en: string[] } };
@@ -99,6 +105,7 @@ export type StoryDef = {
   features: string[];
   narration: { fr: string[]; en: string[] };
   yt: { title: L };
+  music?: MusicDef;
 };
 
 /** Voix off générée (scripts/gen-voice.mjs) : un segment par scène, mots horodatés pour les sous-titres. */
@@ -123,7 +130,7 @@ export type KeynoteDetail = {
 export type KeynoteDef = {
   musicPool: string[];
   details: KeynoteDetail[];
-  videos: { format: "short" | "long"; intro: L; details: string[]; yt: { title: L } }[];
+  videos: { format: "short" | "long"; intro: L; details: string[]; yt: { title: L }; music?: MusicDef }[];
 };
 
 export type VideoProps = {

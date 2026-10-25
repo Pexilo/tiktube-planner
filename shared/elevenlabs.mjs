@@ -134,6 +134,33 @@ export async function synthesize(voice, lang, text, { previous, next } = {}) {
   return { audio: Buffer.from(j.audio_base64, "base64"), words: wordsFrom(text, j.alignment) };
 }
 
+export const DEFAULT_MUSIC_MODEL = "music_v2_5";
+
+/** Musique ElevenLabs : active dès qu'une clé est enregistrée (désactivable avec "music": false dans data/elevenlabs.json). */
+export function musicConfig() {
+  const c = readConfig();
+  if (!c.apiKey || c.music === false) return null;
+  return { model: c.musicModel ?? DEFAULT_MUSIC_MODEL };
+}
+
+/** Compose un morceau à partir d'un plan de composition (sections aux durées imposées) : renvoie le mp3. */
+export async function composeMusic(model, plan, seed) {
+  const key = readConfig().apiKey;
+  if (!key) throw new Error("Clé ElevenLabs manquante");
+  const r = await fetch(`${API}/v1/music?output_format=mp3_48000_192`, {
+    method: "POST",
+    headers: { "xi-api-key": key, "content-type": "application/json" },
+    body: JSON.stringify({ model_id: model, composition_plan: plan, seed }),
+  });
+  if (!r.ok) {
+    const j = await r.json().catch(() => ({}));
+    const d = j.detail;
+    const why = typeof d === "string" ? d : d?.message ?? (Array.isArray(d) ? d.map((x) => x.msg).join(", ") : "");
+    throw new Error(`ElevenLabs Music ${r.status}${why ? ` : ${why}` : ""}`);
+  }
+  return Buffer.from(await r.arrayBuffer());
+}
+
 /** Regroupe l'alignement par caractère en mots (séparés par les espaces du texte d'origine). */
 function wordsFrom(text, a) {
   if (!a?.characters?.length) return null;

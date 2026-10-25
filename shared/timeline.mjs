@@ -87,18 +87,25 @@ export const videoId = (slug, kind, lang, shortIndex = 0) =>
 /** Fichier musical attendu (relatif à public/). La musique ne dépend pas de la langue. */
 export function musicFor(app, kind, shortIndex = 0, voice = null) {
   const t = buildTimeline(app, kind, shortIndex, voice);
+  // Direction musicale propre à la vidéo (genre + humeur de l'annonce), sinon la playlist de l'app.
+  const def = kind === "short" ? app.shorts[shortIndex]?.music
+    : kind === "story" ? app.stories?.[shortIndex]?.music
+    : kind === "keynote" ? app.keynote?.videos[shortIndex]?.music
+    : app.long.music;
+  // Thème sonore du projet + humeur de la vidéo : décrit à ElevenLabs Music (ignoré par la synthèse Python).
+  const theme = [...(app.sound ?? []), ...(def?.mood ?? [])];
   if (kind === "keynote") {
     const pool = app.keynote?.musicPool ?? ["ambient"];
-    const style = pool[shortIndex % pool.length];
+    const style = def?.style ?? pool[shortIndex % pool.length];
     const seed = 30 + shortIndex;
-    return { file: `audio/music/v2-${app.slug}-keynote-${seed}-${style}-${t.bars}b.wav`, style, bars: t.bars, drop: t.dropBar, cta: t.ctaBar, seed };
+    return { file: `audio/music/v2-${app.slug}-keynote-${seed}-${style}-${t.bars}b.wav`, style, kind, theme, bars: t.bars, drop: t.dropBar, cta: t.ctaBar, seed };
   }
   const seed = kind === "long" ? 0 : kind === "story" ? 10 + shortIndex : shortIndex + 1;
   // Chaque app a une playlist de styles : deux vidéos d'affilée ne sonnent jamais pareil.
   const pool = app.musicPool?.length ? app.musicPool : [app.music];
-  const style = pool[(kind === "long" ? 0 : seed + (kind === "story" ? 1 : 0)) % pool.length];
+  const style = def?.style ?? pool[(kind === "long" ? 0 : seed + (kind === "story" ? 1 : 0)) % pool.length];
   const file = `audio/music/v3-${app.slug}-${kind}-${seed}-${style}-${t.bars}b.wav`;
-  return { file, style, bars: t.bars, drop: t.dropBar, cta: t.ctaBar, seed };
+  return { file, style, kind, theme, bars: t.bars, drop: t.dropBar, cta: t.ctaBar, seed };
 }
 
 /** Liste complète des vidéos d'une app. */

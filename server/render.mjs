@@ -103,7 +103,7 @@ async function work() {
         }
         if (!audible) {
           stage(1);
-          ensureMusic(v.music);
+          await ensureMusic(v.music);
           stage(4);
           await master(["-i", v.external.src, "-i", join(ROOT, "public", v.music.file)], ["-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-t", String(d)],
             `atrim=0:${d},afade=t=out:st=${Math.max(0, d - 1.2)}:d=1.2`, tmp);
@@ -131,7 +131,7 @@ async function work() {
       }
       stage(1);
       // Remotion copie public/ au moment du bundle : un fichier audio créé après → nouveau bundle.
-      if (ensureMusic(v.music)) serveUrl = null;
+      if (await ensureMusic(v.music)) serveUrl = null;
       const url = await getBundle();
       stage(3);
       const composition = await selectComposition({ serveUrl: url, id });
