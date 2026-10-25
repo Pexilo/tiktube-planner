@@ -130,18 +130,15 @@ export const Video: React.FC<VideoProps> = (props) => {
   const { app, lang, kind, shortIndex, voice } = props;
   const tl = buildTimeline(app, kind, shortIndex, voice);
   const music = musicFor(app, kind, shortIndex, voice);
-  // Ducking : la musique baisse pendant que la voix parle.
-  const speaking = (f: number) =>
-    kind === "story" && voice
-      ? tl.scenes.some((s) => s.voiceSeg !== undefined && voice.segments[s.voiceSeg] && f >= s.from + VOICE_DELAY - 4 && f <= s.from + VOICE_DELAY + voice.segments[s.voiceSeg].dur * 30 + 6)
-      : false;
+  // Vidéo narrée : musique à niveau constant sous la voix (pas de remontée entre les phrases).
+  const bed = kind === "story" && voice ? 0.32 : 1;
   return (
     <ThemeProvider app={app} lang={lang}>
       <AbsoluteFill style={{ background: app.brand.bg, ["--heading" as string]: font(app.brand.heading) }}>
         <Scenes {...props} />
         <Audio
           src={staticFile(music.file)}
-          volume={(f) => interpolate(f, [0, 3, tl.totalFrames - 10, tl.totalFrames], [0.6, 0.85, 0.85, 0], clamp) * (speaking(f) ? 0.32 : 1)}
+          volume={(f) => interpolate(f, [0, 3, tl.totalFrames - 10, tl.totalFrames], [0.6, 0.85, 0.85, 0], clamp) * bed}
         />
       </AbsoluteFill>
     </ThemeProvider>

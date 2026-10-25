@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { google } from "googleapis";
 import { ROOT } from "../shared/catalog.mjs";
 import { buildTimeline, FPS } from "../shared/timeline.mjs";
-import { DATA, getState, save, video } from "./state.mjs";
+import { DATA, getState, save, video, langOn } from "./state.mjs";
 import { outFile, thumbFile } from "./render.mjs";
 import { logEvent } from "./events.mjs";
 import { signature } from "../shared/profile.mjs";
@@ -309,6 +309,7 @@ export async function uploadMany(list, catalog) {
   uploadState.queue = list.map((v) => v.id);
   uploadState.total = list.length;
   for (const v of list) {
+    if (!langOn(v.lang)) continue; // langue mise en pause pendant le lot
     if (uploadsToday() >= max) {
       uploadState.lastError = `Quota du jour atteint (${max} uploads). La suite partira demain.`;
       logEvent("info", uploadState.lastError);

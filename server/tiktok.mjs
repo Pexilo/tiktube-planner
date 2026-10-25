@@ -8,7 +8,7 @@ import { createReadStream, existsSync, mkdirSync, readFileSync, readdirSync, rmS
 import { basename, extname, join } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { DATA } from "./state.mjs";
+import { DATA, langOn } from "./state.mjs";
 import { logEvent } from "./events.mjs";
 import { copyToClipboard, notify } from "../shared/platform.mjs";
 
@@ -56,6 +56,7 @@ export function scheduleDrafts() {
   const taken = new Set(store.posts.filter((p) => p.publishAt && (p.status === "scheduled" || p.status === "sending")).map((p) => p.publishAt.slice(0, 16)));
   let n = 0;
   for (const lang of ["fr", "en"]) {
+    if (!langOn(lang)) continue; // FR en pause : les brouillons FR restent brouillons
     const groups = new Map();
     for (const p of ready.filter((x) => postLang(x) === lang).sort((a, b) => (a.order ?? 99) - (b.order ?? 99) || a.createdAt.localeCompare(b.createdAt))) {
       const k = p.batch ?? p.source ?? "";
@@ -303,7 +304,7 @@ export async function sendPost(post) {
 export async function tick() {
   if (!status().connected || tiktokState.sending) return;
   const at = (p) => (p.retryAt && p.retryAt > p.publishAt ? p.retryAt : p.publishAt);
-  const due = store.posts.filter((p) => p.status === "scheduled" && p.publishAt && new Date(at(p)) <= new Date()).sort((a, b) => a.publishAt.localeCompare(b.publishAt));
+  const due = store.posts.filter((p) => p.status === "scheduled" && langOn(postLang(p)) && p.publishAt && new Date(at(p)) <= new Date()).sort((a, b) => a.publishAt.localeCompare(b.publishAt));
   for (const p of due.slice(0, 3)) {
     await sendPost(p); // TikTok : 6 requêtes / minute max
     if (p.waiting) break; // boîte pleine : inutile d'essayer les suivants maintenant

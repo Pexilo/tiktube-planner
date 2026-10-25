@@ -4,9 +4,9 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { loadCatalog, ROOT } from "../shared/catalog.mjs";
 import { openPath, revealPath, spawnNpx } from "../shared/platform.mjs";
-import { getState, save, updateSettings, video, OUT } from "./state.mjs";
+import { getState, langOn, save, updateSettings, video, OUT } from "./state.mjs";
 import { generateSchedule } from "./scheduler.mjs";
-import { cancelQueue, current, enqueue, isRendered, queue, STAGES } from "./render.mjs";
+import { cancelQueue, current, dropPausedFromQueue, enqueue, isRendered, queue, STAGES } from "./render.mjs";
 import { avgSeconds, events, logEvent } from "./events.mjs";
 import multer from "multer";
 import { tmpdir } from "node:os";
@@ -25,9 +25,14 @@ app.use("/public", express.static(join(ROOT, "public")));
 app.use(express.static(join(ROOT, "server/ui")));
 
 const catalog = () => loadCatalog();
+// Catalogue limité aux langues actives : base de toutes les actions (rendu, planning, envois).
+const activeCatalog = () => {
+  const c = loadCatalog();
+  return { ...c, videos: c.videos.filter((v) => langOn(v.lang)) };
+};
 
 // Premier lancement : planning par défaut
-if (Object.keys(getState().videos).length === 0) generateSchedule(catalog());
+if (Object.keys(getState().videos).length === 0) generateSchedule(activeCatalog());
 
 function snapshot() {
   const c = catalog();
@@ -42,6 +47,7 @@ function snapshot() {
       kind: v.kind,
       format: v.format,
       lang: v.lang,
+      paused: !langOn(v.lang),
       title: v.title,
       durationSec: v.durationSec,
       color: v.color,
@@ -79,8 +85,9 @@ app.get("/api/state", (_req, res) => res.json(snapshot()));
 setupRoutes(app);
 
 app.post("/api/render", (req, res) => {
-  const c = catalog();
-  let ids = req.body.ids ?? [];
+  const c = activeCatalog();
+  const active = new Set(c.videos.map((v) => v.id));
+  let ids = (req.body.ids ?? []).filter((id) => active.has(id));
   if (req.body.all) ids = c.videos.filter((v) => !isRendered(v.id)).map((v) => v.id);
   if (req.body.force) ids.forEach((id) => (video(id).rendered = false));
   enqueue(ids, c);
@@ -92,7 +99,7 @@ app.post("/api/render/cancel", (_req, res) => {
 });
 
 app.post("/api/schedule/generate", (_req, res) => {
-  generateSchedule(catalog());
+  generateSchedule(activeCatalog());
   logEvent("schedule", "Planning régénéré");
   res.json({ ok: true });
 });
@@ -111,6 +118,10 @@ app.patch("/api/videos/:id", (req, res) => {
 
 app.patch("/api/settings", (req, res) => {
   updateSettings(req.body);
+  if (req.body.frEnabled !== undefined) {
+    dropPausedFromQueue();
+    logEvent("info", req.body.frEnabled ? "Vidéos FR réactivées" : "Vidéos FR en pause : aucune action sur le FR");
+  }
   res.json(getState().settings);
 });
 
@@ -153,7 +164,7 @@ app.get("/oauth/callback", async (req, res) => {
 });
 
 app.post("/api/upload", async (req, res) => {
-  const c = catalog();
+  const c = activeCatalog();
   const ids = new Set(req.body.ids ?? []);
   const list = c.videos
     .filter((v) => ids.has(v.id) && isRendered(v.id) && !getState().videos[v.id]?.youtubeId)
@@ -174,7 +185,7 @@ app.get("/api/tiktok", (_req, res) => {
     watch: { ...watch.watchState, dir: watch.watchDir() },
     posts: tt.posts(),
     videos: c.videos
-      .filter((v) => v.format !== "long" && isRendered(v.id))
+      .filter((v) => v.format !== "long" && langOn(v.lang) && isRendered(v.id))
       .map((v) => ({ id: v.id, title: v.title, appName: v.appName, lang: v.lang })),
   });
 });
@@ -256,6 +267,7 @@ app.post("/api/tiktok/posts/:id/images", upload.array("images", 35), async (req,
 app.post("/api/tiktok/posts/:id/send", async (req, res) => {
   const p = tt.posts().find((x) => x.id === req.params.id);
   if (!p) return res.status(404).end();
+  if (!langOn(tt.postLang(p))) return res.status(400).json({ error: "FR en pause : réactive le français pour envoyer ce post." });
   res.json({ ok: true });
   await tt.sendPost(p).catch((e) => console.error("tiktok", e.message));
 });
@@ -264,6 +276,7 @@ app.post("/api/tiktok/from-video", (req, res) => {
   const c = catalog();
   const v = c.videos.find((x) => x.id === req.body.videoId);
   if (!v) return res.status(404).json({ error: "Vidéo inconnue" });
+  if (!langOn(v.lang)) return res.status(400).json({ error: "FR en pause : réactive le français pour l'ajouter." });
   const m = buildMetadata(v, c.apps.find((a) => a.slug === v.slug));
   const hashtags = (m.description.match(/#[\p{L}\p{N}_]+/gu) ?? []).filter((h) => h.toLowerCase() !== "#shorts").slice(0, 6).join(" ");
   const first = m.description.split("\n").filter(Boolean).slice(0, 2).join("\n");
@@ -302,7 +315,7 @@ async function autopilot() {
     autopilotInfo.lastSummary = "Autopilote désactivé";
     return;
   }
-  const c = catalog();
+  const c = activeCatalog();
   // Créneau raté (quota, Mac éteint…) : on replanifie plutôt que de laisser la vidéo bloquée.
   const missed = c.videos.some((v) => {
     const st = s.videos[v.id];

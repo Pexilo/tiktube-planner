@@ -129,6 +129,7 @@
   .toggle.on { background: var(--c-pub); }
   .toggle::after { content: ""; position: absolute; top: 2.5px; left: 2.5px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: left .15s; }
   .toggle.on::after { left: 19.5px; }
+  .vc.paused, .ev-row.paused, .row-item.paused { opacity: .4; filter: grayscale(1); }
 
   /* ---------------------------------------------------------------- Aujourd'hui */
   .hero { display: flex; gap: 14px; align-items: center; margin-bottom: 18px; padding: 16px 18px; }
@@ -303,6 +304,7 @@
     <div class="brand"><span class="logo"><svg class="i" viewBox="0 0 24 24" style="fill:#fff;stroke:none"><path d="M8 5.5v13l10.5-6.5z"/></svg></span><div>Studio<small>YouTube · TikTok</small></div></div>
     <nav class="nav" id="nav"></nav>
     <div class="side-foot">
+      <div class="conn" title="Français en pause : aucun rendu, planning ni envoi FR (rien n'est supprimé)">Vidéos FR<div class="toggle" id="frToggle" style="margin-left:auto"></div></div>
       <div id="sideConn"></div>
       <div class="side-row">
         <button class="btn sm" id="themeBtn" style="flex:1" title="Thème"></button>
@@ -421,6 +423,7 @@
         <div class="card pad">
           <div class="card-h"><h3>Autopilote</h3></div>
           <div class="field"><label>Activé</label><div class="toggle" id="autoToggle"></div></div>
+          <div class="field"><label>Vidéos FR (rendu, planning, YouTube, TikTok)</label><div class="toggle" id="frToggle2"></div></div>
           <div class="field"><label>Horizon d'envoi (jours)</label><input type="number" min="1" max="90" data-s="uploadHorizonDays" style="width:80px" /></div>
           <div class="field"><label>Envois max / jour (quota API)</label><input type="number" min="1" max="50" data-s="maxUploadsPerDay" style="width:80px" /></div>
           <p class="note">Toutes les 10 minutes, tant que la plateforme tourne : rend les vidéos qui sortent dans l'horizon puis les envoie sur YouTube en privé programmé. C'est YouTube qui publie à l'heure prévue, ton Mac peut être éteint à ce moment-là.</p>
@@ -595,6 +598,7 @@ function renderAlerts() {
   if (!y.hasSecret) a += `<div class="alert">${ic("alert")}<div><b>YouTube n'est pas encore configuré.</b> Suis <code>docs/YOUTUBE_SETUP.md</code> puis place <code>client_secret.json</code> à la racine du projet. Tu peux déjà rendre les vidéos.</div></div>`;
   else if (!y.connected) a += `<div class="alert">${ic("alert")}<div><b>YouTube est déconnecté</b> : les envois sont en pause. <a href="/api/youtube/auth" style="text-decoration:underline">Reconnecter</a></div></div>`;
   if (S.upload.lastError) a += transient(S.upload.lastError) ? `<div class="alert">${ic("clock")}<div>${esc(/quota/i.test(S.upload.lastError) ? S.upload.lastError : "Un envoi YouTube a été interrompu : nouvel essai automatique au prochain passage de l'autopilote.")}</div></div>` : `<div class="alert red">${ic("alert")}<div>${esc(S.upload.lastError)}</div></div>`;
+  if (S.settings.frEnabled === false) a += `<div class="alert">${ic("alert")}<div><b>Vidéos FR en pause</b> : rien n'est rendu, planifié ni envoyé en français (rien n'est supprimé). Pense à « Recalculer le planning » pour resserrer les sorties EN. <a href="#" data-frtoggle style="text-decoration:underline">Réactiver le FR</a></div></div>`;
   setHTML($("#alerts"), a);
 }
 
@@ -744,7 +748,7 @@ function calRow(x) {
     const v = x.v, wide = isWide(v);
     const th = v.rendered ? `<img class="th ${wide ? "h" : "v"}" src="/out/${v.id}.jpg${bust(v)}" onerror="this.style.visibility='hidden'">` : `<img class="th" src="${appOf(v.slug).icon}" style="width:44px;height:44px">`;
     const editable = !v.youtubeId;
-    return `<div class="ev-row"><span class="time">${hhmm(x.at)}</span>${platIc("yt")}${th}
+    return `<div class="ev-row ${v.paused && !v.youtubeId ? "paused" : ""}"><span class="time">${hhmm(x.at)}</span>${platIc("yt")}${th}
       <div class="tt"><b>${esc(v.title)}</b><div class="s"><img class="appic" style="width:16px;height:16px;border-radius:4px" src="${appOf(v.slug).icon}">${esc(v.appName)} <span class="tag">${kindLabel(v)}</span><span class="tag">${v.lang.toUpperCase()}</span>${v.locked && editable ? `<span title="Date fixée à la main">${ic("lock", 'style="width:13px;height:13px"')}</span>` : ""}</div></div>
       ${chip(statusOf(v))}
       <div class="acts">
@@ -786,7 +790,7 @@ function vcard(v) {
   const cover = v.rendered ? `<img class="cover" loading="lazy" src="/out/${v.id}.jpg${bust(v)}" onerror="this.remove()">`
     : `<div class="ph"><img src="${app.icon}">${kindLabel(v)} · ${Math.round(v.durationSec)} s</div>`;
   const date = v.published ? `${ic("check")}Publiée ${fmtDate(v.publishAt)}` : v.youtubeId ? `${ic("clock")}Sort ${fmtDate(v.publishAt)}` : v.publishAt ? `${ic("cal")}Créneau prévu ${fmtDate(v.publishAt)}` : `${ic("cal")}Pas encore planifiée`;
-  return `<div class="vc ${isWide(v) ? "wide" : ""} ${sel.has(v.id) ? "sel" : ""}">
+  return `<div class="vc ${v.paused ? "paused" : ""} ${isWide(v) ? "wide" : ""} ${sel.has(v.id) ? "sel" : ""}">
     <div class="th" data-play="${v.rendered ? v.id : ""}" style="${v.rendered ? "" : `background:radial-gradient(circle at 50% 40%, ${v.color}66, #0b0b0e 75%)`}">${cover}${v.rendered ? `<div class="play"><svg class="i" viewBox="0 0 24 24">${P.play}</svg></div>` : ""}
       <div class="tl">${chip(st)}<span class="lang">${v.lang.toUpperCase()}</span></div>
       <input type="checkbox" class="chk" data-sel="${v.id}" ${sel.has(v.id) ? "checked" : ""} onclick="event.stopPropagation()">
@@ -831,6 +835,7 @@ $("#fSearch").oninput = (e) => { filters.q = e.target.value; renderLibrary(); };
 function renderSettings() {
   document.querySelectorAll("[data-s]").forEach((el) => { if (document.activeElement !== el) el.value = S.settings[el.dataset.s]; });
   $("#autoToggle").classList.toggle("on", !!S.settings.autopilot);
+  for (const id of ["#frToggle", "#frToggle2"]) $(id).classList.toggle("on", S.settings.frEnabled !== false);
   const y = S.youtube;
   setHTML($("#ytBox"), y.hasSecret
     ? (y.connected ? `<div class="conn" style="margin-bottom:10px">${y.channel?.thumb ? `<img src="${y.channel.thumb}" referrerpolicy="no-referrer" onerror="this.replaceWith(document.createRange().createContextualFragment(platIc('yt')))">` : platIc("yt")}<span class="lbl">${esc(y.channel?.title ?? "Chaîne connectée")}</span><span class="note" style="margin-left:auto">${Number(y.channel?.subs ?? 0).toLocaleString(LOCALE)} abonnés</span></div>
@@ -1068,6 +1073,9 @@ $("#uploadSel").onclick = async () => {
 $("#selAll").onclick = () => { filtered().forEach((v) => sel.add(v.id)); renderLibrary(); };
 $("#selNone").onclick = () => { sel.clear(); renderLibrary(); };
 $("#regen").onclick = async () => { await api("/api/schedule/generate", {}); refresh(); };
+const toggleFr = async (e) => { e?.preventDefault(); await api("/api/settings", { frEnabled: S.settings.frEnabled === false }, "PATCH"); refresh(); refreshTikTok(); };
+$("#frToggle").onclick = $("#frToggle2").onclick = toggleFr;
+document.body.addEventListener("click", (e) => { if (e.target.closest("[data-frtoggle]")) toggleFr(e); });
 $("#autoToggle").onclick = async () => { await api("/api/settings", { autopilot: !S.settings.autopilot }, "PATCH"); refresh(); };
 $("#studioBtn").onclick = async () => { const r = await api("/api/studio", {}); $("#studioBtn").innerHTML = `<span class="spin"></span>Ouverture…`; setTimeout(() => { window.open(r.url, "_blank"); $("#studioBtn").innerHTML = `${ic("sliders")}Studio`; }, 4000); };
 

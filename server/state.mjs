@@ -26,6 +26,7 @@ const DEFAULTS = {
     maxUploadsPerDay: 6,
     uploadHorizonDays: 14,
     autopilot: false,
+    frEnabled: true, // FR en pause = aucune action (rendu, voix, planning, YouTube, TikTok) sur les vidéos FR
   },
   /** id → { publishAt, locked, rendered, renderedAt, youtubeId, uploadedAt, error } */
   videos: {},
@@ -57,3 +58,6 @@ export function updateSettings(patch) {
   state.settings = { ...state.settings, ...patch };
   save();
 }
+
+/** Langue active ? (FR peut être mis en pause depuis le dashboard, sans rien supprimer.) */
+export const langOn = (lang) => lang !== "fr" || state.settings.frEnabled !== false;

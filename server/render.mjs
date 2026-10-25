@@ -8,7 +8,7 @@ import { renderMedia, renderStill, selectComposition } from "@remotion/renderer"
 import { ROOT } from "../shared/catalog.mjs";
 import { ensureMusic, ensureSfx } from "../scripts/gen-all-audio.mjs";
 import { ensureVoices } from "../scripts/gen-voice.mjs";
-import { OUT, save, video } from "./state.mjs";
+import { langOn, OUT, save, video } from "./state.mjs";
 import { logEvent, recordDuration } from "./events.mjs";
 
 const run = promisify(execFile);
@@ -74,6 +74,13 @@ export function enqueue(ids, catalog) {
   void work();
 }
 
+/** Retire de la file les vidéos dont la langue est en pause. */
+export function dropPausedFromQueue() {
+  const keep = queue.filter((id) => langOn(catalogRef?.videos.find((x) => x.id === id)?.lang));
+  queue.length = 0;
+  queue.push(...keep);
+}
+
 export function cancelQueue() {
   if (queue.length) logEvent("info", `File de rendu vidée (${queue.length} vidéo(s) retirée(s))`);
   queue.length = 0;
@@ -85,7 +92,7 @@ async function work() {
   while (queue.length) {
     const id = queue.shift();
     const v = catalogRef.videos.find((x) => x.id === id);
-    if (!v) continue;
+    if (!v || !langOn(v.lang)) continue;
     Object.assign(current, { id, progress: 0, startedAt: Date.now() });
     stage(0);
     const st = video(id);
