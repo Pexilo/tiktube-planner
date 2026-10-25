@@ -2,26 +2,12 @@
 // 1) lit le texte de chaque image (OCR Vision local), 2) regroupe les images en carrousels et les ordonne,
 // 3) associe chaque carrousel à la bonne légende du .md (clé, langue, mots communs, nombre de slides),
 // 4) crée les brouillons avec un niveau de confiance — ce qui est douteux est signalé, jamais deviné en silence.
-import { homedir } from "node:os";
-import { execFile } from "node:child_process";
-import { existsSync } from "node:fs";
 import { basename, dirname, extname, join } from "node:path";
-import { promisify } from "node:util";
-import { ROOT } from "../shared/catalog.mjs";
+import { execClaude, ocrImages } from "../shared/platform.mjs";
 import { createPost, addImages, prepareImage, parseMarkdown } from "./tiktok.mjs";
 
-const run = promisify(execFile);
-const OCR_BIN = join(ROOT, "tools/ocr");
-
-export async function ocr(paths) {
-  if (!existsSync(OCR_BIN)) await run("swiftc", ["-O", "-o", OCR_BIN, join(ROOT, "tools/ocr.swift")]);
-  const out = [];
-  for (let i = 0; i < paths.length; i += 40) {
-    const { stdout } = await run(OCR_BIN, paths.slice(i, i + 40), { maxBuffer: 64 * 1024 * 1024 });
-    out.push(...JSON.parse(stdout));
-  }
-  return out;
-}
+/** Texte + langue de chaque image (Vision sur macOS, Windows.Media.Ocr sur Windows). */
+export const ocr = ocrImages;
 
 /* ------------------------------------------------------------------ texte */
 
@@ -214,8 +200,6 @@ function groupImages(items, cands = []) {
 
 /* ------------------------------------------------------------------ passe IA (Claude Code en local) */
 
-const CLAUDE = [join(homedir(), ".local/bin/claude"), "/opt/homebrew/bin/claude", "/usr/local/bin/claude", "claude"].find((p) => p === "claude" || existsSync(p));
-
 /**
  * Demande à Claude (CLI `claude -p`, abonnement de l'utilisateur, aucune clé d'API) de reconstituer les carrousels :
  * quelles images vont ensemble, dans quel ordre, avec quelle légende — et d'écrire une légende propre s'il n'y en a pas.
@@ -245,7 +229,7 @@ Réponds UNIQUEMENT avec ce JSON (aucun texte autour) :
 {"carrousels":[{"legende":"c1 ou null","images":["i3","i1","..."],"confiance":"haute|moyenne|faible","raison":"courte justification en français","titre":"seulement si legende=null","description":"seulement si legende=null"}]}`;
   try {
     const { stdout } = await new Promise((resolve, reject) => {
-      const p = execFile(CLAUDE, ["-p", "--output-format", "json", "--model", "sonnet", "--max-turns", "1"], { maxBuffer: 32 * 1024 * 1024, timeout: 240000 }, (err, stdout, stderr) => (err ? reject(err) : resolve({ stdout, stderr })));
+      const p = execClaude(["-p", "--output-format", "json", "--model", "sonnet", "--max-turns", "1"], { maxBuffer: 32 * 1024 * 1024, timeout: 240000 }, (err, stdout, stderr) => (err ? reject(err) : resolve({ stdout, stderr })));
       p.stdin.end(prompt);
     });
     const wrapper = JSON.parse(stdout);

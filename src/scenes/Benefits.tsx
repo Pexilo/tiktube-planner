@@ -19,7 +19,8 @@ export const BenefitsScene: React.FC<{ dur: number }> = ({ dur }) => {
       <Backdrop seed={55} intensity={1.1} />
       <AbsoluteFill style={{ flexDirection: "row", alignItems: "center", padding: `0 ${140 * u}px`, gap: 100 * u }}>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 34 * u }}>
-          <Kinetic text={lang === "fr" ? `Pourquoi *${app.name}* ?` : `Why *${app.name}*?`} size={84 * u} align="left" start={2} />
+          {/* Un nom qui finit déjà par « ? » (Where'd Gains Go?) n'en prend pas un second. */}
+          <Kinetic text={lang === "fr" ? `Pourquoi *${app.name.replace(/\?$/, "")}* ?` : `Why *${app.name.replace(/\?$/, "")}*?`} size={84 * u} align="left" start={2} />
           {app.benefits.map((bn, i) => {
             const s = spring({ frame: frame - starts[i], fps, config: { damping: 11, stiffness: 200 } });
             return (

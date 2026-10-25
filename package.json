@@ -9,6 +9,7 @@
     "studio": "remotion studio src/index.ts",
     "audio": "node scripts/gen-all-audio.mjs",
     "setup": "bash install.sh",
+    "setup:win": "powershell -ExecutionPolicy Bypass -File install.ps1",
     "typecheck": "tsc --noEmit",
     "voice": "node scripts/gen-voice.mjs",
     "menubar": "bash scripts/install-menubar.sh"

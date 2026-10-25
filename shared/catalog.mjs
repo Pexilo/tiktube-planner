@@ -12,7 +12,10 @@ export function loadApps() {
   const apps = readdirSync(dir)
     .filter((f) => f.endsWith(".json"))
     .map((f) => JSON.parse(readFileSync(join(dir, f), "utf8")));
-  return apps.sort((a, b) => APP_ORDER.indexOf(a.slug) - APP_ORDER.indexOf(b.slug));
+  // L'app d'exemple ("example": true, ex. MRRKit) disparaît dès qu'on a ajouté sa propre app :
+  // ni rendue, ni programmée, ni uploadée sur ta chaîne.
+  const own = apps.filter((a) => !a.example);
+  return (own.length ? own : apps).sort((a, b) => APP_ORDER.indexOf(a.slug) - APP_ORDER.indexOf(b.slug));
 }
 
 /** Toutes les vidéos avec leurs métadonnées (titre, durée, musique…). */

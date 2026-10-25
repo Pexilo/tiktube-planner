@@ -1,10 +1,11 @@
 // Génère les SFX + toutes les musiques nécessaires au catalogue (seulement celles qui manquent).
 import { existsSync } from "node:fs";
+import { isMain, PY } from "../shared/platform.mjs";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { loadCatalog, ROOT } from "../shared/catalog.mjs";
 
-export const PY = existsSync(join(ROOT, ".venv/bin/python")) ? join(ROOT, ".venv/bin/python") : "python3";
+export { PY };
 const GEN = join(ROOT, "scripts/gen-audio.py");
 
 export function ensureMusic(m, force = false) {
@@ -20,7 +21,7 @@ export function ensureSfx(force = false) {
   execFileSync(PY, [GEN, "sfx", "--out", join(ROOT, "public/audio/sfx")], { stdio: "inherit" });
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   const force = process.argv.includes("--force");
   ensureSfx(force);
   const seen = new Set();

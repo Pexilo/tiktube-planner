@@ -116,10 +116,10 @@ const ext = (url, label) => `<a href="${url}" target="_blank" rel="noopener">${l
 const T = {
   fr: {
     tagline: "Guide d'installation", dash: "Dashboard →", next: "Continuer →", prev: "← Retour", skip: "Passer cette étape →", optional: "option",
-    steps: ["Bienvenue", "Ton profil", "Tes apps", "YouTube", "TikTok", "Photos TikTok", "Dossier TikTok", "C'est prêt", "Soutenir le dév"],
-    s0: { h: "Bienvenue 👋", lead: "En quelques étapes, tu vas connecter ta chaîne YouTube et ton compte TikTok. Tout reste sur ton Mac : tes clés sont enregistrées dans le dossier <code>data/</code>, jamais envoyées ailleurs.",
-      checks: "Vérification de ton Mac", node: "Node.js", ffmpeg: "ffmpeg (encodage vidéo)", python: "Python + numpy/scipy (musique)", ocr: "OCR macOS (lecture des slides TikTok)", claude: "Claude Code CLI (légendes automatiques)", say: "Voix macOS (Shorts narrés)",
-      missing: "Relance <code>./install.sh</code> pour installer ce qui manque.", claudeNote: "Facultatif : sans Claude Code, l'import de dossiers TikTok fonctionne mais sans légendes écrites automatiquement. Installe-le sur claude.com/claude-code." },
+    steps: ["Bienvenue", "Ton profil", "Tes apps", "YouTube", "TikTok", "Photos TikTok", "Dossier TikTok", "Voix off", "C'est prêt", "Soutenir le dév"],
+    s0: { h: "Bienvenue 👋", lead: "En quelques étapes, tu vas connecter ta chaîne YouTube et ton compte TikTok. Tout reste sur ton ordinateur : tes clés sont enregistrées dans le dossier <code>data/</code>, jamais envoyées ailleurs.",
+      checks: "Vérification de ton ordinateur", node: "Node.js", ffmpeg: "ffmpeg (encodage vidéo)", python: "Python + numpy/scipy (musique)", ocr: "OCR du système (lecture des slides TikTok)", claude: "Claude Code CLI (légendes automatiques)", say: "Voix du système (Shorts narrés)",
+      missing: "Relance <code>./install.sh</code> (Mac) ou <code>install.ps1</code> (Windows) pour installer ce qui manque.", claudeNote: "Facultatif : sans Claude Code, l'import de dossiers TikTok fonctionne mais sans légendes écrites automatiquement. Installe-le sur claude.com/claude-code." },
     s1: { h: "Ton profil", lead: "Ton prénom s'affiche sur le dashboard ; la signature est ajoutée en bas de chaque description YouTube.",
       name: "Prénom", sigFr: "Signature FR (tu)", sigFrV: "Signature FR (vous)", sigEn: "Signature EN", save: "Enregistrer", saved: "Enregistré ✓",
       ph: { name: "Alex", fr: "Fait avec ❤️ par Alex, développeur indépendant. Abonne-toi pour voir mes autres apps !", frv: "… Abonnez-vous pour voir mes autres apps !", en: "Made with ❤️ by Alex, indie developer. Subscribe to see my other apps!" } },
@@ -165,13 +165,29 @@ const T = {
         "Reviens dans le portail et clique <b>Verify</b>.",
       ],
       drop: "Glisse ici le fichier <b>tiktok….txt</b>", privacyH: "Page de confidentialité (exigée par TikTok)", privacyBtn: "Générer et publier ma page", privacyOk: "Page en ligne :" },
-    sW: { h: "Dossier TikTok", lead: "Le plus simple pour programmer TikTok : <b>un dossier sur ton Mac</b>. Tout ce que tu (ou Claude) y déposes est analysé, associé à sa légende, programmé, puis rangé dans <code>Programmés</code>.",
+    sW: { h: "Dossier TikTok", lead: "Le plus simple pour programmer TikTok : <b>un dossier sur ton ordinateur</b>. Tout ce que tu (ou Claude) y déposes est analysé, associé à sa légende, programmé, puis rangé dans <code>Programmés</code>.",
       create: "Créer le dossier", created: "Dossier prêt ✓", open: "Ouvrir dans le Finder", path: "Emplacement", on: "Surveillance active (toutes les 2 min)", off: "Surveillance désactivée",
       structH: "Comment ranger un lot", struct: "Un dossier par lot. Dedans : un sous-dossier d'images par carrousel (dans <code>fr/</code> et <code>en/</code>), les vidéos, et un fichier de légendes au format libre. Sans légende, Claude en écrit une à partir du texte des slides. Les aperçus sont ignorés.",
       claudeH: "Laisse Claude le remplir", claude: "Tu peux demander à Claude (Claude Code, Claude Desktop avec accès aux fichiers…) de créer les slides <b>et de les déposer directement dans ce dossier</b> : la plateforme s'occupe du reste. Copie ce prompt :",
       prompt: (d) => `Crée 3 carrousels TikTok pour mon app <NOM DE L'APP> (6 slides 1080×1920 chacun, en français et en anglais) et dépose-les dans ${d}/<NOM>-<DATE>/ : un sous-dossier par carrousel dans fr/ et en/ (01.png, 02.png…), plus un fichier LEGENDES.md avec, pour chaque carrousel, le titre et la légende FR / EN (texte + hashtags).`,
       slots: (s) => `Créneaux : FR ${s.fr.join(" · ")} — EN ${s.en.join(" · ")}. Modifiables dans le dashboard → Réglages → TikTok.`,
       inbox: "TikTok accepte ~5 brouillons non publiés dans ta boîte : publie-les au fil de l'eau, sinon la plateforme réessaie toutes les 2 h." },
+    sV: { h: "Voix off (ElevenLabs)", lead: "Pour des Shorts narrés <b>plus réalistes et plus accrocheurs</b>, branche ElevenLabs. Sans clé, la plateforme garde la voix de ton ordinateur.",
+      keyH: "1. Ta clé d'API",
+      keyHow: [
+        `Ouvre ${ext("https://elevenlabs.io/app/settings/api-keys", "ElevenLabs → Settings → API Keys")} → <b>Create API Key</b>.`,
+        "Droits nécessaires : <b>Text to Speech</b>, <b>Voices</b> (lecture et écriture, pour ajouter des voix de la Voice Library) et <b>Models</b> (lecture). <b>User</b> (lecture) est facultatif : il permet d'afficher tes crédits restants.",
+        "Colle la clé ci-dessous : elle est vérifiée puis enregistrée dans <code>data/elevenlabs.json</code>, sur ton ordinateur uniquement.",
+      ],
+      key: "Clé d'API", save: "Vérifier et enregistrer", forget: "Oublier la clé", connected: "Connecté", notConnected: "Non connecté",
+      credits: (u, l) => `${u.toLocaleString()} / ${l.toLocaleString()} caractères utilisés ce mois-ci`,
+      voicesH: "2. Les voix", loading: "Chargement des voix…", model: "Modèle", style: "Ton",
+      presets: { natural: "Naturel", punchy: "Accrocheur (recommandé)", hype: "Très expressif" },
+      vfr: "Voix française", ven: "Voix anglaise", none: "— Voix du système —", frGroup: "Vérifiées en français", enGroup: "Vérifiées en anglais", other: "Autres voix",
+      preview: "▶ Aperçu", test: "Tester avec ce ton", testing: "Génération…", saveVoices: "Enregistrer les voix", saved: "Enregistré : les Shorts narrés seront régénérés avec ces voix au prochain rendu.",
+      noTs: "Ce modèle ne renvoie pas d'horodatage : les sous-titres seront estimés.",
+      addLabel: "Voice Library", addPh: "Lien ou ID, ex. https://elevenlabs.io/voices/…", addBtn: "Ajouter", adding: "Ajout…", added: (n) => `« ${n} » ajoutée à tes voix et sélectionnée : écoute-la, puis enregistre.`,
+      tip: `Pour une voix de la ${ext("https://elevenlabs.io/app/voice-library", "Voice Library")}, colle son lien dans « Voice Library » ci-dessus : elle est ajoutée à <b>My Voices</b> et apparaît dans la liste. Chaque Short narré consomme environ 300 caractères par langue ; seules les voix nouvelles ou modifiées sont regénérées.` },
     sS: { h: "Soutenir le développeur 💜", lead: "TikTube Planner est <b>gratuit et open source</b>. S'il te fait gagner du temps, la meilleure façon de me dire merci : <b>télécharge une de mes apps</b> et, si elle te plaît, <b>laisse-lui une note</b>. C'est tout ce que je demande 🙏",
       apps: "Découvrir mes apps", appsSub: "iPhone, Android, Apple Watch, Garmin… — une note ⭐⭐⭐⭐⭐ m'aide énormément.",
       follow: "Me suivre", followSub: "Pas obligatoire, mais ça fait toujours plaisir — je partage comment je construis mes apps avec l'IA.",
@@ -187,10 +203,10 @@ const T = {
   },
   en: {
     tagline: "Setup guide", dash: "Dashboard →", next: "Continue →", prev: "← Back", skip: "Skip this step →", optional: "optional",
-    steps: ["Welcome", "Your profile", "Your apps", "YouTube", "TikTok", "TikTok photos", "TikTok folder", "All set", "Support the dev"],
-    s0: { h: "Welcome 👋", lead: "In a few steps you'll connect your YouTube channel and TikTok account. Everything stays on your Mac: keys are saved in the <code>data/</code> folder and never sent anywhere else.",
-      checks: "Checking your Mac", node: "Node.js", ffmpeg: "ffmpeg (video encoding)", python: "Python + numpy/scipy (music)", ocr: "macOS OCR (reads TikTok slides)", claude: "Claude Code CLI (automatic captions)", say: "macOS voices (narrated Shorts)",
-      missing: "Run <code>./install.sh</code> again to install what's missing.", claudeNote: "Optional: without Claude Code, TikTok folder import still works but captions aren't written for you. Get it at claude.com/claude-code." },
+    steps: ["Welcome", "Your profile", "Your apps", "YouTube", "TikTok", "TikTok photos", "TikTok folder", "Voice-over", "All set", "Support the dev"],
+    s0: { h: "Welcome 👋", lead: "In a few steps you'll connect your YouTube channel and TikTok account. Everything stays on your computer: keys are saved in the <code>data/</code> folder and never sent anywhere else.",
+      checks: "Checking your computer", node: "Node.js", ffmpeg: "ffmpeg (video encoding)", python: "Python + numpy/scipy (music)", ocr: "System OCR (reads TikTok slides)", claude: "Claude Code CLI (automatic captions)", say: "System voices (narrated Shorts)",
+      missing: "Run <code>./install.sh</code> (Mac) or <code>install.ps1</code> (Windows) again to install what's missing.", claudeNote: "Optional: without Claude Code, TikTok folder import still works but captions aren't written for you. Get it at claude.com/claude-code." },
     s1: { h: "Your profile", lead: "Your first name shows on the dashboard; the signature is appended to every YouTube description.",
       name: "First name", sigFr: "FR signature (tu)", sigFrV: "FR signature (vous)", sigEn: "EN signature", save: "Save", saved: "Saved ✓",
       ph: { name: "Alex", fr: "Fait avec ❤️ par Alex, développeur indépendant. Abonne-toi pour voir mes autres apps !", frv: "… Abonnez-vous pour voir mes autres apps !", en: "Made with ❤️ by Alex, indie developer. Subscribe to see my other apps!" } },
@@ -236,13 +252,29 @@ const T = {
         "Go back to the portal and click <b>Verify</b>.",
       ],
       drop: "Drop the <b>tiktok….txt</b> file here", privacyH: "Privacy policy page (required by TikTok)", privacyBtn: "Generate and publish my page", privacyOk: "Page online:" },
-    sW: { h: "TikTok folder", lead: "The easiest way to schedule TikTok: <b>a folder on your Mac</b>. Whatever you (or Claude) drop in is analysed, matched with its caption, scheduled, then moved to <code>Programmés</code>.",
+    sW: { h: "TikTok folder", lead: "The easiest way to schedule TikTok: <b>a folder on your computer</b>. Whatever you (or Claude) drop in is analysed, matched with its caption, scheduled, then moved to <code>Programmés</code>.",
       create: "Create the folder", created: "Folder ready ✓", open: "Open in Finder", path: "Location", on: "Watching (every 2 min)", off: "Watching disabled",
       structH: "How to lay out a batch", struct: "One folder per batch. Inside: one image subfolder per carousel (under <code>fr/</code> and <code>en/</code>), videos, and a captions file in any format. No caption? Claude writes one from the slide text. Previews are ignored.",
       claudeH: "Let Claude fill it", claude: "You can ask Claude (Claude Code, Claude Desktop with file access…) to create the slides <b>and drop them straight into this folder</b>: the platform does the rest. Copy this prompt:",
       prompt: (d) => `Create 3 TikTok carousels for my app <APP NAME> (6 slides of 1080×1920 each, in French and English) and save them in ${d}/<NAME>-<DATE>/: one subfolder per carousel under fr/ and en/ (01.png, 02.png…), plus a CAPTIONS.md file with, for each carousel, the title and the FR / EN caption (text + hashtags).`,
       slots: (s) => `Slots: FR ${s.fr.join(" · ")} — EN ${s.en.join(" · ")}. Change them in the dashboard → Settings → TikTok.`,
       inbox: "TikTok accepts ~5 unpublished drafts in your inbox: publish them as they come, otherwise the platform retries every 2 h." },
+    sV: { h: "Voice-over (ElevenLabs)", lead: "For <b>more realistic, punchier</b> narrated Shorts, connect ElevenLabs. Without a key, the platform keeps your computer's voice.",
+      keyH: "1. Your API key",
+      keyHow: [
+        `Open ${ext("https://elevenlabs.io/app/settings/api-keys", "ElevenLabs → Settings → API Keys")} → <b>Create API Key</b>.`,
+        "Required permissions: <b>Text to Speech</b>, <b>Voices</b> (read and write, to add Voice Library voices) and <b>Models</b> (read). <b>User</b> (read) is optional: it shows your remaining credits.",
+        "Paste the key below: it's checked, then saved in <code>data/elevenlabs.json</code>, on your computer only.",
+      ],
+      key: "API key", save: "Check and save", forget: "Forget the key", connected: "Connected", notConnected: "Not connected",
+      credits: (u, l) => `${u.toLocaleString()} / ${l.toLocaleString()} characters used this month`,
+      voicesH: "2. Voices", loading: "Loading voices…", model: "Model", style: "Tone",
+      presets: { natural: "Natural", punchy: "Punchy (recommended)", hype: "Very expressive" },
+      vfr: "French voice", ven: "English voice", none: "— System voice —", frGroup: "Verified in French", enGroup: "Verified in English", other: "Other voices",
+      preview: "▶ Preview", test: "Test with this tone", testing: "Generating…", saveVoices: "Save voices", saved: "Saved: narrated Shorts will be regenerated with these voices on the next render.",
+      noTs: "This model returns no timestamps: subtitles will be estimated.",
+      addLabel: "Voice Library", addPh: "Link or ID, e.g. https://elevenlabs.io/voices/…", addBtn: "Add", adding: "Adding…", added: (n) => `“${n}” added to your voices and selected: listen to it, then save.`,
+      tip: `For a ${ext("https://elevenlabs.io/app/voice-library", "Voice Library")} voice, paste its link in “Voice Library” above: it's added to <b>My Voices</b> and shows up in the list. Each narrated Short uses about 300 characters per language; only new or changed voices are regenerated.` },
     sS: { h: "Support the developer 💜", lead: "TikTube Planner is <b>free and open source</b>. If it saves you time, the best way to say thanks: <b>download one of my apps</b> and, if you like it, <b>leave it a rating</b>. That's all I ask 🙏",
       apps: "Discover my apps", appsSub: "iPhone, Android, Apple Watch, Garmin… — a ⭐⭐⭐⭐⭐ rating helps me a lot.",
       follow: "Follow me", followSub: "Not required, but always appreciated — I share how I build my apps with AI.",
@@ -268,11 +300,12 @@ const done = () => [
   ST.tiktok.connected,
   !!ST.hosting?.host,
   ST.watch.exists && ST.watch.enabled,
+  ST.elevenlabs.hasKey && !!(ST.elevenlabs.voices.fr || ST.elevenlabs.voices.en),
   !!ST.profile.setupDone,
   !!ST.profile.setupDone,
 ];
-const OPTIONAL = [false, false, false, false, true, true, true, false, true];
-const LAST = 8;
+const OPTIONAL = [false, false, false, false, true, true, true, true, false, true];
+const LAST = 9;
 // Liens de l'auteur (étape « Soutenir le développeur »)
 const AUTHOR = {
   apps: "https://taap.be/louis.valli",
@@ -385,6 +418,42 @@ const VIEWS = [
       ${navBtns(!(w.exists && w.enabled))}`;
   },
   () => {
+    const x = t().sV, e = ST.elevenlabs, sub = ELC?.subscription;
+    let voicesCard = "";
+    if (e.hasKey && !ELC) {
+      loadEleven();
+      voicesCard = `<div class="card"><h3>${x.voicesH}</h3><p class="note">${x.loading}</p></div>`;
+    } else if (e.hasKey && ELC.error) {
+      voicesCard = `<div class="card"><h3>${x.voicesH}</h3><div class="msg err">${esc(ELC.error)}</div></div>`;
+    } else if (e.hasKey) {
+      const opt = (cur) => (v) => `<option value="${esc(v.id)}" data-name="${esc(v.name)}" ${v.id === cur ? "selected" : ""}>${esc(v.name)}${v.desc ? ` — ${esc(v.desc)}` : ""}</option>`;
+      const opts = (lang) => {
+        const cur = e.voices[lang]?.id, mine = ELC.voices.filter((v) => v.langs.includes(lang)), rest = ELC.voices.filter((v) => !v.langs.includes(lang));
+        return `<option value="">${x.none}</option>${mine.length ? `<optgroup label="${lang === "fr" ? x.frGroup : x.enGroup}">${mine.map(opt(cur)).join("")}</optgroup>` : ""}<optgroup label="${x.other}">${rest.map(opt(cur)).join("")}</optgroup>`;
+      };
+      const row = (lang) => `<label>${lang === "fr" ? x.vfr : x.ven}</label><div class="row" style="flex-wrap:nowrap"><select id="elV-${lang}">${opts(lang)}</select><button class="btn sm" data-el-preview="${lang}">${x.preview}</button><button class="btn sm" data-el-test="${lang}">${x.test}</button></div>`;
+      voicesCard = `<div class="card"><h3>${x.voicesH}</h3><div class="form">
+          <label>${x.model}</label><select id="elModel">${ELC.models.map((m) => `<option value="${esc(m.id)}" ${m.id === e.model ? "selected" : ""}>${esc(m.name)}${m.fr ? "" : " (EN)"}</option>`).join("")}</select>
+          <label>${x.style}</label><select id="elPreset">${Object.entries(x.presets).map(([k, v]) => `<option value="${k}" ${k === e.preset ? "selected" : ""}>${v}</option>`).join("")}</select>
+          ${row("fr")}${row("en")}
+          <label>${x.addLabel}</label><div class="row" style="flex-wrap:nowrap"><input id="elAdd" placeholder="${esc(x.addPh)}" autocomplete="off"><button class="btn sm" id="elAddBtn">${x.addBtn}</button></div>
+          <span></span><div class="row"><button class="btn primary" id="elSave">${x.saveVoices}</button></div>
+        </div>
+        <audio id="elAudio" controls style="width:100%;margin-top:14px;display:none"></audio><div class="msg" id="elVMsg"></div>
+        <div class="tip">${x.tip}</div></div>`;
+    }
+    return `<h1>${x.h}</h1><p class="lead">${x.lead}</p>
+      <div class="card"><h3>${x.keyH}</h3>${how(x.keyHow)}
+        <div class="form">
+          <label>${x.key}</label><input id="elKey" type="password" placeholder="${e.keyHint ? esc(e.keyHint) + " (✓)" : "sk_…"}" autocomplete="off">
+          <span></span><div class="row"><button class="btn ${e.hasKey ? "" : "primary"}" id="elSaveKey">${x.save}</button>${e.hasKey ? `<button class="btn sm" id="elForget">${x.forget}</button>` : ""}</div>
+        </div>
+        <div class="row" style="margin-top:12px">${stat(e.hasKey, x.connected, x.notConnected)}${sub ? `<span class="note">${x.credits(sub.used, sub.limit)}${sub.tier ? ` · ${esc(sub.tier)}` : ""}</span>` : ""}</div>
+        <div class="msg" id="elMsg"></div>
+      </div>
+      ${voicesCard}${navBtns(!e.hasKey)}`;
+  },
+  () => {
     const x = t().s6;
     return `<h1>${x.h}</h1><p class="lead">${x.lead}</p><div class="card">${how(x.list)}</div>
       ${navBtns(false)}`;
@@ -400,9 +469,20 @@ const VIEWS = [
         <div class="row">${AUTHOR.social.map(([n, h, u, svg]) => `<a class="btn" href="${u}" target="_blank" rel="noopener"><svg width="16" height="16" viewBox="0 0 24 24">${svg}</svg>${n} <span class="note">${esc(h)}</span></a>`).join("")}</div>
       </div>
       <p class="note" style="text-align:center;margin-top:22px">${x.thanks}</p>
-      <div class="nav"><button class="btn" data-go="7">${t().prev}</button><button class="btn primary" id="finish">${x.go}</button></div>`;
+      <div class="nav"><button class="btn" data-go="8">${t().prev}</button><button class="btn primary" id="finish">${x.go}</button></div>`;
   },
 ];
+
+// Voix et modèles ElevenLabs : chargés une fois à l'ouverture de l'étape (hors du statut rafraîchi toutes les 4 s).
+let ELC = null, elLoading = false;
+async function loadEleven() {
+  if (elLoading) return;
+  elLoading = true;
+  ELC = await api("/api/setup/elevenlabs/catalog").catch((e) => ({ error: e.message }));
+  elLoading = false;
+  if (step === 7) { render(true); bindAll(); } // toujours sur l'étape Voix off
+}
+const elVoice = (lang) => { const o = $(`#elV-${lang}`)?.selectedOptions[0]; return o?.value ? { id: o.value, name: o.dataset.name } : null; };
 
 function render(force) {
   renderNav();
@@ -430,7 +510,7 @@ function bindDrop(zoneId, inputId, onFile) {
 }
 
 document.body.addEventListener("click", async (e) => {
-  const el = e.target.closest("[data-step],[data-go],[data-copy],[data-l],#saveProfile,#saveTT,#saveHost,#privacy,#finish,#wCreate,#wOpen");
+  const el = e.target.closest("[data-step],[data-go],[data-copy],[data-l],[data-el-preview],[data-el-test],#saveProfile,#saveTT,#saveHost,#privacy,#finish,#wCreate,#wOpen,#elSaveKey,#elForget,#elSave,#elAddBtn");
   if (!el) return;
   if (el.dataset.step ?? el.dataset.go) { step = Number(el.dataset.step ?? el.dataset.go); history.replaceState(null, "", `#${step}`); await load(true); bindAll(); window.scrollTo(0, 0); return; }
   if (el.dataset.copy) { await navigator.clipboard.writeText(el.dataset.copy); el.classList.add("done"); setTimeout(() => el.classList.remove("done"), 1500); return; }
@@ -462,6 +542,48 @@ document.body.addEventListener("click", async (e) => {
     msg("#wMsg", !r.error, r.error ? esc(r.error) : `${t().sW.created} ${esc(r.dir)}`);
   }
   if (el.id === "wOpen") await api("/api/setup/open-folder", {});
+  if (el.id === "elSaveKey") {
+    el.disabled = true;
+    const r = await api("/api/setup/elevenlabs/key", { apiKey: $("#elKey").value });
+    el.disabled = false;
+    if (r.error) return msg("#elMsg", false, esc(r.error));
+    ELC = null; await load(true); bindAll();
+  }
+  if (el.id === "elForget") { await api("/api/setup/elevenlabs/forget", {}); ELC = null; await load(true); bindAll(); }
+  if (el.dataset.elPreview) {
+    const lang = el.dataset.elPreview, v = ELC?.voices.find((x) => x.id === elVoice(lang)?.id), a = $("#elAudio");
+    if (!v) return;
+    a.src = v.previews[lang] ?? v.preview; a.style.display = "block"; a.play();
+  }
+  if (el.dataset.elTest) {
+    const lang = el.dataset.elTest, v = elVoice(lang), x = t().sV;
+    if (!v) return msg("#elVMsg", false, x.none);
+    const label = el.textContent; el.disabled = true; el.textContent = x.testing;
+    const r = await api("/api/setup/elevenlabs/test", { lang, voiceId: v.id, voiceName: v.name, model: $("#elModel").value, preset: $("#elPreset").value });
+    el.disabled = false; el.textContent = label;
+    if (r.error) return msg("#elVMsg", false, esc(r.error));
+    const a = $("#elAudio"); a.src = r.audio; a.style.display = "block"; a.play();
+    msg("#elVMsg", true, `« ${esc(r.text)} »${r.timestamps ? "" : `<br>${x.noTs}`}`);
+  }
+  if (el.id === "elAddBtn") {
+    const x = t().sV, label = el.textContent, keep = { fr: elVoice("fr")?.id ?? "", en: elVoice("en")?.id ?? "", model: $("#elModel").value, preset: $("#elPreset").value };
+    el.disabled = true; el.textContent = x.adding;
+    const r = await api("/api/setup/elevenlabs/add-voice", { input: $("#elAdd").value });
+    el.disabled = false; el.textContent = label;
+    if (r.error) return msg("#elVMsg", false, esc(r.error));
+    ELC = await api("/api/setup/elevenlabs/catalog");
+    render(true); bindAll();
+    // Le rendu repart des réglages enregistrés : on remet les choix en cours, puis la nouvelle voix dans sa langue.
+    $("#elModel").value = keep.model; $("#elPreset").value = keep.preset; $("#elV-fr").value = keep.fr; $("#elV-en").value = keep.en;
+    const langs = r.voice.langs ?? [];
+    $(`#elV-${langs.includes("en") && !langs.includes("fr") ? "en" : "fr"}`).value = r.voice.id;
+    msg("#elVMsg", true, x.added(esc(r.voice.name)));
+  }
+  if (el.id === "elSave") {
+    await api("/api/setup/elevenlabs", { model: $("#elModel").value, preset: $("#elPreset").value, voices: { fr: elVoice("fr"), en: elVoice("en") } });
+    ST = await api("/api/setup/status"); lastRaw = JSON.stringify(ST); renderNav();
+    msg("#elVMsg", true, t().sV.saved);
+  }
   if (el.id === "finish") { await api("/api/setup/profile", { setupDone: true }); location.href = "/"; }
 });
 

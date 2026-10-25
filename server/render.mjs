@@ -123,8 +123,8 @@ async function work() {
         continue;
       }
       ensureSfx();
-      if (v.kind === "story" && !v.hasVoice) {
-        ensureVoices();
+      // Voix manquante ou périmée (texte modifié, passage à ElevenLabs, autre voix) : régénérée avant le rendu.
+      if (v.kind === "story" && (await ensureVoices(false, id))) {
         serveUrl = null;
         const fresh = (await import("../shared/catalog.mjs")).loadCatalog().videos.find((x) => x.id === id);
         Object.assign(v, fresh);

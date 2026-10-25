@@ -1,0 +1,829 @@
+{
+  "slug": "wheredgainsgo",
+  "name": "Where'd Gains Go?",
+  "url": "wheredgainsgo.fyi",
+  "links": [
+    {
+      "label": {
+        "fr": "🧾 Audite ton wallet",
+        "en": "🧾 Audit your wallet"
+      },
+      "url": "https://wheredgainsgo.fyi"
+    },
+    {
+      "label": {
+        "fr": "🧮 Comment c'est calculé",
+        "en": "🧮 How the math works"
+      },
+      "url": "https://wheredgainsgo.fyi/the-math"
+    }
+  ],
+  "platforms": [
+    "Web",
+    "Ethereum",
+    "Bitcoin",
+    "Solana"
+  ],
+  "music": "trap",
+  "icon": "icon.png",
+  "brand": {
+    "mode": "dark",
+    "bg": "#0B0B0E",
+    "bg2": "#1B1A22",
+    "text": "#F6F4EF",
+    "muted": "#A9A69E",
+    "primary": "#FF2E88",
+    "secondary": "#C6F24E",
+    "accent": "#5CE1FF",
+    "heading": "Bricolage Grotesque",
+    "body": "Space Grotesk",
+    "headingWeight": 800,
+    "uppercase": true,
+    "tracking": -0.04
+  },
+  "tagline": {
+    "fr": "Ton vrai P&L crypto. Gas compris.",
+    "en": "Your real crypto P&L. Gas included."
+  },
+  "category": {
+    "fr": "L'audit de wallet crypto, sans signature",
+    "en": "The crypto wallet audit, no signature"
+  },
+  "cta": {
+    "title": {
+      "fr": "Audite *ton wallet* gratuitement",
+      "en": "Audit *your wallet* for free"
+    },
+    "sub": {
+      "fr": "Ethereum · Bitcoin · Solana",
+      "en": "Ethereum · Bitcoin · Solana"
+    },
+    "badge": {
+      "fr": "Lien en description",
+      "en": "Link in description"
+    }
+  },
+  "problems": [
+    {
+      "fr": "Tu ne sais pas si tu es vraiment en gain",
+      "en": "You don't know if you're actually up"
+    },
+    {
+      "fr": "Le gas mange tes gains en silence",
+      "en": "Gas quietly eats your gains"
+    },
+    {
+      "fr": "Ton exchange affiche un prix, pas ton P&L",
+      "en": "Your exchange shows a price, not your P&L"
+    }
+  ],
+  "benefits": [
+    {
+      "fr": "Juste une adresse : pas de wallet connect",
+      "en": "Just an address: no wallet connect"
+    },
+    {
+      "fr": "Lots FIFO, gas dans le prix de revient",
+      "en": "FIFO lots, gas in the cost basis"
+    },
+    {
+      "fr": "Une note A → F pour ton wallet",
+      "en": "An A → F grade for your wallet"
+    },
+    {
+      "fr": "Ethereum, Bitcoin et Solana",
+      "en": "Ethereum, Bitcoin and Solana"
+    }
+  ],
+  "price": {
+    "fr": "Gratuit · sans compte",
+    "en": "Free · no account"
+  },
+  "features": [
+    {
+      "id": "pnl",
+      "title": {
+        "fr": "Ton vrai P&L. *Gas compris.*",
+        "en": "Your real P&L. *Gas included.*"
+      },
+      "text": {
+        "fr": "Chaque transfert rejoué, chaque frais ajouté au prix de revient.",
+        "en": "Every transfer replayed, every fee added to your cost basis."
+      },
+      "stat": {
+        "value": "$17,770",
+        "label": {
+          "fr": "valeur du wallet (données démo)",
+          "en": "wallet value (demo data)"
+        }
+      },
+      "screens": [
+        {
+          "src": "m-dash.png"
+        },
+        {
+          "src": "dash-top.png",
+          "device": "browser",
+          "focus": [0.3, 0.25],
+          "focusTo": [0.3, 0.6],
+          "zoom": 1.25
+        }
+      ]
+    },
+    {
+      "id": "address",
+      "title": {
+        "fr": "Une adresse. *Zéro signature.*",
+        "en": "One address. *No signature.*"
+      },
+      "text": {
+        "fr": "Colle une adresse ETH, BTC ou SOL. Rien à connecter, rien à signer.",
+        "en": "Paste an ETH, BTC or SOL address. Nothing to connect, nothing to sign."
+      },
+      "chip": {
+        "fr": "Lecture seule",
+        "en": "Read-only"
+      },
+      "screens": [
+        {
+          "src": "m-landing.png"
+        },
+        {
+          "src": "landing.png",
+          "device": "browser",
+          "focus": [0.3, 0.3],
+          "focusTo": [0.3, 0.7],
+          "zoom": 1.3
+        }
+      ]
+    },
+    {
+      "id": "grade",
+      "title": {
+        "fr": "Ton wallet, *noté.*",
+        "en": "Your wallet, *graded.*"
+      },
+      "text": {
+        "fr": "Timing de sortie, frais, tenue dans le dip, concentration.",
+        "en": "Exit timing, fees, holding the dip, concentration."
+      },
+      "stat": {
+        "value": "C+",
+        "label": {
+          "fr": "note (données démo)",
+          "en": "grade (demo data)"
+        }
+      },
+      "screens": [
+        {
+          "src": "m-profile.png"
+        },
+        {
+          "src": "profile.png",
+          "device": "browser",
+          "focus": [0.45, 0.5],
+          "zoom": 1.15
+        }
+      ]
+    },
+    {
+      "id": "whatif",
+      "title": {
+        "fr": "Et si t'avais *tout mis en ETH* ?",
+        "en": "What if you'd *gone all in ETH*?"
+      },
+      "text": {
+        "fr": "Ton historique face à 5 timelines parallèles.",
+        "en": "Your history against 5 parallel timelines."
+      },
+      "chip": {
+        "fr": "What if",
+        "en": "What if"
+      },
+      "screens": [
+        {
+          "src": "m-whatif.png"
+        },
+        {
+          "src": "dash-whatif.png",
+          "device": "browser",
+          "focus": [0.35, 0.55],
+          "focusTo": [0.35, 0.85],
+          "zoom": 1.3
+        }
+      ]
+    },
+    {
+      "id": "regrets",
+      "title": {
+        "fr": "Tes *pires calls*, datés.",
+        "en": "Your *worst calls*, dated."
+      },
+      "text": {
+        "fr": "Acheté au top, vendu au fond… et tes vrais bons coups.",
+        "en": "Bought the top, sold the bottom… and your real good calls."
+      },
+      "chip": {
+        "fr": "Regret log",
+        "en": "Regret log"
+      },
+      "screens": [
+        {
+          "src": "m-regrets.png"
+        },
+        {
+          "src": "dash-regrets.png",
+          "device": "browser",
+          "focus": [0.35, 0.6],
+          "zoom": 1.3
+        }
+      ]
+    },
+    {
+      "id": "gas",
+      "title": {
+        "fr": "Ton gas, *en burritos.*",
+        "en": "Your gas, *in burritos.*"
+      },
+      "text": {
+        "fr": "Combien t'ont coûté les frais réseau. Vraiment.",
+        "en": "What network fees really cost you."
+      },
+      "stat": {
+        "value": "−$323",
+        "label": {
+          "fr": "de gas brûlé (données démo)",
+          "en": "gas burned (demo data)"
+        }
+      },
+      "screens": [
+        {
+          "src": "m-gas.png"
+        },
+        {
+          "src": "dash-gas.png",
+          "device": "browser",
+          "focus": [0.35, 0.6],
+          "focusTo": [0.35, 0.85],
+          "zoom": 1.3
+        }
+      ]
+    },
+    {
+      "id": "trophies",
+      "title": {
+        "fr": "25 trophées *à débloquer*",
+        "en": "25 trophies *to unlock*"
+      },
+      "text": {
+        "fr": "Diamond hands, Gas Guzzler, Night Owl… lequel tu mérites ?",
+        "en": "Diamond hands, Gas Guzzler, Night Owl… which one is yours?"
+      },
+      "chip": {
+        "fr": "Trophy case",
+        "en": "Trophy case"
+      },
+      "screens": [
+        {
+          "src": "m-trophies.png"
+        }
+      ]
+    },
+    {
+      "id": "math",
+      "title": {
+        "fr": "FIFO. *Pas de boîte noire.*",
+        "en": "FIFO. *No black box.*"
+      },
+      "text": {
+        "fr": "Chaque chiffre a sa formule, publiée en clair.",
+        "en": "Every figure has its formula, published in plain sight."
+      },
+      "chip": {
+        "fr": "The math",
+        "en": "The math"
+      },
+      "screens": [
+        {
+          "src": "math-fees.png",
+          "device": "browser",
+          "focus": [0.3, 0.15],
+          "focusTo": [0.3, 0.55],
+          "zoom": 1.6
+        },
+        {
+          "src": "math-grade.png",
+          "device": "browser",
+          "focus": [0.3, 0.3],
+          "focusTo": [0.3, 0.75],
+          "zoom": 1.5
+        }
+      ]
+    }
+  ],
+  "shorts": [
+    {
+      "hook": {
+        "fr": "T'es *vraiment* en gain ?",
+        "en": "Are you *actually* up?"
+      },
+      "features": [
+        "address",
+        "pnl",
+        "grade"
+      ],
+      "yt": {
+        "title": {
+          "fr": "Ton wallet crypto est-il vraiment en gain ? 🧾 #shorts",
+          "en": "Is your crypto wallet actually up? 🧾 #shorts"
+        }
+      }
+    },
+    {
+      "hook": {
+        "fr": "Le gas a mangé *tes gains*.",
+        "en": "Gas ate *your gains*."
+      },
+      "features": [
+        "gas",
+        "pnl",
+        "math"
+      ],
+      "yt": {
+        "title": {
+          "fr": "Combien le gas t'a vraiment coûté ⛽ #shorts",
+          "en": "What gas really cost you ⛽ #shorts"
+        }
+      }
+    },
+    {
+      "hook": {
+        "fr": "Et si t'avais *juste acheté de l'ETH* ?",
+        "en": "What if you'd *just bought ETH*?"
+      },
+      "features": [
+        "whatif",
+        "regrets",
+        "grade"
+      ],
+      "yt": {
+        "title": {
+          "fr": "Tes trades vs tout en ETH : le verdict 📉 #shorts",
+          "en": "Your trades vs all-in ETH: the verdict 📉 #shorts"
+        }
+      }
+    },
+    {
+      "hook": {
+        "fr": "Ton wallet mérite *quelle note* ?",
+        "en": "What *grade* does your wallet deserve?"
+      },
+      "features": [
+        "grade",
+        "trophies",
+        "regrets"
+      ],
+      "yt": {
+        "title": {
+          "fr": "Ton wallet crypto noté de A à F 🏆 #shorts",
+          "en": "Your crypto wallet graded A to F 🏆 #shorts"
+        }
+      }
+    },
+    {
+      "hook": {
+        "fr": "Connecter ton wallet ? *Jamais.*",
+        "en": "Connect your wallet? *Never.*"
+      },
+      "features": [
+        "address",
+        "pnl",
+        "math"
+      ],
+      "yt": {
+        "title": {
+          "fr": "Ton P&L crypto sans connecter ton wallet 🔒 #shorts",
+          "en": "Your crypto P&L without connecting your wallet 🔒 #shorts"
+        }
+      }
+    }
+  ],
+  "long": {
+    "hook": [
+      {
+        "fr": "Ton exchange dit *+40 %*.",
+        "en": "Your exchange says *+40%*."
+      },
+      {
+        "fr": "Mais t'as payé le gas. Vendu trop tôt.",
+        "en": "But you paid gas. Sold too early."
+      },
+      {
+        "fr": "*Où sont passés* tes gains ?",
+        "en": "*Where'd* your gains go?"
+      }
+    ],
+    "features": [
+      "address",
+      "pnl",
+      "gas",
+      "whatif",
+      "regrets",
+      "grade",
+      "trophies",
+      "math"
+    ],
+    "yt": {
+      "title": {
+        "fr": "Where'd Gains Go? : le vrai P&L de ton wallet crypto (FIFO, gas compris)",
+        "en": "Where'd Gains Go?: your crypto wallet's real P&L (FIFO, gas included)"
+      }
+    }
+  },
+  "description": {
+    "fr": "Where'd Gains Go? calcule le vrai P&L de ton wallet à partir de sa seule adresse (Ethereum, Bitcoin, Solana) : chaque transfert est rejoué et valorisé, les lots sont appariés en FIFO, les frais de gas sont inclus dans le prix de revient, puis le wallet reçoit une note de A à F. Bonus : les timelines « what if », ton journal des regrets, le gas traduit en burritos et 25 trophées. Gratuit, sans compte, sans wallet connect, sans signature. (Chiffres affichés = données de démo.)",
+    "en": "Where'd Gains Go? works out your wallet's real P&L from its address alone (Ethereum, Bitcoin, Solana): every transfer is replayed and priced, lots are matched first-in first-out, gas fees go into the cost basis, and the wallet gets an A to F grade. Plus: \"what if\" timelines, your regret log, gas translated into burritos and 25 trophies. Free, no account, no wallet connect, no signature. (Figures shown are demo data.)"
+  },
+  "tags": [
+    "wheredgainsgo",
+    "crypto pnl",
+    "wallet tracker",
+    "ethereum",
+    "bitcoin",
+    "solana",
+    "gas fees",
+    "fifo",
+    "cost basis",
+    "defi"
+  ],
+  "seo": {
+    "category": "28",
+    "keywords": {
+      "fr": [
+        "where'd gains go",
+        "pnl crypto",
+        "suivi wallet crypto",
+        "frais de gas",
+        "prix de revient crypto",
+        "fifo crypto",
+        "ethereum",
+        "bitcoin",
+        "solana",
+        "plus-value crypto",
+        "analyse de wallet",
+        "defi"
+      ],
+      "en": [
+        "where'd gains go",
+        "crypto pnl",
+        "crypto wallet tracker",
+        "gas fees",
+        "crypto cost basis",
+        "fifo crypto",
+        "ethereum",
+        "bitcoin",
+        "solana",
+        "crypto gains",
+        "wallet analysis",
+        "defi"
+      ]
+    },
+    "hashtags": {
+      "fr": [
+        "crypto",
+        "ethereum"
+      ],
+      "en": [
+        "crypto",
+        "ethereum"
+      ]
+    }
+  },
+  "musicPool": [
+    "trap",
+    "aggressive",
+    "synthwave"
+  ],
+  "stories": [
+    {
+      "hook": {
+        "fr": "T'es *vraiment* en gain ?",
+        "en": "Are you *actually* up?"
+      },
+      "features": [
+        "address",
+        "pnl",
+        "grade"
+      ],
+      "narration": {
+        "fr": [
+          "Ton exchange dit que t'es en gain. Mais t'es vraiment en gain ?",
+          "Colle juste l'adresse de ton wallet. Pas de connexion, pas de signature.",
+          "Where'd Gains Go rejoue chaque transfert et ajoute le gas à ton prix de revient.",
+          "Et ton wallet reçoit une note, de A à F.",
+          "C'est gratuit. Le lien est en description."
+        ],
+        "en": [
+          "Your exchange says you're up. But are you actually up?",
+          "Just paste your wallet address. No connecting, no signing.",
+          "Where'd Gains Go replays every transfer and adds gas to your cost basis.",
+          "Then your wallet gets a grade, from A to F.",
+          "It's free. Link in the description."
+        ]
+      },
+      "yt": {
+        "title": {
+          "fr": "Ton vrai P&L crypto en 10 secondes 🧾 #shorts",
+          "en": "Your real crypto P&L in 10 seconds 🧾 #shorts"
+        }
+      }
+    },
+    {
+      "hook": {
+        "fr": "Et si t'avais *tout mis en ETH* ?",
+        "en": "What if you'd *gone all in ETH*?"
+      },
+      "features": [
+        "whatif",
+        "regrets",
+        "gas"
+      ],
+      "narration": {
+        "fr": [
+          "Et si t'avais juste tout mis en ETH ?",
+          "Where'd Gains Go compare tes trades à cinq timelines parallèles.",
+          "Il date tes pires calls : acheté au top, vendu au fond.",
+          "Et il traduit ton gas en burritos. Ça pique.",
+          "Audite ton wallet gratuitement. Lien en description."
+        ],
+        "en": [
+          "What if you had just gone all in on ETH?",
+          "Where'd Gains Go pits your trades against five parallel timelines.",
+          "It dates your worst calls: bought the top, sold the bottom.",
+          "And it turns your gas into burritos. It hurts.",
+          "Audit your wallet for free. Link in the description."
+        ]
+      },
+      "yt": {
+        "title": {
+          "fr": "Tes trades crypto vs tout en ETH 📉 #shorts",
+          "en": "Your crypto trades vs all-in ETH 📉 #shorts"
+        }
+      }
+    }
+  ],
+  "keynote": {
+    "musicPool": [
+      "ambient",
+      "chill",
+      "lofi"
+    ],
+    "details": [
+      {
+        "id": "declare",
+        "src": "m-landing.png",
+        "rect": [0.05, 0.12, 0.92, 0.17],
+        "label": {
+          "fr": "Accueil",
+          "en": "Home"
+        },
+        "title": {
+          "fr": "Déclare l'adresse",
+          "en": "Declare the address"
+        },
+        "text": {
+          "fr": "ETH, BTC ou SOL. Aucune signature.",
+          "en": "ETH, BTC or SOL. No signature."
+        },
+        "aspect": 2.1741
+      },
+      {
+        "id": "value",
+        "src": "m-dash.png",
+        "rect": [0.06, 0.17, 0.9, 0.14],
+        "label": {
+          "fr": "Valeur",
+          "en": "Value"
+        },
+        "title": {
+          "fr": "Ce que vaut ton wallet",
+          "en": "What your wallet is worth"
+        },
+        "text": {
+          "fr": "Et ton latent, en direct.",
+          "en": "And your unrealized P&L, live."
+        },
+        "aspect": 2.1741
+      },
+      {
+        "id": "kpis",
+        "src": "m-dash.png",
+        "rect": [0.06, 0.325, 0.9, 0.18],
+        "label": {
+          "fr": "Bilan",
+          "en": "Summary"
+        },
+        "title": {
+          "fr": "Prix de revient, réalisé, gas",
+          "en": "Cost basis, realized, gas"
+        },
+        "text": {
+          "fr": "Le gas est inclus dans chaque lot.",
+          "en": "Gas is folded into every lot."
+        },
+        "aspect": 2.1741
+      },
+      {
+        "id": "holding",
+        "src": "m-dash.png",
+        "rect": [0.06, 0.685, 0.9, 0.11],
+        "label": {
+          "fr": "Positions",
+          "en": "Holdings"
+        },
+        "title": {
+          "fr": "Chaque token, son vrai prix",
+          "en": "Every token, its real price"
+        },
+        "text": {
+          "fr": "Prix de revient moyen gas compris.",
+          "en": "Average basis, gas included."
+        },
+        "aspect": 2.1741
+      },
+      {
+        "id": "scenarios",
+        "src": "m-whatif.png",
+        "rect": [0.03, 0.33, 0.94, 0.52],
+        "label": {
+          "fr": "What if",
+          "en": "What if"
+        },
+        "title": {
+          "fr": "5 timelines parallèles",
+          "en": "5 parallel timelines"
+        },
+        "text": {
+          "fr": "Tout en ETH, sans memecoins, jamais vendu…",
+          "en": "All ETH, no memecoins, never sold…"
+        },
+        "aspect": 2.1741
+      },
+      {
+        "id": "regretlog",
+        "src": "m-regrets.png",
+        "rect": [0.08, 0.245, 0.88, 0.27],
+        "label": {
+          "fr": "Regrets",
+          "en": "Regrets"
+        },
+        "title": {
+          "fr": "Tes pires calls, datés",
+          "en": "Your worst calls, dated"
+        },
+        "text": {
+          "fr": "Acheté au top, vendu trop tôt.",
+          "en": "Bought the top, sold too early."
+        },
+        "aspect": 2.1741
+      },
+      {
+        "id": "gasburned",
+        "src": "m-gas.png",
+        "rect": [0.04, 0.395, 0.92, 0.1],
+        "label": {
+          "fr": "Gas",
+          "en": "Gas"
+        },
+        "title": {
+          "fr": "Tout le gas brûlé",
+          "en": "Every bit of gas burned"
+        },
+        "text": {
+          "fr": "En dollars, en ETH et en % de ta base.",
+          "en": "In dollars, in ETH and as a share of basis."
+        },
+        "aspect": 2.1741
+      },
+      {
+        "id": "burritos",
+        "src": "m-gas.png",
+        "rect": [0.04, 0.57, 0.92, 0.125],
+        "label": {
+          "fr": "Traduction",
+          "en": "Translation"
+        },
+        "title": {
+          "fr": "Ton gas, en burritos",
+          "en": "Your gas, in burritos"
+        },
+        "text": {
+          "fr": "Ou en années de Netflix.",
+          "en": "Or in years of Netflix."
+        },
+        "aspect": 2.1741
+      },
+      {
+        "id": "card",
+        "src": "m-profile.png",
+        "rect": [0.04, 0.075, 0.92, 0.45],
+        "label": {
+          "fr": "Profil",
+          "en": "Profile"
+        },
+        "title": {
+          "fr": "La carte de ton wallet",
+          "en": "Your wallet card"
+        },
+        "text": {
+          "fr": "Note, trophées, réalisé à vie.",
+          "en": "Grade, trophies, lifetime realized."
+        },
+        "aspect": 2.1741
+      },
+      {
+        "id": "trophycase",
+        "src": "m-trophies.png",
+        "rect": [0.06, 0.185, 0.88, 0.44],
+        "label": {
+          "fr": "Trophées",
+          "en": "Trophies"
+        },
+        "title": {
+          "fr": "25 trophées",
+          "en": "25 trophies"
+        },
+        "text": {
+          "fr": "Gas Guzzler, Night Owl, Diamond Hands…",
+          "en": "Gas Guzzler, Night Owl, Diamond Hands…"
+        },
+        "aspect": 2.1741
+      }
+    ],
+    "videos": [
+      {
+        "format": "short",
+        "intro": {
+          "fr": "Ton wallet, *audité*.",
+          "en": "Your wallet, *audited*."
+        },
+        "details": [
+          "declare",
+          "value",
+          "kpis",
+          "card"
+        ],
+        "yt": {
+          "title": {
+            "fr": "Where'd Gains Go? en détail : l'audit de ton wallet 🧾 #shorts",
+            "en": "Where'd Gains Go? up close: your wallet audit 🧾 #shorts"
+          }
+        }
+      },
+      {
+        "format": "short",
+        "intro": {
+          "fr": "Gas, regrets, *what if*.",
+          "en": "Gas, regrets, *what if*."
+        },
+        "details": [
+          "gasburned",
+          "burritos",
+          "regretlog",
+          "scenarios"
+        ],
+        "yt": {
+          "title": {
+            "fr": "Le gas, tes regrets et tes « what if » ⛽ #shorts",
+            "en": "Gas, regrets and your what-ifs ⛽ #shorts"
+          }
+        }
+      },
+      {
+        "format": "long",
+        "intro": {
+          "fr": "Where'd Gains Go?, *pièce par pièce*.",
+          "en": "Where'd Gains Go?, *piece by piece*."
+        },
+        "details": [
+          "declare",
+          "value",
+          "kpis",
+          "holding",
+          "gasburned",
+          "burritos",
+          "scenarios",
+          "regretlog",
+          "card",
+          "trophycase"
+        ],
+        "yt": {
+          "title": {
+            "fr": "Where'd Gains Go? : visite guidée de l'audit de wallet crypto",
+            "en": "Where'd Gains Go?: a guided tour of the crypto wallet audit"
+          }
+        }
+      }
+    ]
+  }
+}

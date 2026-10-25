@@ -3,26 +3,18 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, unlinkSync } from "node:fs";
 import { join, basename } from "node:path";
 import { tmpdir } from "node:os";
-import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import multer from "multer";
-import { ROOT } from "../shared/catalog.mjs";
+import { loadApps, ROOT } from "../shared/catalog.mjs";
+import { has, hasOcr, hasVenv, hasVoices, IS_WIN, openPath } from "../shared/platform.mjs";
+import * as el from "../shared/elevenlabs.mjs";
 import { loadProfile, saveProfile } from "../shared/profile.mjs";
 import { DATA } from "./state.mjs";
 import * as yt from "./youtube.mjs";
 import * as tt from "./tiktok.mjs";
 import { watchDir } from "./watchfolder.mjs";
-import { execFile } from "node:child_process";
 
 const TT_CONFIG = join(DATA, "tiktok-config.json");
-const has = (cmd) => {
-  try {
-    execFileSync("/bin/sh", ["-c", `command -v ${cmd}`], { stdio: "ignore", env: { ...process.env, PATH: `${process.env.PATH}:/opt/homebrew/bin:/usr/local/bin:${process.env.HOME}/.local/bin` } });
-    return true;
-  } catch {
-    return false;
-  }
-};
 const readTT = () => (existsSync(TT_CONFIG) ? JSON.parse(readFileSync(TT_CONFIG, "utf8")) : {});
 const writeTT = (c) => writeFileSync(TT_CONFIG, JSON.stringify(c, null, 2), { mode: 0o600 });
 
@@ -75,16 +67,18 @@ export function setupStatus() {
     checks: {
       node: process.versions.node,
       ffmpeg: has("ffmpeg"),
-      python: existsSync(join(ROOT, ".venv/bin/python")),
-      ocr: existsSync(join(ROOT, "tools/ocr")) || has("swiftc"),
+      python: hasVenv(),
+      ocr: hasOcr(),
       claude: has("claude"),
-      say: has("say"),
+      say: hasVoices(),
     },
+    platform: IS_WIN ? "windows" : "mac",
     profile: loadProfile(),
     apps: apps.map((f) => f.replace(/\.json$/, "")),
     youtube: yt.status(),
     tiktok: { ...tt.status(), hasKeys: !!(c.clientKey && c.clientSecret), clientKeyHint: c.clientKey ? `${c.clientKey.slice(0, 4)}…` : null },
     hosting: c.hosting ? { ...c.hosting, password: c.hosting.password ? "••••••" : "" } : null,
+    elevenlabs: el.status(),
     watch: { dir: watchDir(), exists: existsSync(watchDir()), enabled: tt.ttSettings().watch, slots: { fr: tt.ttSettings().frTimes, en: tt.ttSettings().enTimes } },
     redirect: { youtube: `http://localhost:${yt.PORT}/oauth/callback`, tiktok: `http://localhost:${yt.PORT}/tiktok/callback/` },
   };
@@ -206,9 +200,69 @@ export function setupRoutes(app) {
     }
   });
   app.post("/api/setup/open-folder", (_req, res) => {
-    if (existsSync(watchDir())) execFile("open", [watchDir()]);
+    if (existsSync(watchDir())) openPath(watchDir());
     res.json({ ok: existsSync(watchDir()) });
   });
 
   app.get("/api/setup/tiktok-icon", (_req, res) => res.download(join(ROOT, "docs/tiktok-app-icon.png"), "app-icon-1024.png"));
+
+  /* ---------------------------------------------------------------- ElevenLabs (voix off) */
+
+  // Clé vérifiée auprès d'ElevenLabs avant d'être enregistrée dans data/elevenlabs.json.
+  app.post("/api/setup/elevenlabs/key", async (req, res) => {
+    const apiKey = String(req.body?.apiKey ?? "").trim();
+    if (!apiKey) return res.json({ error: "Colle ta clé d'API ElevenLabs" });
+    try {
+      const subscription = await el.checkKey(apiKey);
+      el.writeConfig({ apiKey });
+      res.json({ ok: true, subscription });
+    } catch (e) {
+      res.json({ error: e.message });
+    }
+  });
+
+  app.get("/api/setup/elevenlabs/catalog", async (_req, res) => {
+    try {
+      const [voices, models, subscription] = await Promise.all([el.listVoices(), el.listModels(), el.checkKey(el.readConfig().apiKey)]);
+      res.json({ voices, models, subscription });
+    } catch (e) {
+      res.json({ error: e.message });
+    }
+  });
+
+  app.post("/api/setup/elevenlabs", (req, res) => {
+    const { model, preset, voices } = req.body ?? {};
+    const clean = (v) => (v?.id ? { id: String(v.id), name: String(v.name ?? v.id) } : null);
+    el.writeConfig({ model, preset: el.PRESETS[preset] ? preset : "punchy", voices: { fr: clean(voices?.fr), en: clean(voices?.en) } });
+    res.json(el.status());
+  });
+
+  // Voix de la Voice Library collée par lien ou ID : ajoutée à « My Voices » pour pouvoir la choisir.
+  app.post("/api/setup/elevenlabs/add-voice", async (req, res) => {
+    try {
+      res.json({ ok: true, voice: await el.addLibraryVoice(req.body?.input) });
+    } catch (e) {
+      res.json({ error: e.message });
+    }
+  });
+
+  // Écoute d'essai avec les réglages affichés (pas forcément enregistrés) : consomme quelques crédits.
+  app.post("/api/setup/elevenlabs/test", async (req, res) => {
+    const { lang = "fr", voiceId, voiceName, model, preset } = req.body ?? {};
+    if (!voiceId) return res.json({ error: "Choisis une voix" });
+    const sample = loadApps().flatMap((a) => a.stories ?? []).map((s) => s.narration?.[lang]?.[0]).find(Boolean)
+      ?? (lang === "fr" ? "Ton exchange dit que t'es en gain. Mais t'es vraiment en gain ?" : "Your exchange says you're up. But are you actually up?");
+    try {
+      const voice = { id: voiceId, name: voiceName, model: model || el.DEFAULT_MODEL, settings: el.PRESETS[preset] ?? el.PRESETS.punchy };
+      const { audio, words } = await el.synthesize(voice, lang, sample);
+      res.json({ ok: true, text: sample, timestamps: !!words, audio: `data:audio/mpeg;base64,${audio.toString("base64")}` });
+    } catch (e) {
+      res.json({ error: e.message });
+    }
+  });
+
+  app.post("/api/setup/elevenlabs/forget", (_req, res) => {
+    el.writeConfig({ apiKey: null });
+    res.json(el.status());
+  });
 }

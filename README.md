@@ -39,8 +39,21 @@ cd tiktube-planner
 
 Next launches: `npm start` (or the menu bar app: `npm run menubar`).
 
+## Install (Windows)
+
+```powershell
+git clone https://github.com/louisv2304/tiktube-planner.git
+cd tiktube-planner
+powershell -ExecutionPolicy Bypass -File install.ps1
+```
+
+`install.ps1` installs what's missing with `winget` (Node LTS, ffmpeg, Python), the npm modules and the Python venv, then starts the server and opens the setup guide. The macOS-only pieces have Windows equivalents (`tools/win.ps1`, WinRT APIs): **Windows.Media.Ocr** reads the TikTok slides, **Windows voices** narrate the Shorts, toast notifications replace `osascript`. No menu bar app on Windows: use `npm start`.
+
+For French narrated Shorts, add a French voice (Settings → Time & language → Speech → Add voices); without one, French narrated Shorts render without voice-over. French OCR works best with the French language pack installed.
+
 ### Optional
 
+- **ElevenLabs voice-over** — setup guide → *Voice-over*: paste an API key (permissions: Text to Speech, Voices read, Models read; User read to show credits), pick a French and an English voice (a Voice Library voice can be added by pasting its link), a model and a tone (natural / punchy / very expressive), listen to a test, save. Narrated Shorts are then voiced by ElevenLabs, with subtitles timed on its word alignment; only new or changed narrations are regenerated (about 300 characters per Short and language). The key stays in `data/elevenlabs.json`. Without a key, the system voice is used. `ELEVENLABS_API` points to another server (e.g. EU data residency).
 - [Claude Code](https://claude.com/claude-code) CLI — writes TikTok captions when your folder has none, and resolves ambiguous slide/caption matches.
 - `npm run studio` — Remotion Studio to tweak animations live.
 
@@ -108,9 +121,15 @@ Le script installe ce qui manque, puis lance le serveur et ouvre le **guide pas 
 
 Lancements suivants : `npm start`, ou l'icône de la barre des menus (`npm run menubar`).
 
+**Windows** : `powershell -ExecutionPolicy Bypass -File install.ps1` (installe Node, ffmpeg et Python avec `winget`). L'OCR et les voix passent par les API Windows (`tools/win.ps1`). Pour les Shorts narrés en français, ajoute une voix française (Paramètres → Heure et langue → Voix → Ajouter des voix) ; sans elle, ils sont rendus sans voix off. Pas d'icône de barre des menus : lance `npm start`.
+
 ### Ajouter ton app
 
 Duplique `content/apps/mrrkit.json`, adapte les textes, couleurs, prix et liens, et place tes captures dans `public/apps/<ton-app>/`. Puis dashboard → **Vidéos** → Rendre.
+
+### Voix off ElevenLabs (facultatif)
+
+Guide d'installation → **Voix off** : colle une clé d'API ElevenLabs, choisis une voix française et une voix anglaise, le modèle et le ton (naturel / accrocheur / très expressif), écoute un essai, enregistre. Les Shorts narrés sont alors lus par ElevenLabs, sous-titres calés sur son alignement des mots ; seules les narrations nouvelles ou modifiées sont régénérées. La clé reste dans `data/elevenlabs.json`. Sans clé, la voix du système est utilisée.
 
 ### TikTok
 

@@ -177,7 +177,7 @@ const IntroScene: React.FC<{ dur: number; headline: string }> = ({ dur, headline
             <div style={{ position: "absolute", inset: -size * 0.5, borderRadius: "50%", background: `radial-gradient(circle, ${alpha(b.primary, dark ? 0.45 : 0.3)}, transparent 62%)` }} />
             <Img src={staticFile(asset(app.icon))} style={{ position: "relative", width: size, height: size, borderRadius: size * 0.225, boxShadow: `0 ${size * 0.14}px ${size * 0.35}px rgba(0,0,0,${dark ? 0.5 : 0.2})` }} />
           </div>
-          <div style={{ fontFamily: font(b.heading), fontWeight: b.heading === "Anton" ? 400 : Math.min(b.headingWeight, 700), fontSize: (isShort ? 110 : 96) * u, letterSpacing: `${tr}em`, color: b.text, textTransform: b.uppercase ? "uppercase" : undefined, opacity: fade(frame, 14, 40), whiteSpace: "nowrap" }}>{app.name}</div>
+          <div style={{ fontFamily: font(b.heading), fontWeight: b.heading === "Anton" ? 400 : Math.min(b.headingWeight, 700), fontSize: Math.min(isShort ? 110 : 96, (isShort ? 1200 : 2000) / app.name.length) * u, letterSpacing: `${tr}em`, color: b.text, textTransform: b.uppercase ? "uppercase" : undefined, opacity: fade(frame, 14, 40), whiteSpace: "nowrap" }}>{app.name}</div>
           <MonoLine text={t(app.category)} size={20 * u} at={30} />
           <div style={{ height: 10 * u }} />
           <CalmTitle text={headline} size={(isShort ? 70 : 62) * u} at={48} />

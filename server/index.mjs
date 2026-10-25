@@ -2,8 +2,8 @@
 import express from "express";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { spawn, execFile } from "node:child_process";
 import { loadCatalog, ROOT } from "../shared/catalog.mjs";
+import { openPath, revealPath, spawnNpx } from "../shared/platform.mjs";
 import { getState, save, updateSettings, video, OUT } from "./state.mjs";
 import { generateSchedule } from "./scheduler.mjs";
 import { cancelQueue, current, enqueue, isRendered, queue, STAGES } from "./render.mjs";
@@ -131,7 +131,7 @@ app.post("/api/videos/:id/unlink", (req, res) => {
 
 app.post("/api/videos/:id/reveal", (req, res) => {
   const f = join(OUT, `${req.params.id}.mp4`);
-  if (existsSync(f)) execFile("open", ["-R", f]);
+  if (existsSync(f)) revealPath(f);
   res.json({ ok: true });
 });
 
@@ -284,7 +284,7 @@ setInterval(() => void tt.tick().catch((e) => console.error("tiktok", e)), 60 * 
 let studio = null;
 app.post("/api/studio", (_req, res) => {
   if (!studio) {
-    studio = spawn("npx", ["remotion", "studio", "src/index.ts", "--port", "3123", "--no-open"], { cwd: ROOT, stdio: "ignore" });
+    studio = spawnNpx(["remotion", "studio", "src/index.ts", "--port", "3123", "--no-open"], { cwd: ROOT, stdio: "ignore" });
     studio.on("exit", () => (studio = null));
   }
   res.json({ url: "http://localhost:3123" });
@@ -336,7 +336,7 @@ const server = app.listen(PORT, () => {
   const url = `http://localhost:${PORT}`;
   logEvent("info", "Plateforme démarrée");
   console.log(`\n🎬 Studio YouTube prêt : ${url}\n`);
-  if (!process.env.NO_OPEN) execFile("open", [loadProfile().setupDone ? url : `${url}/setup.html`]);
+  if (!process.env.NO_OPEN) openPath(loadProfile().setupDone ? url : `${url}/setup.html`);
   void refreshChannel();
   if (tt.status().connected) void tt.refreshUser();
   setTimeout(() => void autopilot().catch(() => {}), 5000);

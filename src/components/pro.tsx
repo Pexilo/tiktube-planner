@@ -242,7 +242,7 @@ export const storeBadges = (platforms: string[], lang: "fr" | "en"): Badge[] => 
   if (has("Mac")) out.push({ key: "mac", icon: "mac", small: fr ? "Télécharger pour" : "Download for", big: "Mac" });
   if (has("Android")) out.push({ key: "play", icon: "play", small: fr ? "Disponible sur" : "Get it on", big: "Google Play" });
   if (has("Garmin")) out.push({ key: "garmin", icon: "watch", small: fr ? "Disponible sur" : "Available on", big: "Connect IQ" });
-  if (has("Web")) out.push({ key: "web", icon: "globe", small: fr ? "Essai gratuit sur" : "Free trial on", big: "le web" });
+  if (has("Web")) out.push({ key: "web", icon: "globe", small: fr ? "Gratuit sur" : "Free on", big: fr ? "le web" : "the web" });
   return out;
 };
 

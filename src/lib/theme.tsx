@@ -9,6 +9,8 @@ import { loadFont as playfair } from "@remotion/google-fonts/PlayfairDisplay";
 import { loadFont as inter } from "@remotion/google-fonts/Inter";
 import { loadFont as nunito } from "@remotion/google-fonts/Nunito";
 import { loadFont as jetbrains } from "@remotion/google-fonts/JetBrainsMono";
+import { loadFont as bricolage } from "@remotion/google-fonts/BricolageGrotesque";
+import { loadFont as spaceGrotesk } from "@remotion/google-fonts/SpaceGrotesk";
 import type { AppContent, Brand, L, Lang } from "./types";
 
 const opts = { subsets: ["latin", "latin-ext"] as ("latin" | "latin-ext")[] };
@@ -21,6 +23,8 @@ const FONTS: Record<string, string> = {
   "Playfair Display": playfair("italic", { weights: ["600", "700"], ...opts }).fontFamily,
   Inter: inter("normal", { weights: ["500", "600", "700", "800", "900"], ...opts }).fontFamily,
   Nunito: nunito("normal", { weights: ["600", "700", "800", "900"], ...opts }).fontFamily,
+  "Bricolage Grotesque": bricolage("normal", { weights: ["600", "700", "800"], ...opts }).fontFamily,
+  "Space Grotesk": spaceGrotesk("normal", { weights: ["400", "500", "700"], ...opts }).fontFamily,
 };
 export const MONO = `${jetbrains("normal", { weights: ["500", "700"], subsets: ["latin"] }).fontFamily}, ui-monospace, monospace`;
 export const font = (name?: string) => (name ? `${FONTS[name] ?? name}, system-ui, sans-serif` : "system-ui");

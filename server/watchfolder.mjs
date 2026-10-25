@@ -8,9 +8,9 @@
 //   ~/Desktop/Tiktok/<lot>/…/video.mp4                  ← chaque vidéo = un post vidéo
 // Les aperçus (« apercu », « preview », planches contact) sont ignorés. Sans légende, Claude en écrit une.
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync } from "node:fs";
-import { basename, dirname, extname, join, relative } from "node:path";
+import { basename, dirname, extname, join, relative, resolve } from "node:path";
 import { homedir } from "node:os";
-import { execFile } from "node:child_process";
+import { execClaude } from "../shared/platform.mjs";
 import { addImages, createPost, deletePost, MEDIA, prepareImage, scheduleDrafts, ttSettings } from "./tiktok.mjs";
 import { ocr } from "./smartimport.mjs";
 import { logEvent } from "./events.mjs";
@@ -23,9 +23,8 @@ const SKIP = /^(aper[cç]us?|previews?|planches?|contact|sheets?|thumbs?|miniatu
 const DONE_NAME = "Programmés";
 // macOS peut écrire « é » décomposé (NFD) : on compare en forme normalisée, sans accents ni casse.
 const isDone = (n) => n.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase() === "programmes";
-const CLAUDE = [join(homedir(), ".local/bin/claude"), "/opt/homebrew/bin/claude", "/usr/local/bin/claude", "claude"].find((p) => p === "claude" || existsSync(p));
 
-export const watchDir = () => (ttSettings().watchDir ?? join(homedir(), "Desktop/Tiktok")).replace(/^~/, homedir());
+export const watchDir = () => resolve((ttSettings().watchDir ?? join(homedir(), "Desktop/Tiktok")).replace(/^~/, homedir()));
 export const watchState = { running: false, current: null, step: "", lastScan: null, lastResult: null, pending: [] };
 
 const visible = (n) => !n.startsWith(".") && n !== "Icon\r";
@@ -82,7 +81,7 @@ function analyse(batch) {
 
 function askClaude(prompt) {
   return new Promise((resolve, reject) => {
-    const p = execFile(CLAUDE, ["-p", "--output-format", "json", "--model", "sonnet", "--max-turns", "1"], { maxBuffer: 32 * 1024 * 1024, timeout: 300000 }, (err, stdout) => {
+    const p = execClaude(["-p", "--output-format", "json", "--model", "sonnet", "--max-turns", "1"], { maxBuffer: 32 * 1024 * 1024, timeout: 300000 }, (err, stdout) => {
       if (err) return reject(err);
       try {
         const w = JSON.parse(stdout);

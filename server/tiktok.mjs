@@ -10,6 +10,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { DATA } from "./state.mjs";
 import { logEvent } from "./events.mjs";
+import { copyToClipboard, notify } from "../shared/platform.mjs";
 
 const run = promisify(execFile);
 export const PORT = Number(process.env.PORT ?? 4321);
@@ -249,15 +250,10 @@ async function sendPhotos(post) {
   return d.publish_id;
 }
 
-/** Notification macOS + légende copiée dans le presse-papiers (TikTok ne la transmet pas pour les vidéos). */
-async function notifyMac(post) {
-  const caption = [post.title, post.description].filter(Boolean).join("\n\n");
-  try {
-    const p = execFile("pbcopy");
-    p.stdin.end(caption);
-  } catch {}
-  const msg = `Brouillon envoyé dans ta boîte TikTok : « ${post.title.slice(0, 60)} ». Légende copiée — ajoute un son et publie.`;
-  run("osascript", ["-e", `display notification ${JSON.stringify(msg)} with title "Studio YouTube · TikTok" sound name "Glass"`]).catch(() => {});
+/** Notification système + légende copiée dans le presse-papiers (TikTok ne la transmet pas pour les vidéos). */
+async function notifySent(post) {
+  copyToClipboard([post.title, post.description].filter(Boolean).join("\n\n"));
+  notify("Studio YouTube · TikTok", `Brouillon envoyé dans ta boîte TikTok : « ${post.title.slice(0, 60)} ». Légende copiée — ajoute un son et publie.`);
 }
 
 export async function sendPost(post) {
@@ -278,7 +274,7 @@ export async function sendPost(post) {
     Object.assign(post, { status: "sent", publishId, sentAt: new Date().toISOString(), error: null, retryAt: null, waiting: null, attempts: 0 });
     tiktokState.lastError = null;
     logEvent("upload", `TikTok : brouillon envoyé — « ${post.title} »`, post.id);
-    void notifyMac(post);
+    void notifySent(post);
   } catch (e) {
     if (/spam_risk_too_many_pending_share/.test(String(e.message))) {
       // Trop de brouillons non publiés dans TikTok : on réessaie plus tard, sans le marquer en erreur.
