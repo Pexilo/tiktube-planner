@@ -1,0 +1,655 @@
+// Stories crypto (« tales ») : idées (Claude + recherche web), script, validation, puis automatiquement
+// voix off (ElevenLabs), musique, composition des visuels par Claude (src/tales/drafts → stories), rendu, planning, TikTok.
+// Stockage : content/tales/<slug>.json (contrat src/tales/types.ts) et data/tales/ideas.json.
+// Une seule file de travaux : un job Claude / ElevenLabs à la fois, étape et log visibles dans le dashboard.
+import { execFile } from "node:child_process";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, unlinkSync, utimesSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { randomBytes } from "node:crypto";
+import { loadApps, loadTale, loadTales, ROOT, TALE_STORIES, TALES_DIR } from "../shared/catalog.mjs";
+import { execClaude, IS_WIN } from "../shared/platform.mjs";
+import { voiceFor } from "../shared/elevenlabs.mjs";
+import { TALE_APP, taleId, taleMusic, taleTimeline } from "../shared/tales.mjs";
+import { ensureMusic } from "../scripts/gen-all-audio.mjs";
+import { dur, elevenSegment, pickVoice, systemSegment, wordTimings } from "../scripts/gen-voice.mjs";
+import { DATA, getState, save, video } from "./state.mjs";
+import { enqueue, isRendered, onRendered, outFile } from "./render.mjs";
+import { scheduleTales } from "./scheduler.mjs";
+import { logEvent } from "./events.mjs";
+import { buildMetadata, tiktokCaption } from "./youtube.mjs";
+import * as tt from "./tiktok.mjs";
+
+const IDEAS_FILE = join(DATA, "tales", "ideas.json");
+const DRAFTS = join(ROOT, "src", "tales", "drafts");
+const FEATURES = ["pnl", "address", "grade", "whatif", "regrets", "gas", "trophies", "math"];
+const ROLES = ["hook", "context", "build", "twist", "product", "payoff", "outro"];
+const COMPOSE_TIMEOUT = 25 * 60 * 1000;
+mkdirSync(join(DATA, "tales"), { recursive: true });
+mkdirSync(TALES_DIR, { recursive: true });
+
+const today = () => new Date().toISOString().slice(0, 10);
+const words = (t) => t.split(/\s+/).filter(Boolean).length;
+const plain = (t) => String(t ?? "").replace(/\*/g, "");
+
+/* ------------------------------------------------------------------ stockage */
+
+export function saveTale(tale) {
+  const f = join(TALES_DIR, `${tale.slug}.json`);
+  writeFileSync(`${f}.tmp`, JSON.stringify(tale, null, 2) + "\n");
+  renameSync(`${f}.tmp`, f);
+  return tale;
+}
+
+/** Relit le JSON, applique `fn`, réécrit : les étapes longues ne travaillent jamais sur une copie périmée. */
+function patchTale(slug, fn) {
+  const t = loadTale(slug);
+  if (!t) throw new Error(`Story introuvable : ${slug}`);
+  fn(t);
+  return saveTale(t);
+}
+
+function readIdeas() {
+  return existsSync(IDEAS_FILE) ? JSON.parse(readFileSync(IDEAS_FILE, "utf8")) : { searchedAt: null, ideas: [] };
+}
+function writeIdeas(store) {
+  writeFileSync(`${IDEAS_FILE}.tmp`, JSON.stringify(store, null, 2));
+  renameSync(`${IDEAS_FILE}.tmp`, IDEAS_FILE);
+}
+
+/* ------------------------------------------------------------------ file de travaux */
+
+const jobs = []; // { slug, label, fn, resolve, reject }
+let job = null; // { slug, label, stage, log: [], startedAt }
+
+/** Ajoute un travail à la file ; la promesse se résout avec son résultat. `slug` null = recherche d'idées. */
+function runJob(slug, label, fn) {
+  return new Promise((resolve, reject) => {
+    jobs.push({ slug, label, fn, resolve, reject });
+    void pump();
+  });
+}
+
+async function pump() {
+  if (job) return;
+  while (jobs.length) {
+    const j = jobs.shift();
+    job = { slug: j.slug, label: j.label, stage: j.label, log: [], startedAt: Date.now() };
+    try {
+      j.resolve(await j.fn());
+    } catch (e) {
+      j.reject(e);
+    }
+  }
+  job = null;
+}
+
+function stage(name) {
+  if (!job) return;
+  job.stage = name;
+  log(`— ${name}`);
+}
+function log(line) {
+  console.log(`[tales] ${line}`);
+  if (!job) return;
+  job.log.push(...String(line).split(/\r?\n/).filter(Boolean));
+  if (job.log.length > 300) job.log.splice(0, job.log.length - 300);
+}
+
+export const jobInfo = () =>
+  job ? { slug: job.slug, label: job.label, stage: job.stage, log: job.log.slice(-40), startedAt: job.startedAt, queued: jobs.map((j) => ({ slug: j.slug, label: j.label })) } : null;
+const busyWith = (slug) => job?.slug === slug || jobs.some((j) => j.slug === slug);
+
+/* ------------------------------------------------------------------ Claude */
+
+/** Réglages de permissions passés par fichier (--settings) : `Edit(src/…/**)` ne survit pas toujours à cmd.exe. */
+function settingsFile(name, allow, deny = []) {
+  const f = join(DATA, "tales", `claude-${name}.json`);
+  writeFileSync(f, JSON.stringify({ permissions: { allow, deny } }, null, 2));
+  return f;
+}
+
+/** Tue le process et ses enfants (sur Windows, `claude.cmd` passe par cmd.exe → node). */
+function killTree(p) {
+  if (IS_WIN && p.pid) execFile("taskkill", ["/pid", String(p.pid), "/T", "/F"], () => {});
+  else p.kill("SIGKILL");
+}
+
+/** `claude -p` (prompt sur stdin), sortie JSON : renvoie l'enveloppe { result, num_turns, total_cost_usd, … }. */
+function claude(args, prompt, { timeout = 10 * 60 * 1000 } = {}) {
+  return new Promise((resolve, reject) => {
+    let timedOut = false;
+    const p = execClaude(["-p", "--output-format", "json", ...args], { cwd: ROOT, maxBuffer: 64 * 1024 * 1024 }, (err, stdout, stderr) => {
+      clearTimeout(timer);
+      clearInterval(tick);
+      let w = null;
+      try {
+        w = JSON.parse(String(stdout).trim().split(/\r?\n/).at(-1));
+      } catch {}
+      const text = `${w?.result ?? ""} ${stdout} ${stderr}`;
+      if (/invalid api key|please run \/login|not logged in/i.test(text))
+        return reject(new Error("Claude Code n'est pas connecté : mets-le à jour (npm i -g @anthropic-ai/claude-code@latest) puis lance `claude` → /login."));
+      if (timedOut) return reject(new Error(`Claude : délai dépassé (${Math.round(timeout / 60000)} min)`));
+      if (!w) return reject(new Error(`Claude : réponse illisible${err ? ` (${err.message.slice(0, 300)})` : ""} ${String(stderr).slice(0, 300)}`));
+      if (w.is_error) return reject(new Error(`Claude : ${String(w.result ?? w.subtype ?? "erreur").slice(0, 400)}`));
+      log(`Claude : ${w.num_turns ?? "?"} tours, ${Math.round((w.duration_ms ?? 0) / 1000)} s${w.total_cost_usd ? `, ≈ $${w.total_cost_usd.toFixed(2)}` : ""}`);
+      resolve(w);
+    });
+    const started = Date.now();
+    const timer = setTimeout(() => {
+      timedOut = true;
+      killTree(p);
+    }, timeout);
+    const tick = setInterval(() => log(`Claude travaille… ${Math.round((Date.now() - started) / 60000)} min`), 60000);
+    p.stdin.end(prompt);
+  });
+}
+
+/** Extrait l'objet JSON d'une réponse texte (Claude peut l'entourer de prose ou de ```). */
+function jsonFrom(text) {
+  const t = String(text);
+  const a = t.indexOf("{");
+  const b = t.lastIndexOf("}");
+  if (a < 0 || b < a) throw new Error("Pas de JSON dans la réponse de Claude");
+  return JSON.parse(t.slice(a, b + 1));
+}
+
+const wgg = () => loadApps().find((a) => a.slug === TALE_APP);
+const featureList = () =>
+  wgg()
+    .features.filter((f) => FEATURES.includes(f.id))
+    .map((f) => `- ${f.id}: ${plain(f.title.en)} ${f.text.en}`)
+    .join("\n");
+
+/**
+ * Skills Claude Code à charger (outil Skill) pour une étape. Ils sont écrits pour le marketing de marque :
+ * on n'en garde que la méthode, et les règles du prompt priment.
+ */
+const skillsBlock = (names) => `SKILLS: before you start, load each of these skills with the Skill tool and apply their methods:
+${names.map((n) => `- ${n}`).join("\n")}
+They are written for brand social media. There is no brand profile, voice file or content pillars file here: the brief in this prompt is the brand context. Ignore anything about scheduling, publishing tools (WoopSocial…), analytics or asking the user questions. If a skill disagrees with the RULES of this prompt, the RULES win. If a skill cannot be loaded, continue without it.
+`;
+
+/* ------------------------------------------------------------------ 1. idées */
+
+function ideasPrompt(avoid) {
+  return `You are the researcher of "Crypto stories", a channel of 30-60 second vertical videos telling intriguing, semi-niche crypto / blockchain stories in English.
+Today's date is ${today()}.
+
+${skillsBlock(["social-media-skills:content-research-and-sourcing (find and verify primary, dated sources)", "social-media-skills:trend-jacking (what is timely right now, and whether a story is still fresh)", "social-media-skills:idea-generation-and-ideation (sharp, specific angles instead of generic news)"])}
+Use WebSearch and WebFetch to find 8 story ideas:
+- 5 of type "recent": the event happened less than 60 days before today (after ${new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10)}). Every source MUST have a publication date. Verify dates on the pages themselves.
+- 3 of type "offbeat": older (any year) but genuinely strange, surprising or absurd, and well documented.
+Good stories: a person, a mistake, a twist, a number that sounds impossible (lost keys, fat-finger trades, absurd hacks, odd court cases, forgotten wallets waking up, weird on-chain messages, bizarre NFT or memecoin episodes). Avoid generic market news and price predictions, and pick stories the average crypto viewer has not already heard ten times.
+Report facts as the sources report them. Never present an accusation as fact: write "alleged", "according to …" when the sources do.
+
+Each idea also gets a discreet angle for the app Where'd Gains Go? (a wallet audit web app: real P&L, regrets, what-ifs, gas). Choose the feature the story naturally leads to:
+${featureList()}
+
+Do not propose these stories again (already used or proposed):
+${avoid.map((t) => `- ${t}`).join("\n") || "- (none)"}
+
+Answer ONLY with this JSON, no prose:
+{"ideas":[{"type":"recent"|"offbeat","eventDate":"YYYY-MM-DD","title":"short title","hook":"on-screen hook, max 8 words, wrap the key word in *asterisks*","summary":"3-4 factual sentences: who, what, when, the twist","sources":[{"title":"publication: headline","url":"https://…","date":"YYYY-MM-DD"}],"wggAngle":{"featureId":"one of ${FEATURES.join(", ")}","why":"one sentence"}}]}`;
+}
+
+function cleanIdea(x) {
+  const sources = (Array.isArray(x.sources) ? x.sources : []).filter((s) => /^https?:\/\//.test(s?.url ?? "")).map((s) => ({ title: String(s.title ?? s.url), url: s.url, ...(s.date ? { date: String(s.date).slice(0, 10) } : {}) }));
+  return {
+    id: `i${randomBytes(4).toString("hex")}`,
+    type: x.type === "recent" ? "recent" : "offbeat",
+    eventDate: String(x.eventDate ?? "").slice(0, 10),
+    title: String(x.title ?? "").trim(),
+    hook: String(x.hook ?? "").trim(),
+    summary: String(x.summary ?? "").trim(),
+    sources,
+    wggAngle: { featureId: FEATURES.includes(x.wggAngle?.featureId) ? x.wggAngle.featureId : "pnl", why: String(x.wggAngle?.why ?? "") },
+    foundAt: new Date().toISOString(),
+  };
+}
+
+/** Une idée « récente » doit dater de moins de 60 jours et n'avoir que des sources datées. */
+function ideaProblem(i) {
+  if (!i.title || !i.summary || !i.sources.length) return "incomplète";
+  if (i.type !== "recent") return null;
+  const age = (Date.now() - new Date(`${i.eventDate}T12:00:00Z`).getTime()) / 86400000;
+  if (!(age >= -1 && age <= 60)) return `événement du ${i.eventDate || "?"}, plus de 60 jours`;
+  if (i.sources.some((s) => !s.date)) return "source sans date";
+  return null;
+}
+
+export async function searchIdeas() {
+  stage("Recherche d'histoires (Claude + web)");
+  const store = readIdeas();
+  const avoid = [...loadTales().map((t) => t.yt?.title ?? t.slug), ...store.ideas.map((i) => i.title)].slice(-60);
+  const settings = settingsFile("search", ["WebSearch", "WebFetch", "Skill"], ["Bash", "Edit", "Write"]);
+  const w = await claude(["--model", "sonnet", "--max-turns", "50", "--settings", settings], ideasPrompt(avoid), { timeout: 15 * 60 * 1000 });
+  const found = (jsonFrom(w.result).ideas ?? []).map(cleanIdea);
+  const kept = [];
+  for (const i of found) {
+    const why = ideaProblem(i);
+    if (why) log(`Idée écartée (${why}) : ${i.title}`);
+    else kept.push(i);
+  }
+  const seen = new Set(store.ideas.map((i) => i.title.toLowerCase()));
+  const fresh = kept.filter((i) => !seen.has(i.title.toLowerCase()));
+  const next = { searchedAt: new Date().toISOString(), ideas: [...fresh, ...store.ideas].slice(0, 40) };
+  writeIdeas(next);
+  log(`${fresh.length} idée(s) ajoutée(s) (${fresh.filter((i) => i.type === "recent").length} récentes)`);
+  logEvent("info", `Stories : ${fresh.length} nouvelle(s) idée(s)`);
+  return fresh;
+}
+
+/* ------------------------------------------------------------------ 2. script */
+
+function scriptPrompt(subject, problems) {
+  const ref = readFileSync(join(TALES_DIR, "howells.json"), "utf8");
+  return `You write the script of a "Crypto stories" vertical video (30-60 s, English voice-over, 2D schematic animation) for YouTube Shorts and TikTok.
+Today's date is ${today()}.
+
+STORY
+${subject}
+
+Check the facts with WebSearch / WebFetch when the sources above are not enough, and keep only what the sources support.
+
+${skillsBlock(["social-media-skills:storytelling-and-narrative (story arc, tension, the twist, the payoff)", "social-media-skills:hook-writer (the first beat and the on-screen hook: stop the scroll in under 2 seconds)", "social-media-skills:short-form-video-script (pacing for 30-60 s vertical video, retention, a line per visual change)", "social-media-skills:youtube-publishing-and-metadata (the yt title, description and hashtags for Shorts)"])}
+RULES
+- 110 to 160 spoken words in total (all beats together), short punchy sentences written to be read aloud. Numbers spelled the way they are said ("eight thousand bitcoin").
+- 6 to 9 beats, each one sentence or two. Roles: hook (first beat, a curiosity gap, never "in this video"), context, build, twist, payoff, outro (last beat).
+- Exactly ONE beat with role "product", about 5 seconds (10 to 16 words), placed in the middle or right before the outro, never first. Its line bridges from the story to one feature of Where'd Gains Go? (wallet audit web app) with a light, self-aware tone. No hard sell, no price, no "link in bio". Features:
+${featureList()}
+- The last beat (outro) invites people to follow for more crypto stories, in a fresh way.
+- Facts are attributed to their sources ("according to …", "court filings say …"). No accusation beyond what the sources report: use "allegedly" when they do. Do not invent quotes, figures or headlines.
+- Each beat has a "visual" brief: what the 2D schematic image shows during that sentence (ink diagrams, wallets, arrows, charts, stamps, timelines, maps). The product beat's visual is "Product cameo (handled by the wrapper)".
+- "hook": on-screen title, max 8 words, the key word wrapped in *asterisks*.
+- "slug": short kebab-case id (2 to 4 words, a-z 0-9 -), e.g. "pizza-day".
+- "facts": the verified facts the video relies on, one per item, with numbers. "sources": every source used, with dates.
+- "music": a style among trap, lofi, synthwave, cinematic, house, and 2-3 mood words.
+- "yt": title (max 70 chars, intriguing, one emoji max, ends with " #shorts"), description (2 sentences), hashtags (5, without #, lowercase, include "cryptostories").
+${problems ? `\nYOUR PREVIOUS ANSWER WAS REJECTED, FIX THIS:\n${problems}\n` : ""}
+REFERENCE SCRIPT (format and quality to match, a different story):
+${ref}
+
+Answer ONLY with the JSON of the new story, same shape as the reference, without "id", "lang", "status", "voice", "timeline", "musicTrack", "compose":
+{"slug":"…","type":"recent"|"offbeat","eventDate":"YYYY-MM-DD","hook":"…","summary":"…","sources":[…],"facts":[…],"beats":[{"id":"b1","role":"hook","text":"…","visual":"…"}],"product":{"featureId":"…","beat":"bN"},"music":{"style":"…","mood":[…]},"yt":{"title":"…","description":"…","hashtags":[…]}}`;
+}
+
+const slugify = (s) =>
+  String(s ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .split("-")
+    .slice(0, 4)
+    .join("-")
+    .slice(0, 32)
+    .replace(/-+$/, "") || "story";
+
+function uniqueSlug(base) {
+  let s = base;
+  for (let n = 2; existsSync(join(TALES_DIR, `${s}.json`)); n++) s = `${base}-${n}`;
+  return s;
+}
+
+/** Normalise la réponse de Claude en `Tale` et liste ce qui ne respecte pas les règles. */
+function toTale(j, idea) {
+  const beats = (Array.isArray(j.beats) ? j.beats : []).map((b, i) => ({
+    id: `b${i + 1}`,
+    role: ROLES.includes(b.role) ? b.role : "build",
+    text: String(b.text ?? "").trim(),
+    visual: String(b.visual ?? "").trim(),
+  }));
+  const productIdx = beats.findIndex((b) => b.role === "product");
+  const slug = uniqueSlug(slugify(j.slug ?? j.yt?.title));
+  const tale = {
+    slug,
+    id: taleId(slug),
+    lang: "en",
+    status: "script",
+    type: (j.type ?? idea?.type) === "recent" ? "recent" : "offbeat",
+    eventDate: String(j.eventDate ?? idea?.eventDate ?? "").slice(0, 10),
+    hook: String(j.hook ?? idea?.hook ?? ""),
+    summary: String(j.summary ?? idea?.summary ?? ""),
+    sources: (Array.isArray(j.sources) && j.sources.length ? j.sources : idea?.sources ?? []).filter((s) => s?.url).map((s) => ({ title: String(s.title ?? s.url), url: s.url, ...(s.date ? { date: String(s.date).slice(0, 10) } : {}) })),
+    facts: (Array.isArray(j.facts) ? j.facts : []).map(String),
+    beats,
+    product: { featureId: FEATURES.includes(j.product?.featureId) ? j.product.featureId : idea?.wggAngle?.featureId ?? "pnl", beat: productIdx >= 0 ? beats[productIdx].id : "" },
+    music: { style: String(j.music?.style ?? "trap"), mood: (Array.isArray(j.music?.mood) ? j.music.mood : []).map(String).slice(0, 4) },
+    yt: { title: String(j.yt?.title ?? j.hook ?? slug).slice(0, 100), description: String(j.yt?.description ?? ""), hashtags: (Array.isArray(j.yt?.hashtags) ? j.yt.hashtags : ["crypto", "cryptostories"]).map((h) => String(h).replace(/^#/, "")) },
+    compose: { notes: [] },
+    error: null,
+    ...(idea ? { ideaId: idea.id } : {}),
+    createdAt: new Date().toISOString(),
+  };
+  return { tale, problems: scriptProblems(tale) };
+}
+
+function scriptProblems(t) {
+  const out = [];
+  const n = t.beats.reduce((a, b) => a + words(b.text), 0);
+  if (n < 110 || n > 160) out.push(`${n} spoken words: must be 110-160.`);
+  if (t.beats.length < 6 || t.beats.length > 9) out.push(`${t.beats.length} beats: must be 6-9.`);
+  const products = t.beats.filter((b) => b.role === "product");
+  if (products.length !== 1) out.push(`${products.length} product beats: exactly one is required.`);
+  else {
+    const i = t.beats.indexOf(products[0]);
+    if (i < 2 || i === t.beats.length - 1) out.push("The product beat must be in the middle or right before the outro.");
+    const w = words(products[0].text);
+    if (w < 8 || w > 20) out.push(`Product beat has ${w} words: about 5 seconds (10-16 words).`);
+  }
+  if (t.beats[0]?.role !== "hook") out.push("First beat must be the hook.");
+  if (t.beats.at(-1)?.role !== "outro") out.push("Last beat must be the outro.");
+  if (t.beats.some((b) => !b.text || !b.visual)) out.push("Every beat needs text and visual.");
+  if (!t.sources.length) out.push("Sources are required.");
+  return out;
+}
+
+export async function writeScript({ ideaId, topic }) {
+  const ideas = readIdeas();
+  const idea = ideaId ? ideas.ideas.find((i) => i.id === ideaId) : null;
+  if (ideaId && !idea) throw new Error("Idée introuvable");
+  const subject = idea
+    ? `${idea.title} (${idea.type}, event date ${idea.eventDate})\n${idea.summary}\nSuggested hook: ${idea.hook}\nSources:\n${idea.sources.map((s) => `- ${s.title}${s.date ? ` (${s.date})` : ""}: ${s.url}`).join("\n")}\nSuggested Where'd Gains Go? angle: ${idea.wggAngle.featureId} — ${idea.wggAngle.why}`
+    : `The creator's own topic or link: ${topic}\nResearch it first, decide whether it is "recent" (less than 60 days before today) or "offbeat", and find dated sources.`;
+  const settings = settingsFile("script", ["WebSearch", "WebFetch", "Skill"], ["Bash", "Edit", "Write"]);
+  let problems = null;
+  let result = null;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    stage(attempt === 1 ? "Écriture du script (Claude)" : "Correction du script (Claude)");
+    const w = await claude(["--model", "opus", "--max-turns", "35", "--settings", settings], scriptPrompt(subject, problems), { timeout: 12 * 60 * 1000 });
+    result = toTale(jsonFrom(w.result), idea);
+    if (!result.problems.length) break;
+    problems = result.problems.map((p) => `- ${p}`).join("\n");
+    log(`Script hors règles :\n${problems}`);
+  }
+  const { tale } = result;
+  if (result.problems.length) tale.warnings = result.problems;
+  saveTale(tale);
+  if (idea) writeIdeas({ ...ideas, ideas: ideas.ideas.filter((i) => i.id !== idea.id) });
+  log(`Script prêt : ${tale.slug} (${tale.beats.reduce((a, b) => a + words(b.text), 0)} mots, ${tale.beats.length} beats)`);
+  logEvent("info", `Stories : script écrit, ${tale.yt.title}`, tale.id);
+  return tale;
+}
+
+/* ------------------------------------------------------------------ 3. voix */
+
+/** Un segment par beat (ElevenLabs, sinon voix du système) → public/voice/<id>/segN.wav, puis la timeline. */
+async function ensureTaleVoice(slug) {
+  const tale = loadTale(slug);
+  const el = voiceFor("en");
+  const system = el ? null : pickVoice("en");
+  if (!el && !system) throw new Error("Aucune voix anglaise : configure ElevenLabs (Réglages → Voix off) ou installe une voix système EN.");
+  const lines = tale.beats.map((b) => b.text);
+  const sig = JSON.stringify([el ? el.sig : system, lines]);
+  const dir = join(ROOT, "public", "voice", tale.id);
+  const fresh = tale.voice?.sig === sig && tale.voice.segments.every((s) => existsSync(join(ROOT, "public", s.file)));
+  if (!fresh) {
+    stage(`Voix off (${el ? `ElevenLabs · ${el.name}` : system})`);
+    mkdirSync(dir, { recursive: true });
+    const segments = [];
+    for (const [k, text] of lines.entries()) {
+      const raw = join(dir, `seg${k}.raw.${el ? "mp3" : IS_WIN ? "wav" : "aiff"}`);
+      const out = join(dir, `seg${k}.wav`);
+      const w = el ? await elevenSegment(el, "en", lines, k, raw, out) : systemSegment(system, "en", text, raw, out);
+      const d = dur(out);
+      segments.push({ file: `voice/${tale.id}/seg${k}.wav`, dur: +d.toFixed(3), words: w ?? wordTimings(text, d) });
+      log(`Beat ${tale.beats[k].id} : ${d.toFixed(1)} s`);
+    }
+    tale.voice = { voice: el ? `ElevenLabs · ${el.name}` : system, sig, segments };
+  }
+  tale.timeline = taleTimeline(tale.beats, tale.voice.segments);
+  tale.status = "voiced";
+  saveTale(tale);
+  log(`Timeline : ${(tale.timeline.totalFrames / 30).toFixed(1)} s`);
+  return tale;
+}
+
+/* ------------------------------------------------------------------ 4. musique */
+
+async function ensureTaleMusic(slug) {
+  stage("Musique");
+  const tale = patchTale(slug, (t) => (t.musicTrack = taleMusic(t, t.timeline)));
+  await ensureMusic(tale.musicTrack);
+  log(`Musique : ${tale.musicTrack.file}`);
+  return tale;
+}
+
+/* ------------------------------------------------------------------ 5. composition */
+
+function composePrompt(tale, hasDraft) {
+  const tpl = readFileSync(join(ROOT, "src", "tales", "compose-prompt.md"), "utf8");
+  let notes = tale.compose?.notes?.length ? `\nNotes du créateur à appliquer en priorité :\n${tale.compose.notes.map((n) => `- ${n}`).join("\n")}\n` : "";
+  if (hasDraft) notes += `\n\`src/tales/drafts/${tale.slug}.tsx\` existe déjà (version précédente) : lis-le, garde ce qui marche, améliore le reste.\n`;
+  return tpl.replaceAll("{{slug}}", tale.slug).replaceAll("{{productBeat}}", tale.product.beat).replaceAll("{{notes}}", notes);
+}
+
+/** `node scripts/tale-check.mjs <slug> --draft` : dernière ligne de stdout = { ok, errors, stills, sheet }. */
+function taleCheck(slug) {
+  return new Promise((resolve) => {
+    execFile(process.execPath, [join(ROOT, "scripts", "tale-check.mjs"), slug, "--draft"], { cwd: ROOT, maxBuffer: 64 * 1024 * 1024, timeout: 10 * 60 * 1000, windowsHide: true }, (err, stdout, stderr) => {
+      const last = String(stdout).trim().split(/\r?\n/).at(-1) ?? "";
+      try {
+        resolve(JSON.parse(last));
+      } catch {
+        resolve({ ok: false, errors: [`tale-check illisible : ${(err?.message ?? "").slice(0, 200)} ${String(stderr).slice(-400)}`], stills: [], sheet: null });
+      }
+    });
+  });
+}
+
+async function composeTale(slug) {
+  const tale = patchTale(slug, (t) => {
+    t.status = "composing";
+    t.error = null;
+  });
+  const draft = join(DRAFTS, `${slug}.tsx`);
+  const story = join(TALE_STORIES, `${slug}.tsx`);
+  mkdirSync(DRAFTS, { recursive: true });
+  // Recomposition : Claude repart des visuels actuels.
+  if (!existsSync(draft) && existsSync(story)) writeFileSync(draft, readFileSync(story));
+  const before = existsSync(draft) ? statSync(draft).mtimeMs : 0;
+  stage("Composition des visuels (Claude, jusqu'à 25 min)");
+  const rel = "src/tales/drafts/**";
+  const abs = `//${DRAFTS.replaceAll("\\", "/").replace(/^\/+/, "")}/**`;
+  const settings = settingsFile(
+    "compose",
+    ["Read", "Glob", "Grep", "Skill", `Write(${rel})`, `Edit(${rel})`, `Write(${abs})`, `Edit(${abs})`, "Bash(node scripts/tale-check.mjs:*)"],
+    ["WebSearch", "WebFetch"],
+  );
+  const w = await claude(["--model", "opus", "--settings", settings, "--max-turns", "80"], composePrompt(tale, before > 0), { timeout: COMPOSE_TIMEOUT });
+  const summary = String(w.result ?? "").trim();
+  log(summary);
+  if (!existsSync(draft) || statSync(draft).mtimeMs === before) throw new Error(`Claude n'a pas écrit src/tales/drafts/${slug}.tsx`);
+  stage("Vérification (tale-check)");
+  const check = await taleCheck(slug);
+  const tail = [...summary.split(/\r?\n/), check.ok ? `tale-check : ok (${check.stills?.length ?? 0} images)` : `tale-check : ${check.errors.join(" | ")}`].slice(-60).join("\n");
+  if (!check.ok) {
+    patchTale(slug, (t) => {
+      t.status = "error";
+      t.error = `Visuels refusés par tale-check : ${check.errors.slice(0, 6).join(" | ")}`.slice(0, 1500);
+      t.compose = { ...t.compose, notes: t.compose?.notes ?? [], log: tail, at: new Date().toISOString() };
+    });
+    throw new Error(`tale-check : ${check.errors.slice(0, 3).join(" | ")}`);
+  }
+  mkdirSync(TALE_STORIES, { recursive: true });
+  if (existsSync(story)) unlinkSync(story);
+  renameSync(draft, story);
+  const now = new Date();
+  utimesSync(story, now, now); // le bundle de rendu se refait d'après les dates de modification
+  log("Visuels promus dans src/tales/stories/");
+  return patchTale(slug, (t) => {
+    t.status = "composed";
+    t.error = null;
+    t.compose = { ...t.compose, notes: t.compose?.notes ?? [], log: tail, at: now.toISOString() };
+  });
+}
+
+/* ------------------------------------------------------------------ 6. rendu, planning, TikTok */
+
+let activeCatalog = null;
+
+/** La story entre dans le catalogue : planning de la voie stories, puis file de rendu. */
+function queueRender(slug) {
+  const c = activeCatalog();
+  const v = c.videos.find((x) => x.taleSlug === slug);
+  if (!v) throw new Error("Story absente du catalogue (timeline ou visuels manquants)");
+  scheduleTales(c);
+  video(v.id).rendered = false;
+  save();
+  enqueue([v.id], c);
+  log("Ajoutée à la file de rendu");
+}
+
+/** Brouillon TikTok (EN) d'une story rendue, une seule fois par vidéo. */
+export function tiktokDraft(v, c) {
+  if (tt.posts().some((p) => p.videoId === v.id)) return null;
+  const m = buildMetadata(v, c.apps.find((a) => a.slug === v.slug));
+  const p = tt.createPost({ type: "video", ...tiktokCaption(m), videoId: v.id, videoFile: outFile(v.id), publishAt: null, source: "tales" });
+  p.lang = "en"; // pas de devinette FR/EN sur la légende : les stories sont en anglais
+  tt.updatePost(p.id, {}); // enregistre
+  logEvent("info", `TikTok : brouillon créé pour la story ${m.title}`, v.id);
+  return p;
+}
+
+onRendered.push((v) => {
+  if (v.kind !== "tale") return;
+  patchTale(v.taleSlug, (t) => {
+    t.status = "rendered";
+    t.error = null;
+  });
+  if (getState().settings.taleAutoTikTok !== false) tiktokDraft(v, activeCatalog());
+});
+
+/** Validation → voix → musique → composition (si besoin) → rendu. Une erreur arrête la chaîne et s'affiche sur la story. */
+async function produce(slug, { recompose = false } = {}) {
+  try {
+    let tale = await ensureTaleVoice(slug);
+    tale = await ensureTaleMusic(slug);
+    const hasStory = existsSync(join(TALE_STORIES, `${slug}.tsx`));
+    if (recompose || !hasStory) tale = await composeTale(slug);
+    else patchTale(slug, (t) => (t.status = "composed"));
+    queueRender(slug);
+    logEvent("info", `Stories : ${tale.yt.title} prête pour le rendu`, tale.id);
+  } catch (e) {
+    const msg = String(e?.message ?? e).slice(0, 1500);
+    log(`Erreur : ${msg}`);
+    patchTale(slug, (t) => {
+      const detailed = t.status === "error" && t.error; // ex. erreurs de tale-check déjà posées par composeTale
+      t.status = "error";
+      t.error = detailed || msg;
+    });
+    logEvent("error", `Story ${slug} : ${msg.slice(0, 160)}`, taleId(slug));
+  }
+}
+
+/* ------------------------------------------------------------------ routes */
+
+function taleSummary(t) {
+  const st = getState().videos[t.id] ?? {};
+  return { ...t, rendered: isRendered(t.id), publishAt: st.publishAt ?? null, youtubeId: st.youtubeId ?? null, busy: busyWith(t.slug) };
+}
+
+const sortTales = (a, b) => (b.createdAt ?? b.eventDate ?? "").localeCompare(a.createdAt ?? a.eventDate ?? "");
+
+export function setupTaleRoutes(app, opts) {
+  activeCatalog = opts.activeCatalog;
+  const fail = (res, e, code = 500) => res.status(code).json({ error: String(e?.message ?? e) });
+
+  app.get("/api/tales", (_req, res) => {
+    const ideas = readIdeas();
+    res.json({ ideas: ideas.ideas, searchedAt: ideas.searchedAt, tales: loadTales().sort(sortTales).map(taleSummary), job: jobInfo() });
+  });
+
+  app.post("/api/tales/ideas/search", async (_req, res) => {
+    if (busyWith(null)) return fail(res, "Recherche déjà en cours", 409);
+    try {
+      res.json({ ideas: await runJob(null, "Recherche d'idées", searchIdeas) });
+    } catch (e) {
+      logEvent("error", `Stories : recherche d'idées échouée, ${String(e.message).slice(0, 160)}`);
+      fail(res, e);
+    }
+  });
+
+  app.delete("/api/tales/ideas/:id", (req, res) => {
+    const store = readIdeas();
+    writeIdeas({ ...store, ideas: store.ideas.filter((i) => i.id !== req.params.id) });
+    res.json({ ok: true });
+  });
+
+  app.post("/api/tales", async (req, res) => {
+    const { ideaId, topic } = req.body ?? {};
+    if (!ideaId && !String(topic ?? "").trim()) return fail(res, "ideaId ou topic requis", 400);
+    try {
+      const tale = await runJob(`script:${ideaId ?? "topic"}`, "Script", () => writeScript({ ideaId, topic: String(topic ?? "").trim() }));
+      res.json(taleSummary(tale));
+    } catch (e) {
+      logEvent("error", `Stories : script échoué, ${String(e.message).slice(0, 160)}`);
+      fail(res, e);
+    }
+  });
+
+  app.patch("/api/tales/:slug", (req, res) => {
+    const t = loadTale(req.params.slug);
+    if (!t) return fail(res, "Story introuvable", 404);
+    if (t.status !== "script") return fail(res, "Story déjà validée : seul le script (statut « script ») se modifie.", 400);
+    const b = req.body ?? {};
+    if (b.beats !== undefined) {
+      if (!Array.isArray(b.beats) || !b.beats.length) return fail(res, "beats : liste attendue", 400);
+      t.beats = b.beats.map((x, i) => ({ id: String(x.id || `b${i + 1}`), role: ROLES.includes(x.role) ? x.role : "build", text: String(x.text ?? "").trim(), visual: String(x.visual ?? "").trim() }));
+      if (new Set(t.beats.map((x) => x.id)).size !== t.beats.length) return fail(res, "beats : ids en double", 400);
+    }
+    if (b.product !== undefined) t.product = { featureId: String(b.product.featureId ?? t.product.featureId), beat: String(b.product.beat ?? t.product.beat) };
+    if (b.yt !== undefined) t.yt = { title: String(b.yt.title ?? t.yt.title).slice(0, 100), description: String(b.yt.description ?? t.yt.description), hashtags: (Array.isArray(b.yt.hashtags) ? b.yt.hashtags : t.yt.hashtags).map((h) => String(h).replace(/^#/, "")) };
+    if (b.music !== undefined) t.music = { style: String(b.music.style ?? t.music.style), mood: Array.isArray(b.music.mood) ? b.music.mood.map(String) : t.music.mood };
+    if (!FEATURES.includes(t.product.featureId)) return fail(res, `Feature inconnue (${FEATURES.join(", ")})`, 400);
+    if (!t.beats.some((x) => x.id === t.product.beat)) return fail(res, "product.beat ne correspond à aucun beat", 400);
+    for (const x of t.beats) if (x.role === "product" && x.id !== t.product.beat) x.role = "build";
+    t.beats.find((x) => x.id === t.product.beat).role = "product";
+    t.warnings = scriptProblems(t);
+    if (!t.warnings.length) delete t.warnings;
+    saveTale(t);
+    res.json(taleSummary(t));
+  });
+
+  app.post("/api/tales/:slug/approve", (req, res) => {
+    const t = loadTale(req.params.slug);
+    if (!t) return fail(res, "Story introuvable", 404);
+    if (!["script", "approved", "error"].includes(t.status)) return fail(res, `Déjà en production (statut ${t.status})`, 400);
+    if (busyWith(t.slug)) return fail(res, "Déjà dans la file", 409);
+    if (!t.beats.some((b) => b.id === t.product.beat)) return fail(res, "Choisis le beat produit avant de valider", 400);
+    patchTale(t.slug, (x) => {
+      x.status = "approved";
+      x.approvedAt ??= new Date().toISOString();
+      x.error = null;
+    });
+    logEvent("info", `Stories : script validé, ${t.yt.title}`, t.id);
+    void runJob(t.slug, "Production", () => produce(t.slug));
+    res.json({ ok: true });
+  });
+
+  app.post("/api/tales/:slug/compose", (req, res) => {
+    const t = loadTale(req.params.slug);
+    if (!t) return fail(res, "Story introuvable", 404);
+    if (!t.voice || !t.timeline) return fail(res, "Valide d'abord le script (voix off manquante)", 400);
+    if (getState().videos[t.id]?.youtubeId) return fail(res, "Déjà envoyée sur YouTube : supprime-la de YouTube et délie-la avant de recomposer.", 400);
+    if (busyWith(t.slug)) return fail(res, "Déjà dans la file", 409);
+    const note = String(req.body?.note ?? "").trim();
+    patchTale(t.slug, (x) => {
+      x.compose = { ...x.compose, notes: [...(x.compose?.notes ?? []), ...(note ? [note] : [])] };
+      x.error = null;
+    });
+    void runJob(t.slug, "Recomposition", () => produce(t.slug, { recompose: true }));
+    res.json({ ok: true });
+  });
+
+  app.delete("/api/tales/:slug", (req, res) => {
+    const t = loadTale(req.params.slug);
+    if (!t) return fail(res, "Story introuvable", 404);
+    if (!["idea", "script"].includes(t.status)) return fail(res, "Seules les stories au stade idée ou script se suppriment.", 400);
+    if (busyWith(t.slug)) return fail(res, "Story en cours de traitement", 409);
+    rmSync(join(TALES_DIR, `${t.slug}.json`), { force: true });
+    rmSync(join(DRAFTS, `${t.slug}.tsx`), { force: true });
+    res.json({ ok: true });
+  });
+}

@@ -92,7 +92,7 @@ export function generateSchedule({ apps, videos }) {
   const longDaysTaken = new Set();
   for (const v of videos) {
     const at = getState().videos[v.id]?.publishAt;
-    if (!fixed(v) || !at) continue;
+    if (!fixed(v) || !at || v.kind === "tale") continue;
     if (v.format === "long") longDaysTaken.add(localDay(at));
     else shortsPerDayTaken[localDay(at)] = (shortsPerDayTaken[localDay(at)] ?? 0) + 1;
   }
@@ -140,6 +140,46 @@ export function generateSchedule({ apps, videos }) {
     }
     video(v.id).publishAt = when.toISOString();
     d = addDays(d, 7);
+  }
+  scheduleTales({ videos });
+}
+
+/**
+ * Voie des stories crypto, indépendante des pubs : `talesPerDay` par jour à partir de `taleTime`
+ * (créneaux suivants 4 h plus tôt), les « récentes » d'abord (événement le plus récent en tête), puis les insolites.
+ */
+export function scheduleTales({ videos }) {
+  const { settings } = getState();
+  const { startDate, timezone } = settings;
+  const taleTime = settings.taleTime || "20:00";
+  const perDay = Math.max(1, Number(settings.talesPerDay) || 1);
+  const fixed = (v) => getState().videos[v.id]?.youtubeId || getState().videos[v.id]?.locked;
+  const minTs = Date.now() + 3 * 3600 * 1000;
+  const localDay = (iso) => new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(iso));
+  const tales = videos.filter((v) => v.kind === "tale");
+  const taken = {};
+  for (const v of tales) {
+    const at = getState().videos[v.id]?.publishAt;
+    if (fixed(v) && at) taken[localDay(at)] = (taken[localDay(at)] ?? 0) + 1;
+  }
+  const rank = (v) => (v.taleType === "recent" ? 0 : 1);
+  const pending = tales.filter((v) => !fixed(v)).sort((a, b) => rank(a) - rank(b) || (b.eventDate ?? "").localeCompare(a.eventDate ?? ""));
+  const today = localDay(new Date().toISOString());
+  let day = startDate > today ? startDate : today;
+  let slot = taken[day] ?? 0;
+  const [h, m] = taleTime.split(":").map(Number);
+  for (const v of pending) {
+    let when;
+    do {
+      while (slot >= perDay) {
+        day = addDays(day, 1);
+        slot = taken[day] ?? 0;
+      }
+      const hour = String(Math.max(6, h - slot * 4)).padStart(2, "0");
+      when = zonedToUtc(day, `${hour}:${String(m).padStart(2, "0")}`, timezone);
+      slot++;
+    } while (when.getTime() < minTs);
+    video(v.id).publishAt = when.toISOString();
   }
   save();
 }

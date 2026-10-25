@@ -3,7 +3,7 @@
 import { createReadStream, existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { google } from "googleapis";
-import { ROOT } from "../shared/catalog.mjs";
+import { loadTale, ROOT } from "../shared/catalog.mjs";
 import { buildTimeline, FPS } from "../shared/timeline.mjs";
 import { DATA, getState, save, video, langOn } from "./state.mjs";
 import { outFile, thumbFile } from "./render.mjs";
@@ -115,6 +115,7 @@ function chapters(v, app) {
 
 /** Métadonnées YouTube optimisées SEO (titre, description, tags, catégorie). */
 export function buildMetadata(v, app) {
+  if (v.kind === "tale") return buildTaleMetadata(v, app);
   if (v.external) return buildExternalMetadata(v, app);
   if (v.kind === "keynote") return buildKeynoteMetadata(v, app);
   const lang = v.lang;
@@ -206,6 +207,37 @@ function buildKeynoteMetadata(v, app) {
     len += t.length + 3;
   }
   return { title: v.title.slice(0, 100), description: lines.join("\n").slice(0, 4900), tags, categoryId: seo.category };
+}
+
+/** Stories crypto : l'histoire et ses sources d'abord, une seule ligne discrète vers l'app, puis les hashtags. */
+function buildTaleMetadata(v, app) {
+  const tale = loadTale(v.taleSlug);
+  const base = tale.yt.title.replace(/\s*#shorts\s*/i, "").trim();
+  const title = `${base} #shorts`.slice(0, 100);
+  const tags = [...new Set(tale.yt.hashtags.map((h) => h.replace(/^#/, "")))];
+  const hashtags = ["Shorts", ...tags].slice(0, 8).map((h) => `#${h.replace(/[^\p{L}\p{N}]/gu, "")}`);
+  const lines = [tale.yt.description, "", tale.summary, ""];
+  if (tale.sources?.length) {
+    lines.push("Sources:");
+    for (const s of tale.sources) lines.push(`• ${s.title}${s.date ? ` (${s.date})` : ""}: ${s.url}`);
+    lines.push("");
+  }
+  lines.push(`Check your own wallet's real P&L: ${app.links[0].url}`, "", hashtags.join(" "));
+  const out = [];
+  let len = 0;
+  for (const t of ["crypto stories", ...tags]) {
+    if (out.some((x) => x.toLowerCase() === t.toLowerCase()) || len + t.length + 3 > 480) continue;
+    out.push(t);
+    len += t.length + 3;
+  }
+  return { title, description: lines.join("\n").slice(0, 4900), tags: out, categoryId: "27" };
+}
+
+/** Légende TikTok tirée des métadonnées YouTube : 2 premières lignes + hashtags (sans #shorts). */
+export function tiktokCaption(m) {
+  const hashtags = (m.description.match(/#[\p{L}\p{N}_]+/gu) ?? []).filter((h) => h.toLowerCase() !== "#shorts").slice(0, 6).join(" ");
+  const first = m.description.split("\n").filter(Boolean).slice(0, 2).join("\n");
+  return { title: m.title.replace(/\s*#shorts/i, "").slice(0, 90), description: `${first}\n\n${hashtags}` };
 }
 
 /** Métadonnées des vidéos externes : leur légende d'origine + liens, prix, mots-clés et hashtags de l'app. */

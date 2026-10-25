@@ -1,0 +1,54 @@
+// Contrat d'une story crypto : content/tales/<slug>.json. Écrit par le pipeline serveur (server/tales.mjs),
+// lu par Remotion (Root.tsx, TaleVideo.tsx) et par les visuels écrits par Claude (src/tales/stories/<slug>.tsx).
+import type { VoiceTrack } from "../lib/types";
+
+export type TaleStatus = "idea" | "script" | "approved" | "voiced" | "composing" | "composed" | "rendered" | "error";
+export type TaleRole = "hook" | "context" | "build" | "twist" | "product" | "payoff" | "outro";
+
+export type TaleBeat = {
+  id: string;
+  role: TaleRole;
+  /** Phrase dite par la voix off (anglais). */
+  text: string;
+  /** Brief visuel pour Claude : ce que l'image doit montrer pendant cette phrase. */
+  visual: string;
+};
+
+/** Frames (30 fps), un élément par beat dans le même ordre ; `from` relatif au début de la vidéo. */
+export type TaleTimeline = { beats: { id: string; from: number; dur: number }[]; totalFrames: number };
+
+export type Tale = {
+  slug: string;
+  /** tale-<slug>-en : id de composition Remotion et de vidéo. */
+  id: string;
+  lang: "en";
+  status: TaleStatus;
+  /** "recent" = moins de 60 jours ; "offbeat" = plus ancienne mais insolite. */
+  type: "recent" | "offbeat";
+  /** Date de l'événement (AAAA-MM-JJ). */
+  eventDate: string;
+  /** Accroche affichée à l'écran (≤ 8 mots, *mot* = accent). */
+  hook: string;
+  summary: string;
+  sources: { title: string; url: string; date?: string }[];
+  facts: string[];
+  beats: TaleBeat[];
+  /** Le seul moment produit (~5 s) : feature WGG liée à l'histoire. */
+  product: { featureId: string; beat: string };
+  music: { style: string; mood: string[] };
+  yt: { title: string; description: string; hashtags: string[] };
+  /** Après la voix : un segment par beat (même ordre). */
+  voice?: VoiceTrack & { sig?: string };
+  timeline?: TaleTimeline;
+  /** Définition musicale passée à ensureMusic (scripts/gen-all-audio.mjs). */
+  musicTrack?: { file: string; style: string; kind: "story"; theme: string[]; bars: number; drop: number; cta: number; seed: number };
+  compose?: { notes: string[]; log?: string; at?: string };
+  error?: string | null;
+};
+
+/** Props du composant visuel écrit par Claude : `export const Story: React.FC<StoryProps>`. */
+export type StoryProps = {
+  tale: Tale;
+  /** Timeline effective (voix réelle ou estimée). */
+  timeline: TaleTimeline;
+};

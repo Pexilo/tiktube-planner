@@ -23,6 +23,8 @@ let working = false;
 let catalogRef = null;
 
 export const outFile = (id) => join(OUT, `${id}.mp4`);
+/** Appelés après chaque rendu réussi, avec la vidéo du catalogue (ex. stories : statut + brouillon TikTok). */
+export const onRendered = [];
 
 /**
  * Mastering -14 LUFS en 2 passes, mode linéaire : un simple gain, qui préserve les nuances
@@ -168,12 +170,13 @@ async function work() {
         await run("ffmpeg", ["-v", "error", "-y", "-ss", "8.5", "-i", outFile(id), "-frames:v", "1", "-vf", "scale=1280:720", "-q:v", "3", thumbFile(id)]);
       } else {
         // Aperçu pour le dashboard : une image du milieu du short
-        await run("ffmpeg", ["-v", "error", "-y", "-ss", "7", "-i", outFile(id), "-frames:v", "1", "-vf", "scale=360:-2", thumbFile(id)]);
+        await run("ffmpeg", ["-v", "error", "-y", "-ss", v.kind === "tale" ? (v.durationSec / 2).toFixed(2) : "7", "-i", outFile(id), "-frames:v", "1", "-vf", "scale=360:-2", thumbFile(id)]);
       }
       Object.assign(st, { rendered: true, renderedAt: new Date().toISOString(), renderError: null });
       const secs = (Date.now() - current.startedAt) / 1000;
       recordDuration(v.kind, secs);
       logEvent("render", `Vidéo prête : ${v.title} (${Math.round(secs / 60)} min ${Math.round(secs % 60)} s)`, id);
+      for (const f of onRendered) Promise.resolve().then(() => f(v)).catch((e) => console.error("après rendu", e));
     } catch (e) {
       console.error(`Rendu ${id} échoué`, e);
       st.renderError = String(e?.message ?? e).slice(0, 500);

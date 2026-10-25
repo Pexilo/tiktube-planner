@@ -27,6 +27,9 @@ const DEFAULTS = {
     uploadHorizonDays: 14,
     autopilot: false,
     frEnabled: true, // FR en pause = aucune action (rendu, voix, planning, YouTube, TikTok) sur les vidéos FR
+    taleTime: "20:00", // Stories crypto : créneau dédié, séparé des pubs
+    talesPerDay: 1,
+    taleAutoTikTok: true, // brouillon TikTok créé dès qu'une story est rendue
   },
   /** id → { publishAt, locked, rendered, renderedAt, youtubeId, uploadedAt, error } */
   videos: {},

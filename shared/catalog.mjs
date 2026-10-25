@@ -3,6 +3,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildTimeline, musicFor, videosFor, FPS } from "./timeline.mjs";
+import { TALE_APP } from "./tales.mjs";
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const APP_ORDER = ["hyrox", "sociaflow", "beautyflow", "mrrkit", "decido", "revenuepilot"];
@@ -75,5 +76,44 @@ export function loadCatalog() {
       external: e,
     });
   }
+  // Stories crypto : une fois la voix posée (timeline) et les visuels promus dans src/tales/stories/.
+  const host = apps.find((a) => a.slug === TALE_APP);
+  for (const tale of host ? loadTales() : []) {
+    if (!tale.timeline || !existsSync(join(TALE_STORIES, `${tale.slug}.tsx`))) continue;
+    videos.push({
+      id: tale.id,
+      slug: TALE_APP,
+      kind: "tale",
+      format: "short",
+      lang: "en",
+      shortIndex: 0,
+      appName: "Crypto stories",
+      title: tale.yt.title,
+      durationSec: tale.timeline.totalFrames / FPS,
+      music: tale.musicTrack,
+      color: host.brand.primary,
+      tale: true,
+      taleSlug: tale.slug,
+      taleType: tale.type,
+      eventDate: tale.eventDate,
+    });
+  }
   return { apps, videos };
+}
+
+/* ------------------------------------------------------------------ Stories crypto (content/tales/<slug>.json) */
+
+export const TALES_DIR = join(ROOT, "content", "tales");
+export const TALE_STORIES = join(ROOT, "src", "tales", "stories");
+
+export function loadTale(slug) {
+  const f = join(TALES_DIR, `${slug}.json`);
+  return existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : null;
+}
+
+export function loadTales() {
+  if (!existsSync(TALES_DIR)) return [];
+  return readdirSync(TALES_DIR)
+    .filter((f) => f.endsWith(".json"))
+    .map((f) => JSON.parse(readFileSync(join(TALES_DIR, f), "utf8")));
 }

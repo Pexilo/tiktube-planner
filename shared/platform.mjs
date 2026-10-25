@@ -67,10 +67,17 @@ const CLAUDE = IS_WIN
   ? [join(homedir(), ".local/bin/claude.exe"), join(process.env.APPDATA ?? "", "npm/claude.cmd")].find(existsSync) ?? "claude"
   : [join(homedir(), ".local/bin/claude"), "/opt/homebrew/bin/claude", "/usr/local/bin/claude"].find(existsSync) ?? "claude";
 
+/**
+ * Environnement propre pour `claude` : si la plateforme a été lancée depuis une session Claude Code,
+ * ses variables (ANTHROPIC_BASE_URL, CLAUDECODE, CLAUDE_CODE_*) détourneraient la connexion du CLI.
+ */
+const claudeEnv = (env = process.env) => Object.fromEntries(Object.entries(env).filter(([k]) => k !== "ANTHROPIC_BASE_URL" && k !== "CLAUDECODE" && !k.startsWith("CLAUDE_CODE_")));
+
 /** `claude -p …` avec le prompt sur stdin. Sur Windows, un .cmd ne se lance qu'à travers cmd.exe. */
 export function execClaude(args, opts, cb) {
-  if (IS_WIN && !CLAUDE.endsWith(".exe")) return execFile("cmd.exe", ["/d", "/c", CLAUDE, ...args], { ...opts, windowsHide: true }, cb);
-  return execFile(CLAUDE, args, { ...opts, windowsHide: true }, cb);
+  const o = { ...opts, env: claudeEnv(opts?.env), windowsHide: true };
+  if (IS_WIN && !CLAUDE.endsWith(".exe")) return execFile("cmd.exe", ["/d", "/c", CLAUDE, ...args], o, cb);
+  return execFile(CLAUDE, args, o, cb);
 }
 
 /* ------------------------------------------------------------------ OCR */

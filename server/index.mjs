@@ -16,7 +16,8 @@ import { smartImport } from "./smartimport.mjs";
 import * as watch from "./watchfolder.mjs";
 import { setupRoutes } from "./setup.mjs";
 import { loadProfile } from "../shared/profile.mjs";
-import { authUrl, buildMetadata, handleCallback, PORT, refreshChannel, status as ytStatus, uploadMany, uploadState, uploadsToday } from "./youtube.mjs";
+import { authUrl, buildMetadata, handleCallback, PORT, refreshChannel, status as ytStatus, tiktokCaption, uploadMany, uploadState, uploadsToday } from "./youtube.mjs";
+import { setupTaleRoutes } from "./tales.mjs";
 
 const app = express();
 app.use(express.json());
@@ -83,6 +84,7 @@ function snapshot() {
 
 app.get("/api/state", (_req, res) => res.json(snapshot()));
 setupRoutes(app);
+setupTaleRoutes(app, { activeCatalog });
 
 app.post("/api/render", (req, res) => {
   const c = activeCatalog();
@@ -278,13 +280,10 @@ app.post("/api/tiktok/from-video", (req, res) => {
   if (!v) return res.status(404).json({ error: "Vidéo inconnue" });
   if (!langOn(v.lang)) return res.status(400).json({ error: "FR en pause : réactive le français pour l'ajouter." });
   const m = buildMetadata(v, c.apps.find((a) => a.slug === v.slug));
-  const hashtags = (m.description.match(/#[\p{L}\p{N}_]+/gu) ?? []).filter((h) => h.toLowerCase() !== "#shorts").slice(0, 6).join(" ");
-  const first = m.description.split("\n").filter(Boolean).slice(0, 2).join("\n");
   res.json(
     tt.createPost({
       type: "video",
-      title: m.title.replace(/\s*#shorts/i, "").slice(0, 90),
-      description: `${first}\n\n${hashtags}`,
+      ...tiktokCaption(m),
       videoId: v.id,
       videoFile: join(OUT, `${v.id}.mp4`),
       publishAt: req.body.publishAt ?? null,

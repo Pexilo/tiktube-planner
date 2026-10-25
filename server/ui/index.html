@@ -158,6 +158,7 @@
   .row-item { display: flex; align-items: center; gap: 11px; padding: 9px 4px; border-top: 1px solid var(--line); min-width: 0; }
   .row-item:first-child { border-top: 0; }
   .row-item .tt { min-width: 0; flex: 1; }
+  .row-item .plat.tt { flex: none; }
   .row-item .tt b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .row-item .tt span { font-size: 12px; color: var(--muted); }
   .row-item .when { text-align: right; font-size: 12.5px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -274,6 +275,55 @@
   .field:first-of-type { border-top: 0; }
   .field label { color: var(--muted); }
 
+  /* ---------------------------------------------------------------- Stories */
+  .mode { display: flex; flex: none; margin: 0 0 12px; flex-wrap: nowrap; }
+  .mode button { flex: 1; justify-content: center; }
+  body:not(.m-stories) [data-only="stories"], body.m-stories [data-only="pubs"] { display: none !important; }
+  .acc { color: var(--accent); }
+  .topic { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 12px 14px; margin-bottom: 16px; }
+  .topic input { flex: 1; min-width: 200px; }
+  .ideas { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; align-items: start; }
+  .idea { padding: 16px 18px; display: flex; flex-direction: column; gap: 9px; }
+  .idea h3 { margin: 0; font-size: 15px; line-height: 1.3; }
+  .idea p { margin: 0; color: var(--muted); font-size: 13px; }
+  .idea .acts { display: flex; gap: 6px; padding-top: 4px; }
+  .trow { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .hook { font-weight: 700; }
+  .srcs { display: flex; flex-direction: column; gap: 3px; font-size: 12.5px; min-width: 0; }
+  .srcs a { color: var(--accent); display: flex; gap: 5px; align-items: center; min-width: 0; }
+  .srcs a span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .srcs a small { color: var(--faint); flex: none; }
+  .srcs a svg { width: 12px; height: 12px; }
+  .angle { border-radius: 10px; padding: 9px 11px; background: var(--surface2); font-size: 12.5px; }
+  .angle b { display: block; font-size: 12px; color: var(--accent); }
+  .tales { display: flex; flex-direction: column; gap: 16px; }
+  .tale { padding: 18px 20px; }
+  .tale h3 { margin: 8px 0 2px; font-size: 16px; line-height: 1.3; }
+  .step.err { color: var(--c-err); background: color-mix(in srgb, var(--c-err) 11%, transparent); }
+  .tale-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+  .tale-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .tale-side input, .tale-side select, .tale-side textarea { width: 100%; }
+  .tale-side textarea { resize: vertical; }
+  .lbl-up { display: block; font-size: 11.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 5px; }
+  .beat { border: 1px solid var(--line); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+  .beat.product { border-color: color-mix(in srgb, var(--accent) 50%, transparent); }
+  .beat-h { display: flex; gap: 8px; align-items: center; }
+  .beat-h .n { width: 22px; height: 22px; border-radius: 7px; background: var(--surface2); display: grid; place-items: center; font-size: 11.5px; font-weight: 800; color: var(--muted); flex: none; }
+  .beat-h select { padding: 4px 8px; font-size: 12.5px; }
+  .beat textarea { width: 100%; resize: vertical; min-height: 44px; }
+  .beat textarea.vis { font-size: 12.5px; color: var(--muted); background: var(--surface2); }
+  .tale-media { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
+  .tale-media video { width: 220px; aspect-ratio: 9/16; border-radius: 12px; background: #000; }
+  .tale-media .sheet { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 4px; }
+  .tale-media .sheet img { width: 100%; border-radius: 12px; border: 1px solid var(--line); display: block; cursor: zoom-in; background: var(--surface2); }
+  .tale-media .empty { flex: 1; border: 1.5px dashed var(--line2); border-radius: 12px; }
+  pre.log { margin: 8px 0 0; background: var(--surface2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font: 11.5px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; max-height: 240px; overflow: auto; white-space: pre-wrap; word-break: break-word; color: var(--muted); }
+  .script-ro .b { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13px; }
+  .script-ro .b:first-child { border-top: 0; }
+  .script-ro .b small { display: block; color: var(--muted); font-size: 12px; }
+  details > summary { cursor: pointer; color: var(--muted); font-size: 12.5px; font-weight: 600; }
+  .jobic { width: 44px; height: 44px; border-radius: 11px; display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 13%, transparent); color: var(--accent); flex: none; }
+
   /* ---------------------------------------------------------------- Overlays */
   #dock { position: fixed; right: 20px; bottom: 20px; width: 320px; padding: 14px 16px; z-index: 25; display: none; box-shadow: var(--shadow-lg); }
   dialog { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 0; max-width: 94vw; max-height: 94vh; color: var(--text); box-shadow: var(--shadow-lg); overflow: hidden; }
@@ -283,7 +333,7 @@
   dialog .dbar b { flex: 1; min-width: 200px; }
 
   /* ---------------------------------------------------------------- Responsive */
-  @media (max-width: 1100px) { .overview { grid-template-columns: 1fr; } .ttbar { grid-template-columns: 1fr; } .strip { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
+  @media (max-width: 1100px) { .overview { grid-template-columns: 1fr; } .ttbar { grid-template-columns: 1fr; } .strip { grid-template-columns: repeat(7, minmax(0, 1fr)); } .tale-grid { grid-template-columns: 1fr; } }
   @media (max-width: 860px) {
     .app { grid-template-columns: 1fr; }
     aside { position: sticky; z-index: 20; height: auto; flex-direction: row; align-items: center; padding: 8px 12px; border-right: 0; border-bottom: 1px solid var(--line); overflow-x: auto; }
@@ -294,6 +344,11 @@
     .pipe { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pipe .stage .arrow { display: none; }
     .ev-row { grid-template-columns: 46px 20px minmax(0, 1fr) auto; } .ev-row .th, .ev-row .acts { display: none; }
     .ttlist { grid-template-columns: 1fr; }
+    .mode { margin: 0 8px 0 0; }
+    .ideas { grid-template-columns: 1fr; }
+    .tale { padding: 14px; }
+    .tale-media video { width: 100%; max-width: 280px; }
+    .script-ro .b { grid-template-columns: 1fr; gap: 2px; }
     #dock { left: 16px; right: 16px; width: auto; }
   }
 </style>
@@ -302,6 +357,7 @@
 <div class="app">
   <aside>
     <div class="brand"><span class="logo"><svg class="i" viewBox="0 0 24 24" style="fill:#fff;stroke:none"><path d="M8 5.5v13l10.5-6.5z"/></svg></span><div>Studio<small>YouTube · TikTok</small></div></div>
+    <div class="seg mode" id="modeSeg"><button data-v="pubs">Pubs</button><button data-v="stories">Stories</button></div>
     <nav class="nav" id="nav"></nav>
     <div class="side-foot">
       <div class="conn" title="Français en pause : aucun rendu, planning ni envoi FR (rien n'est supprimé)">Vidéos FR<div class="toggle" id="frToggle" style="margin-left:auto"></div></div>
@@ -336,10 +392,50 @@
       </div>
     </section>
 
+    <!-- ============================================================ Stories : Aujourd'hui -->
+    <section id="tab-tales" hidden>
+      <div class="page-head"><div><h1>Stories crypto</h1><p id="talesDate"></p></div><div class="spacer"></div><a class="btn" href="#ideas" id="talesIdeasBtn">Idées</a></div>
+      <div id="talesAlert"></div>
+      <div class="pipe" id="tPipe"></div>
+      <div class="overview">
+        <div class="col">
+          <div class="card pad" id="tNow"></div>
+          <div class="card pad" id="tTodo"></div>
+        </div>
+        <div class="col">
+          <div class="card pad" id="tNext"></div>
+          <div class="card pad" id="tRecent"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ Stories : Idées -->
+    <section id="tab-ideas" hidden>
+      <div class="page-head">
+        <div><h1>Idées</h1><p>Des histoires crypto intrigantes, sourcées, avec un angle Where'd Gains Go? discret.</p></div>
+        <div class="spacer"></div>
+        <button class="btn primary" id="taleSearch"></button>
+      </div>
+      <div id="ideasAlert"></div>
+      <div class="card topic"><input id="taleTopic" placeholder="Mon sujet ou un lien d'article…" /><button class="btn" id="taleTopicGo"></button></div>
+      <div class="ideas" id="ideaList"></div>
+    </section>
+
+    <!-- ============================================================ Stories : Stories -->
+    <section id="tab-stories" hidden>
+      <div class="page-head">
+        <div><h1>Stories</h1><p>Valide le script : la voix, la musique, les visuels, le rendu et la programmation suivent tout seuls.</p></div>
+        <div class="spacer"></div>
+        <div class="seg" id="taleFilter"></div>
+      </div>
+      <div id="storiesAlert"></div>
+      <div class="tales" id="taleList"></div>
+    </section>
+
     <!-- ============================================================ Calendrier -->
     <section id="tab-calendar" hidden>
       <div class="page-head">
-        <div><h1>Calendrier</h1><p>Tout ce qui sort, sur YouTube et TikTok, jour par jour.</p></div>
+        <div><h1>Calendrier</h1><p id="calSub">Tout ce qui sort, sur YouTube et TikTok, jour par jour.</p></div>
         <div class="spacer"></div>
         <div class="seg" id="calPlat"><button data-v="" class="on">Tout</button><button data-v="yt">YouTube</button><button data-v="tt">TikTok</button></div>
         <div class="seg" id="calRange"><button data-v="future" class="on">À venir</button><button data-v="past">Déjà publié</button></div>
@@ -408,7 +504,14 @@
           <div class="card-h"><h3>Apparence</h3></div>
           <div class="field"><label>Thème</label><div class="seg" id="themeSeg"><button data-v="system">Auto</button><button data-v="light">Clair</button><button data-v="dark">Sombre</button></div></div>
         </div>
-        <div class="card pad">
+        <div class="card pad" data-only="stories">
+          <div class="card-h"><h3>Stories crypto</h3></div>
+          <div class="field"><label>Heure de sortie</label><input type="time" data-s="taleTime" /></div>
+          <div class="field"><label>Stories par jour</label><input type="number" min="0" max="4" data-s="talesPerDay" style="width:80px" /></div>
+          <div class="field"><label>Aussi sur TikTok (auto)</label><div class="toggle" id="taleTtToggle"></div></div>
+          <p class="note">Une story validée est fabriquée puis programmée sur YouTube au prochain créneau libre. Avec TikTok auto, elle part aussi en brouillon dans ta boîte TikTok.</p>
+        </div>
+        <div class="card pad" data-only="pubs">
           <div class="card-h"><h3>Rythme YouTube</h3></div>
           <div class="field"><label>Début du planning</label><input type="date" data-s="startDate" /></div>
           <div class="field"><label>Fuseau horaire</label><input data-s="timezone" /></div>
@@ -474,6 +577,10 @@ const P = {
   send: '<path d="M21 3 10 14M21 3l-7 18-4-7-7-4z"/>',
   yt: '<path d="M9.5 8.5v7l6-3.5z" style="fill:#fff;stroke:none"/>',
   sparkle: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/>',
+  bulb: '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>',
+  film: '<rect x="3.5" y="4" width="17" height="16" rx="2.5"/><path d="M8 4v16M16 4v16M3.5 9H8M3.5 15H8M16 9h4.5M16 15h4.5"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  search: '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>',
 };
 const ic = (n, extra = "") => `<svg class="i" viewBox="0 0 24 24" ${extra}>${P[n]}</svg>`;
 const platIc = (p) => p === "yt" ? `<span class="plat yt" title="YouTube"><svg class="i" viewBox="0 0 24 24">${P.yt}</svg></span>` : `<span class="plat tt" title="TikTok"><svg class="i" viewBox="0 0 24 24" style="stroke:#fff;stroke-width:2.4">${P.tiktok}</svg></span>`;
@@ -501,15 +608,18 @@ const toLocalInput = (iso) => { if (!iso) return ""; const d = new Date(iso); re
 
 /* ------------------------------------------------------------------ État */
 let S = null, TT = null;
+/** Réponses brutes du serveur : S et TT n'en gardent que ce qui concerne le mode affiché (Pubs ou Stories). */
+let RAW = null, TTRAW = null, TL; // TL : undefined = pas encore chargé, null = /api/tales en erreur
 const sel = new Set();
 const filters = { app: "", kind: "", lang: "", status: "", q: "" };
 const cal = { plat: "", range: "future" };
 let ttFilterVal = "";
 let tab = "today";
 
-const kindLabel = (v) => v.external ? (v.format === "long" ? "Importée 16:9" : "Importée") : v.kind === "keynote" ? `Keynote ${v.format === "long" ? "16:9" : "9:16"}` : v.kind === "short" ? "Short" : v.kind === "story" ? "Short narré" : "16:9";
+const kindLabel = (v) => v.external ? (v.format === "long" ? "Importée 16:9" : "Importée") : v.kind === "tale" ? "Story" : v.kind === "keynote" ? `Keynote ${v.format === "long" ? "16:9" : "9:16"}` : v.kind === "short" ? "Short" : v.kind === "story" ? "Short narré" : "16:9";
 const isWide = (v) => v.format === "long" || v.kind === "long";
-const appOf = (slug) => S.apps.find((a) => a.slug === slug) ?? { icon: "", name: slug, color: "#888" };
+const TALE_APP = "wheredgainsgo";
+const appOf = (slug) => S.apps.find((a) => a.slug === slug) ?? S.apps.find((a) => a.slug === TALE_APP) ?? { icon: "", name: slug, color: "#888" };
 
 /** Étape d'une vidéo dans le parcours : à rendre → prête → programmée → publiée. */
 function stageOf(v) {
@@ -555,8 +665,46 @@ const TABS = [
   ["tiktok", "TikTok", "tiktok"],
   ["settings", "Réglages", "gear"],
 ];
+const TABS_ST = [
+  ["tales", "Aujourd'hui", "home"],
+  ["ideas", "Idées", "bulb"],
+  ["stories", "Stories", "film"],
+  ["calendar", "Calendrier", "cal"],
+  ["settings", "Réglages", "gear"],
+];
+
+/* ------------------------------------------------------------------ Mode Pubs / Stories (gardé par navigateur) */
+let mode = (() => { try { return localStorage.getItem("mode") === "stories" ? "stories" : "pubs"; } catch { return "pubs"; } })();
+const tabsOf = (m = mode) => (m === "stories" ? TABS_ST : TABS);
+const isTaleId = (id) => /^tale-/.test(id ?? "");
+/** S et TT filtrés sur le mode : les stories n'apparaissent jamais côté Pubs, et inversement. */
+function applyMode() {
+  const st = mode === "stories";
+  document.body.classList.toggle("m-stories", st);
+  document.querySelectorAll("#modeSeg button").forEach((b) => b.classList.toggle("on", b.dataset.v === mode));
+  if (RAW) S = { ...RAW, videos: RAW.videos.filter((v) => (v.kind === "tale" || isTaleId(v.id)) === st) };
+  if (TTRAW) TT = { ...TTRAW, posts: TTRAW.posts.filter((p) => isTaleId(p.videoId) === st), videos: TTRAW.videos.filter((v) => isTaleId(v.id) === st) };
+}
+function setMode(m) {
+  if (m === mode) return;
+  mode = m;
+  try { localStorage.setItem("mode", m); } catch {}
+  applyMode();
+  go(tabsOf().some((x) => x[0] === tab) ? tab : tabsOf()[0][0]);
+  refresh();
+}
+$("#modeSeg").onclick = (e) => { const b = e.target.closest("button"); if (b) setMode(b.dataset.v); };
+
 function go(t) {
-  tab = TABS.some((x) => x[0] === t) ? t : "today";
+  // Un lien vers une page de l'autre mode (#today, #ideas…) bascule de mode
+  const other = mode === "stories" ? "pubs" : "stories";
+  if (!tabsOf().some((x) => x[0] === t) && tabsOf(other).some((x) => x[0] === t)) {
+    mode = other;
+    try { localStorage.setItem("mode", mode); } catch {}
+    applyMode();
+    if (S) refresh();
+  }
+  tab = tabsOf().some((x) => x[0] === t) ? t : tabsOf()[0][0];
   document.querySelectorAll("main > section").forEach((s) => (s.hidden = s.id !== `tab-${tab}`));
   if (location.hash.slice(1) !== tab) history.replaceState(null, "", `#${tab}`);
   renderAll();
@@ -566,8 +714,10 @@ window.addEventListener("hashchange", () => go(location.hash.slice(1)));
 function renderNav() {
   const week = timeline().filter((x) => !x.done && new Date(x.at) > Date.now() && new Date(x.at) < Date.now() + 7 * 864e5).length;
   const drafts = (TT?.posts ?? []).filter((p) => p.status === "draft" || p.status === "error").length;
-  const counts = { calendar: week, library: S.videos.length, tiktok: drafts || "" };
-  setHTML($("#nav"), TABS.map(([k, l, i]) => `<a data-go="${k}" class="${tab === k ? "on" : ""}">${ic(i)}${l}${counts[k] ? `<span class="n">${counts[k]}</span>` : ""}</a>`).join(""));
+  const counts = mode === "stories"
+    ? { calendar: week, ideas: TL?.ideas.length || "", stories: (TL?.tales ?? []).filter((t) => t.status === "script" || t.status === "error").length || "" }
+    : { calendar: week, library: S.videos.length, tiktok: drafts || "" };
+  setHTML($("#nav"), tabsOf().map(([k, l, i]) => `<a data-go="${k}" class="${tab === k ? "on" : ""}">${ic(i)}${l}${counts[k] ? `<span class="n">${counts[k]}</span>` : ""}</a>`).join(""));
   const y = S.youtube, t = TT?.status;
   setHTML($("#sideConn"), `
     <a class="conn" href="${y.connected ? `https://studio.youtube.com` : y.hasSecret ? "/api/youtube/auth" : "#settings"}" ${y.connected ? 'target="_blank"' : ""}>${y.channel?.thumb ? `<img src="${y.channel.thumb}" referrerpolicy="no-referrer" onerror="this.replaceWith(document.createRange().createContextualFragment(platIc('yt')))">` : platIc("yt")}<span class="lbl">${esc(y.connected ? y.channel?.title ?? "YouTube" : "Connecter YouTube")}</span><span class="st ${y.connected ? "" : "off"}"></span></a>
@@ -598,7 +748,7 @@ function renderAlerts() {
   if (!y.hasSecret) a += `<div class="alert">${ic("alert")}<div><b>YouTube n'est pas encore configuré.</b> Suis <code>docs/YOUTUBE_SETUP.md</code> puis place <code>client_secret.json</code> à la racine du projet. Tu peux déjà rendre les vidéos.</div></div>`;
   else if (!y.connected) a += `<div class="alert">${ic("alert")}<div><b>YouTube est déconnecté</b> : les envois sont en pause. <a href="/api/youtube/auth" style="text-decoration:underline">Reconnecter</a></div></div>`;
   if (S.upload.lastError) a += transient(S.upload.lastError) ? `<div class="alert">${ic("clock")}<div>${esc(/quota/i.test(S.upload.lastError) ? S.upload.lastError : "Un envoi YouTube a été interrompu : nouvel essai automatique au prochain passage de l'autopilote.")}</div></div>` : `<div class="alert red">${ic("alert")}<div>${esc(S.upload.lastError)}</div></div>`;
-  if (S.settings.frEnabled === false) a += `<div class="alert">${ic("alert")}<div><b>Vidéos FR en pause</b> : rien n'est rendu, planifié ni envoyé en français (rien n'est supprimé). Pense à « Recalculer le planning » pour resserrer les sorties EN. <a href="#" data-frtoggle style="text-decoration:underline">Réactiver le FR</a></div></div>`;
+  if (S.settings.frEnabled === false && mode === "pubs") a += `<div class="alert">${ic("alert")}<div><b>Vidéos FR en pause</b> : rien n'est rendu, planifié ni envoyé en français (rien n'est supprimé). Pense à « Recalculer le planning » pour resserrer les sorties EN. <a href="#" data-frtoggle style="text-decoration:underline">Réactiver le FR</a></div></div>`;
   setHTML($("#alerts"), a);
 }
 
@@ -657,7 +807,7 @@ function renderToday() {
     html += `<div class="job" style="margin-top:${c.id ? 18 : 0}px"><img src="${appOf(v.slug).icon}"><div style="min-width:0"><div class="t">Envoi YouTube · ${esc(v.title)}</div><div class="note">Sortira ${fmtDate(v.publishAt)} · ${done + 1}/${u.total ?? 1} de ce lot</div></div></div>
       <div class="bar lg"><i style="width:${u.progress * 100}%;background:var(--yt)"></i></div><div class="prow"><span>${Math.round(u.progress * 100)} % envoyé</span><span>${u.queue.length > 1 ? `${u.queue.length - 1} autre(s) après` : "dernière du lot"}</span></div>`;
   }
-  if (!c.id && !u.id) html += `<div class="empty" style="padding:18px 0 8px"><b>Rien ne tourne</b>${S.settings.autopilot ? `L'autopilote repasse ${rel(new Date(S.autopilot.nextRun).toISOString())}.` : "L'autopilote est désactivé (Réglages)."}</div>`;
+  if (!byId[c.id] && !byId[u.id]) html += `<div class="empty" style="padding:18px 0 8px"><b>Rien ne tourne</b>${S.settings.autopilot ? `L'autopilote repasse ${rel(new Date(S.autopilot.nextRun).toISOString())}.` : "L'autopilote est désactivé (Réglages)."}</div>`;
   if (q.length) {
     let t = now + (c.id && byId[c.id] ? Math.max(0, (avg[byId[c.id].kind] ?? 150) - (now - c.startedAt) / 1000) * 1000 : 0);
     const items = q.map((id) => { const v = byId[id]; t += (avg[v?.kind] ?? 150) * 1000; return { v, end: t }; }).filter((x) => x.v);
@@ -706,7 +856,7 @@ function itemRow(x) {
     const v = x.v;
     const thumb = v.rendered ? `<img class="mini" src="/out/${v.id}.jpg${bust(v)}" onerror="this.src='${appOf(v.slug).icon}'">` : `<img class="mini" src="${appOf(v.slug).icon}">`;
     const link = v.youtubeId ? (v.published ? `https://youtu.be/${v.youtubeId}` : `https://studio.youtube.com/video/${v.youtubeId}/edit`) : null;
-    return `<${link ? `a href="${link}" target="_blank"` : `div data-play="${v.rendered ? v.id : ""}" style="cursor:${v.rendered ? "pointer" : "default"}"`} class="row-item">${thumb}${platIc("yt")}
+    return `<${link ? `a href="${link}" target="_blank"` : `div data-play="${v.rendered ? v.id : ""}" style="cursor:${v.rendered ? "pointer" : "default"}"`} class="row-item ${v.paused && !v.youtubeId ? "paused" : ""}">${thumb}${platIc("yt")}
       <div class="tt"><b>${esc(v.title)}</b><span>${esc(v.appName)} · ${kindLabel(v)} · ${v.lang.toUpperCase()}</span></div>
       <div class="when"><b>${x.done ? rel(x.at) : rel(x.at)}</b>${chip(statusOf(v))}</div></${link ? "a" : "div"}>`;
   }
@@ -719,6 +869,7 @@ function itemRow(x) {
 /* ------------------------------------------------------------------ Calendrier */
 function renderCalendar() {
   if ($("#tab-calendar").contains(document.activeElement) && document.activeElement.tagName === "INPUT") return;
+  $("#calSub").textContent = mode === "stories" ? "Les stories qui sortent, sur YouTube et TikTok, jour par jour." : "Tout ce qui sort, sur YouTube et TikTok, jour par jour.";
   const now = Date.now();
   const all = timeline().filter((x) => !cal.plat || x.plat === cal.plat);
   // Bandeau 14 jours
@@ -836,6 +987,7 @@ function renderSettings() {
   document.querySelectorAll("[data-s]").forEach((el) => { if (document.activeElement !== el) el.value = S.settings[el.dataset.s]; });
   $("#autoToggle").classList.toggle("on", !!S.settings.autopilot);
   for (const id of ["#frToggle", "#frToggle2"]) $(id).classList.toggle("on", S.settings.frEnabled !== false);
+  $("#taleTtToggle").classList.toggle("on", !!S.settings.taleAutoTikTok);
   const y = S.youtube;
   setHTML($("#ytBox"), y.hasSecret
     ? (y.connected ? `<div class="conn" style="margin-bottom:10px">${y.channel?.thumb ? `<img src="${y.channel.thumb}" referrerpolicy="no-referrer" onerror="this.replaceWith(document.createRange().createContextualFragment(platIc('yt')))">` : platIc("yt")}<span class="lbl">${esc(y.channel?.title ?? "Chaîne connectée")}</span><span class="note" style="margin-left:auto">${Number(y.channel?.subs ?? 0).toLocaleString(LOCALE)} abonnés</span></div>
@@ -854,14 +1006,15 @@ function renderSettings() {
 
 /* ------------------------------------------------------------------ Dock (progression hors page Aujourd'hui) */
 function renderDock() {
-  const c = S.render.current, q = S.render.queue, u = S.upload;
-  if ((!c.id && !q.length && !u.id) || tab === "today") { $("#dock").style.display = "none"; return; }
+  const c = S.render.current, q = S.render.queue, u = S.upload, j = mode === "stories" ? TL?.job : null;
+  if ((!c.id && !q.length && !u.id && !j) || tab === "today" || tab === "tales") { $("#dock").style.display = "none"; return; }
   $("#dock").style.display = "block";
   const v = S.videos.find((x) => x.id === c.id), uv = S.videos.find((x) => x.id === u.id);
   setHTML($("#dock"), `
+    ${j ? `<div style="display:flex;gap:8px;align-items:center;font-weight:600;font-size:13px"><span class="spin" style="color:var(--accent)"></span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(jobTitle(j))}</span></div><div class="note" style="margin-bottom:${c.id || q.length || u.id ? 12 : 0}px">${esc(j.stage ?? "")}</div>` : ""}
     ${v ? `<div style="display:flex;gap:8px;align-items:center;font-weight:600;font-size:13px"><span class="spin" style="color:var(--accent)"></span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(v.title)}</span><span class="note">${Math.round(jobProgress(c) * 100)} %</span></div><div class="bar thin" style="margin:8px 0 4px"><i style="width:${jobProgress(c) * 100}%;background:var(--accent)"></i></div><div class="note">${esc(c.stage)}${q.length ? ` · ${q.length} en file` : ""}</div>` : q.length ? `<div class="note">${q.length} vidéo(s) en file de rendu</div>` : ""}
     ${uv ? `<div style="margin-top:${v ? 12 : 0}px;font-weight:600;font-size:13px">Envoi YouTube · ${esc(uv.title)}</div><div class="bar thin" style="margin-top:8px"><i style="width:${u.progress * 100}%;background:var(--yt)"></i></div>` : ""}
-    <a class="btn sm ghost" href="#today" style="margin-top:8px">Détails</a>`);
+    <a class="btn sm ghost" href="#${mode === "stories" ? "tales" : "today"}" style="margin-top:8px">Détails</a>`);
 }
 
 /* ------------------------------------------------------------------ TikTok */
@@ -922,7 +1075,7 @@ function renderTikTok() {
 }
 $("#ttFilter").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; ttFilterVal = b.dataset.v; renderTikTok(); };
 
-async function refreshTikTok() { TT = await ttApi("/api/tiktok"); renderTikTok(); if (S) { renderNav(); renderSettings(); } }
+async function refreshTikTok() { TTRAW = await ttApi("/api/tiktok"); applyMode(); renderTikTok(); if (S) { renderNav(); renderSettings(); } }
 
 /** Parcourt les dossiers déposés (glisser-déposer) et renvoie [{file, path}]. */
 async function collectEntries(dt) {
@@ -1035,6 +1188,335 @@ function openPlayer(id) {
 }
 $("#player").addEventListener("close", () => $("#pv").pause());
 
+/* ------------------------------------------------------------------ Stories crypto */
+const WGG_FEATURES = { pnl: "Vrai P&L, gas compris", address: "Une adresse, zéro signature", grade: "Wallet noté", whatif: "Et si… tout en ETH", regrets: "Pires calls, datés", gas: "Gas en burritos", trophies: "Trophées à débloquer", math: "FIFO, pas de boîte noire" };
+const ROLES = { hook: "Accroche", context: "Contexte", build: "Montée", twist: "Rebondissement", product: "Produit", payoff: "Chute", outro: "Outro" };
+const TSTEPS = ["Script", "Validé", "Voix & musique", "Composition", "Rendu", "Programmée"];
+const featLabel = (id) => WGG_FEATURES[id] ?? id ?? "—";
+const tl = () => TL ?? { ideas: [], tales: [], job: null };
+const taleBySlug = (slug) => tl().tales.find((t) => t.slug === slug);
+const vOf = (t) => S.videos.find((v) => v.id === t.id);
+/** *mot* = accent (même convention que l'accroche à l'écran). */
+const accent = (s) => esc(s).replace(/\*([^*]+)\*/g, '<span class="acc">$1</span>');
+const safeUrl = (u) => (/^https?:\/\//i.test(u ?? "") ? u : "#");
+const fmtDay = (d) => d ? new Date(`${d.slice(0, 10)}T12:00`).toLocaleDateString(LOCALE, { day: "numeric", month: "short", year: "numeric" }) : "—";
+const estDur = (text) => Math.max(1.6, String(text ?? "").split(/\s+/).filter(Boolean).length / 2.7);
+const jobLog = (j) => (Array.isArray(j.log) ? j.log.join("\n") : String(j.log ?? ""));
+const tail = (s, n) => String(s ?? "").split("\n").slice(-n).join("\n");
+const jobTitle = (j) => { if (!j.slug) return "Claude · recherche d'histoires"; const t = taleBySlug(j.slug); return `${t?.yt?.title || t?.slug || j.slug}`; };
+const typeChip = (x) => x.type === "recent" ? `<span class="chip ready">Récent · ${fmtDay(x.eventDate)}</span>` : `<span class="chip sched">Insolite</span><span class="tag">${fmtDay(x.eventDate)}</span>`;
+const srcList = (srcs) => srcs?.length ? `<div class="srcs">${srcs.map((s) => `<a href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener noreferrer" title="${esc(s.url)}">${ic("ext")}<span>${esc(s.title || s.url)}</span>${s.date ? `<small>${fmtDay(s.date)}</small>` : ""}</a>`).join("")}</div>` : `<div class="note">Aucune source.</div>`;
+const busy = new Set();
+const openLogs = new Set();
+const noteDraft = {};
+let taleFilterVal = "active";
+
+const isSched = (t) => !!(t.youtubeId || vOf(t)?.youtubeId);
+const isPub = (t) => !!vOf(t)?.published;
+const isRenderedTale = (t) => !!(t.rendered || vOf(t)?.rendered || t.status === "rendered");
+/** Messages d'erreur d'une story (pipeline, rendu, envoi). */
+function taleErrors(t) {
+  const v = vOf(t), out = [];
+  if (t.error) out.push(t.error);
+  if (v?.renderError && !v.rendered) out.push(`Rendu : ${v.renderError}`);
+  if (v?.uploadError && !v.youtubeId && !transient(v.uploadError)) out.push(`Envoi YouTube : ${v.uploadError}`);
+  return out;
+}
+/** Avancement dans les 6 étapes : done = nombre d'étapes finies, act = étape en cours, err = étape en échec. */
+function taleStep(t) {
+  if (isSched(t)) return { done: 6 };
+  if (t.status === "error" || taleErrors(t).length) { const at = vOf(t)?.renderError ? 4 : !t.voice ? 2 : !t.compose?.at ? 3 : 4; return { done: at, err: at }; }
+  if (isRenderedTale(t)) return { done: 5, act: 5 };
+  const d = { script: 0, approved: 2, voiced: 3, composing: 3, composed: 4 }[t.status] ?? 0;
+  return { done: d, act: d };
+}
+/** Statut affiché sur la carte (ce qui se passe en direct d'abord). */
+function taleStatus(t) {
+  const c = S.render.current, j = tl().job;
+  if (j && j.slug === t.slug) return ["work", j.stage || "Claude travaille…"];
+  if (c.id === t.id) return ["work", c.stageIndex === 3 ? `Rendu ${Math.round(c.progress * 100)} %` : c.stage || "Rendu…"];
+  if (S.render.queue.includes(t.id)) return ["work", "En file de rendu"];
+  if (S.upload.id === t.id) return ["work", `Envoi ${Math.round(S.upload.progress * 100)} %`];
+  if (t.status === "error" || taleErrors(t).length) return ["err", "Erreur"];
+  if (isPub(t)) return ["pub", "Publiée"];
+  if (isSched(t)) return ["sched", `Sort ${fmtDate(t.publishAt ?? vOf(t)?.publishAt)}`];
+  if (isRenderedTale(t)) return ["ready", "Rendue · en attente de créneau"];
+  return { script: ["todo", "Script à valider"], approved: ["ready", "Validée · voix à venir"], voiced: ["ready", "Voix prête"], composing: ["work", "Composition…"], composed: ["ready", "Composée · rendu à venir"] }[t.status] ?? ["todo", t.status];
+}
+const taleRank = (t) => (t.status === "error" || taleErrors(t).length ? 0 : t.status === "script" ? 1 : !isSched(t) ? 2 : !isPub(t) ? 3 : 4);
+function storiesUnavailable(el) {
+  setHTML(el, TL !== null ? "" : `<div class="alert red">${ic("alert")}<div><b>Le pipeline des stories ne répond pas.</b> <code>/api/tales</code> est introuvable ou en erreur sur ce serveur : relance la plateforme après la mise à jour.</div></div>`);
+}
+/** Appel API d'une action : affiche l'erreur renvoyée par le serveur plutôt que de l'avaler. */
+async function taleAct(p) {
+  const r = await p.catch((e) => ({ error: e.message }));
+  if (r?.error) alert(r.error);
+  return r;
+}
+
+/* --- Aujourd'hui */
+function renderTalesToday() {
+  const now = Date.now(), { ideas, tales, job } = tl();
+  const d = new Date().toLocaleDateString(LOCALE, { weekday: "long", day: "numeric", month: "long" });
+  $("#talesDate").textContent = d[0].toUpperCase() + d.slice(1);
+  storiesUnavailable($("#talesAlert"));
+
+  const scripts = tales.filter((t) => t.status === "script");
+  const prod = tales.filter((t) => t.status !== "script" && !isSched(t));
+  const sched = tales.filter((t) => isSched(t) && !isPub(t)), pub = tales.filter(isPub);
+  const ttSched = (TT?.posts ?? []).filter((p) => p.status === "scheduled").length;
+  const stages = [
+    ["ideas", "Idées", "var(--c-todo)", ideas.length, "à trier, sourcées"],
+    ["stories", "À valider", "var(--c-work)", scripts.length, "scripts qui t'attendent"],
+    ["stories", "En fabrication", "var(--c-ready)", prod.length, "voix, visuels, rendu"],
+    ["calendar", "Programmées", "var(--c-sched)", sched.length, `sur YouTube, sortie auto${ttSched ? `<br>+ ${ttSched} TikTok programmé(s)` : ""}${pub.length ? `<br>${pub.length} déjà publiée(s)` : ""}`],
+  ];
+  setHTML($("#tPipe"), stages.map(([go, l, c, n, desc], i) => `<div class="card stage" data-go="${go}">
+      <div class="top"><span class="dot" style="background:${c}"></span>${l}</div><div class="num">${n}</div><div class="desc">${desc}</div>
+      ${i < 3 ? `<span class="arrow"><svg class="i" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></span>` : ""}</div>`).join(""));
+
+  // En ce moment : job Claude / ElevenLabs, puis rendu et envoi d'une story
+  const c = S.render.current, u = S.upload;
+  const rv = S.videos.find((v) => v.id === c.id), uv = S.videos.find((v) => v.id === u.id);
+  let html = `<div class="card-h"><span class="live ${job || rv || uv ? "" : "off"}"></span><h3>En ce moment</h3></div>`;
+  if (job) {
+    const log = tail(jobLog(job), 14);
+    html += `<div class="job"><span class="jobic">${ic("sparkle")}</span><div style="min-width:0"><div class="t">${esc(jobTitle(job))}</div><div class="note">${esc(job.stage ?? "")}${job.startedAt ? ` · depuis ${fmtDur((now - new Date(job.startedAt)) / 1000)}` : ""}</div></div></div>
+      ${log.trim() ? `<pre class="log" id="tJobLog">${esc(log)}</pre>` : ""}`;
+  }
+  if (rv) {
+    const p = jobProgress(c);
+    html += `<div class="job" style="margin-top:${job ? 16 : 0}px"><span class="jobic">${ic("film")}</span><div style="min-width:0"><div class="t">Rendu · ${esc(rv.title)}</div><div class="note">${esc(c.stage || "")}</div></div></div>
+      <div class="bar lg"><i style="width:${p * 100}%;background:var(--accent)"></i></div><div class="prow"><span>${Math.round(p * 100)} %</span><span>depuis ${fmtDur((now - c.startedAt) / 1000)}</span></div>`;
+  }
+  if (uv) html += `<div class="job" style="margin-top:16px">${platIc("yt")}<div style="min-width:0"><div class="t">Envoi YouTube · ${esc(uv.title)}</div></div></div><div class="bar lg"><i style="width:${u.progress * 100}%;background:var(--yt)"></i></div>`;
+  if (!job && !rv && !uv) html += `<div class="empty" style="padding:18px 0 8px"><b>Rien ne tourne</b>Valide un script ou cherche de nouvelles histoires.</div>`;
+  setHTML($("#tNow"), html);
+  const pre = $("#tJobLog"); if (pre) pre.scrollTop = pre.scrollHeight;
+
+  // À faire
+  const todo = tales.filter((t) => t.status === "script" || taleRank(t) === 0);
+  setHTML($("#tTodo"), `<div class="card-h"><h3>À faire</h3><span class="spacer"></span><a class="btn sm ghost" href="#stories">Toutes les stories</a></div>
+    ${todo.map((t) => `<a href="#stories" class="row-item"><span class="jobic" style="width:34px;height:34px;border-radius:9px">${ic(taleRank(t) === 0 ? "alert" : "check")}</span><div class="tt"><b>${esc(t.yt?.title || t.slug)}</b><span>${taleRank(t) === 0 ? esc(taleErrors(t)[0] ?? "Erreur") : `${t.beats.length} phrases · ${t.type === "recent" ? "Récent" : "Insolite"}`}</span></div><div class="when">${chip(taleStatus(t))}</div></a>`).join("")}
+    ${ideas.length ? `<a href="#ideas" class="row-item"><span class="jobic" style="width:34px;height:34px;border-radius:9px">${ic("bulb")}</span><div class="tt"><b>${ideas.length} idée(s) à trier</b><span>Choisis celles qui méritent un script</span></div></a>` : ""}
+    ${!todo.length && !ideas.length ? `<div class="empty"><b>Rien à valider</b>Lance « Chercher des histoires » dans Idées.</div>` : ""}`);
+
+  // Prochaines sorties / déjà publié (stories uniquement : S et TT sont filtrés)
+  const all = timeline();
+  const upcoming = all.filter((x) => !x.done && new Date(x.at) > now);
+  setHTML($("#tNext"), `<div class="card-h"><h3>Prochaines sorties</h3><span class="spacer"></span><a class="btn sm ghost" href="#calendar">Calendrier</a></div>
+    ${upcoming.slice(0, 8).map(itemRow).join("") || `<div class="empty"><b>Aucune story programmée</b>Les stories validées et rendues prennent le prochain créneau.</div>`}`);
+  const recent = all.filter((x) => x.done).reverse().slice(0, 6);
+  setHTML($("#tRecent"), `<div class="card-h"><h3>Déjà publié</h3></div>
+    ${recent.map(itemRow).join("") || `<div class="empty"><b>Encore rien de publié</b>Les premières stories apparaîtront ici.</div>`}`);
+}
+
+/* --- Idées */
+function ideaCard(i) {
+  const writing = busy.has(`idea:${i.id}`);
+  return `<div class="card idea">
+    <div class="trow">${typeChip(i)}</div>
+    <h3>${esc(i.title)}</h3>
+    <div class="hook">${accent(i.hook)}</div>
+    <p>${esc(i.summary)}</p>
+    ${srcList(i.sources)}
+    ${i.wggAngle ? `<div class="angle"><b>Angle Where'd Gains Go? · ${esc(featLabel(i.wggAngle.featureId))}</b>${esc(i.wggAngle.why)}</div>` : ""}
+    <div class="acts"><button class="btn sm primary" data-ideawrite="${esc(i.id)}" ${writing ? "disabled" : ""}>${writing ? '<span class="spin"></span>Écriture…' : `${ic("sparkle")}Écrire le script`}</button><button class="btn sm ghost" data-ideaskip="${esc(i.id)}" ${writing ? "disabled" : ""}>Ignorer</button></div>
+  </div>`;
+}
+function renderIdeas() {
+  const { ideas, job } = tl();
+  storiesUnavailable($("#ideasAlert"));
+  const searching = busy.has("search") || (job && !job.slug);
+  const b = $("#taleSearch");
+  b.disabled = !TL || searching;
+  setHTML(b, searching ? `<span class="spin"></span>Recherche en cours…` : `${ic("search")}Chercher des histoires`);
+  const tb = $("#taleTopicGo");
+  tb.disabled = !TL || busy.has("topic");
+  setHTML(tb, busy.has("topic") ? `<span class="spin"></span>Écriture…` : `${ic("sparkle")}Écrire le script`);
+  setHTML($("#ideaList"), ideas.map(ideaCard).join("")
+    || `<div class="card empty" style="grid-column:1/-1"><b>${searching ? "Claude cherche des histoires…" : "Aucune idée en attente"}</b>${searching ? `${job?.stage ? esc(job.stage) : "Ça peut prendre quelques minutes."}` : "Clique « Chercher des histoires », ou donne ton propre sujet ci-dessus."}</div>`);
+}
+
+/* --- Stories */
+function beatEdit(b, i) {
+  return `<div class="beat ${b.role === "product" ? "product" : ""}" data-beat="${esc(b.id)}">
+    <div class="beat-h"><span class="n">${i + 1}</span><select data-bf="role">${Object.entries(ROLES).map(([k, l]) => `<option value="${k}" ${k === b.role ? "selected" : ""}>${l}</option>`).join("")}</select>
+      <span class="spacer"></span><span class="note">≈ ${estDur(b.text).toFixed(1)} s</span><button class="btn sm icon ghost" data-beatdel="${esc(b.id)}" title="Supprimer cette phrase">${ic("trash")}</button></div>
+    <textarea data-bf="text" rows="2" placeholder="Phrase dite par la voix off (anglais)">${esc(b.text)}</textarea>
+    <textarea data-bf="visual" rows="2" class="vis" placeholder="Brief visuel : ce que l'image montre pendant cette phrase">${esc(b.visual)}</textarea>
+  </div>`;
+}
+function scriptEditor(t) {
+  const est = t.beats.reduce((a, b) => a + estDur(b.text), 0);
+  const feats = { ...WGG_FEATURES }; if (t.product?.featureId && !feats[t.product.featureId]) feats[t.product.featureId] = t.product.featureId;
+  const title = t.yt?.title ?? "";
+  return `<div class="tale-grid" style="margin-top:6px">
+    <div>
+      <div class="trow"><span class="lbl-up" style="margin:0">Script · ${t.beats.length} phrases · <span style="color:${est < 30 || est > 60 ? "var(--c-work)" : "inherit"}">≈ ${Math.round(est)} s</span></span><span class="spacer"></span><span class="note">Enregistré automatiquement</span></div>
+      ${t.beats.map(beatEdit).join("")}
+      <button class="btn sm ghost" data-beatadd="${esc(t.slug)}" style="margin-top:8px">${ic("plus")}Ajouter une phrase</button>
+    </div>
+    <div class="tale-side">
+      <div><span class="lbl-up">Titre YouTube</span><input data-tf="yttitle" maxlength="100" value="${esc(title)}"><div class="count ${title.length > 100 ? "over" : ""}" style="margin-top:2px">${title.length}/100</div></div>
+      <div><span class="lbl-up">Moment produit</span><select data-tf="feature">${Object.entries(feats).map(([k, l]) => `<option value="${esc(k)}" ${k === t.product?.featureId ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>
+        <div class="note" style="margin-top:4px">Le seul passage produit (~5 s), sur la phrase « Produit ».</div></div>
+      <div><span class="lbl-up">Résumé</span><div class="note">${esc(t.summary)}</div></div>
+      <div><span class="lbl-up">Sources</span>${srcList(t.sources)}</div>
+      ${t.facts?.length ? `<details><summary>Faits vérifiés (${t.facts.length})</summary><ul class="note" style="padding-left:18px;margin:6px 0 0">${t.facts.map((f) => `<li>${esc(f)}</li>`).join("")}</ul></details>` : ""}
+      <button class="btn primary" data-taleapprove="${esc(t.slug)}" style="justify-content:center" ${busy.has(`approve:${t.slug}`) ? "disabled" : ""}>${busy.has(`approve:${t.slug}`) ? '<span class="spin"></span>Validation…' : `${ic("check")}Valider le script`}</button>
+      <div class="note" style="margin-top:-6px">Ensuite tout est automatique : voix, musique, visuels écrits par Claude, rendu et programmation.</div>
+    </div></div>`;
+}
+function taleProduction(t) {
+  const v = vOf(t), rendered = isRenderedTale(t), sched = isSched(t), j = tl().job;
+  const composing = t.status === "composing" || (j && j.slug === t.slug);
+  const composedOnce = !!t.compose?.at || ["composed", "rendered"].includes(t.status) || rendered;
+  const sheet = `/out/tales-preview/${encodeURIComponent(t.slug)}/sheet.png${t.compose?.at ? `?t=${encodeURIComponent(t.compose.at)}` : ""}`;
+  const pending = { approved: "Voix et musique en préparation…", voiced: "Claude va composer les visuels…", composing: "Claude compose les visuels…", composed: "Composition terminée, rendu à venir…" }[t.status] ?? "Aperçu disponible après la composition.";
+  const at = t.publishAt ?? v?.publishAt;
+  const ytId = t.youtubeId ?? v?.youtubeId;
+  return `<div class="tale-grid" style="margin-top:6px">
+    <div class="tale-media">
+      ${rendered ? `<video src="/out/${esc(t.id)}.mp4${v ? bust(v) : ""}" controls preload="metadata" playsinline></video>` : ""}
+      ${composedOnce ? `<a class="sheet" href="${sheet}" target="_blank"><img src="${sheet}" alt="Planche contact" onerror="this.parentNode.hidden=true"><span class="note">Planche contact · une image par phrase</span></a>` : ""}
+      ${!rendered && !composedOnce ? `<div class="empty">${t.status === "error" ? "" : '<span class="spin" style="display:inline-block;margin-bottom:8px;color:var(--accent)"></span>'}<b>${t.status === "error" ? "Pas encore d'aperçu" : "En fabrication"}</b>${t.status === "error" ? "" : pending}</div>` : ""}
+    </div>
+    <div class="tale-side">
+      <div><span class="lbl-up">Publication</span>
+        <div class="note trow">${sched ? `${platIc("yt")}${isPub(t) ? "Publiée" : "Sort"} ${fmtDate(at)}` : at ? `Créneau prévu ${fmtDate(at)}` : "Pas encore de créneau : il est attribué une fois la vidéo rendue."}</div>
+        ${ytId ? `<a class="btn sm" style="margin-top:6px" target="_blank" href="${isPub(t) ? `https://youtu.be/${ytId}` : `https://studio.youtube.com/video/${ytId}/edit`}">${ic("ext")}${isPub(t) ? "Voir sur YouTube" : "YouTube Studio"}</a>` : ""}</div>
+      ${sched || !(composedOnce || t.status === "error") ? "" : `<div><span class="lbl-up">Recomposer avec une note</span>
+        <textarea data-tnote="${esc(t.slug)}" rows="3" placeholder="Ex. : plus de rythme sur le rebondissement, le graphique de la phrase 3 est illisible…">${esc(noteDraft[t.slug] ?? "")}</textarea>
+        <div class="trow" style="margin-top:6px"><button class="btn sm" data-talecompose="${esc(t.slug)}" ${composing || t.status === "approved" ? "disabled" : ""}>${ic("sparkle")}Recomposer</button>
+          <button class="btn sm" data-talerender="${esc(t.id)}" ${composedOnce && !composing ? "" : "disabled"}>${ic("redo")}Re-rendre</button></div>
+        ${t.compose?.notes?.length ? `<div class="note" style="margin-top:6px">Notes déjà données : ${t.compose.notes.map((n) => `« ${esc(n)} »`).join(" · ")}</div>` : ""}</div>`}
+      <details><summary>Script validé · ${t.beats.length} phrases</summary><div class="script-ro" style="margin-top:6px">${t.beats.map((b) => `<div class="b"><span class="tag" style="justify-self:start">${ROLES[b.role] ?? b.role}</span><div>${esc(b.text)}<small>${esc(b.visual)}</small></div></div>`).join("")}</div></details>
+      <details><summary>Sources (${t.sources?.length ?? 0}) · ${esc(featLabel(t.product?.featureId))}</summary><div style="margin-top:6px">${srcList(t.sources)}</div></details>
+    </div></div>`;
+}
+function taleHead(t) {
+  const s = taleStep(t), c = S.render.current, errs = taleErrors(t);
+  const live = (tl().job?.slug === t.slug) || c.id === t.id;
+  const steps = TSTEPS.map((l, i) => {
+    const cls = i === s.err ? "err" : i < s.done ? "done" : i === s.act ? "act" : "";
+    const icn = cls === "done" ? ic("check", 'style="width:12px;height:12px"') : cls === "err" ? ic("alert", 'style="width:12px;height:12px"') : cls === "act" && live ? '<span class="spin"></span>' : "";
+    return `<span class="step ${cls}">${icn}${l}${i === 4 && c.id === t.id && c.stageIndex === 3 ? ` ${Math.round(c.progress * 100)} %` : ""}</span>`;
+  }).join("");
+  return `<div class="trow">${typeChip(t)}${chip(taleStatus(t))}<span class="spacer"></span><button class="btn sm icon ghost" data-taledel="${esc(t.slug)}" title="Supprimer cette story">${ic("trash")}</button></div>
+    <h3>${esc(t.yt?.title || t.slug)}</h3><div class="hook muted">${accent(t.hook)}</div>
+    <div class="steps">${steps}</div>
+    ${errs.map((e) => `<div class="alert red" style="margin-bottom:10px">${ic("alert")}<div>${esc(e)}</div></div>`).join("")}`;
+}
+function taleLogPart(t) {
+  const j = tl().job, live = !!j && j.slug === t.slug;
+  const log = live ? jobLog(j) : t.compose?.log;
+  if (!log) return "";
+  const open = live || openLogs.has(t.slug);
+  return `<div class="trow" style="margin-top:12px"><button class="btn sm ghost" data-talelog="${esc(t.slug)}">${ic("clock")}${live ? "Journal en direct" : `${open ? "Masquer" : "Voir"} le journal de composition`}${!live && t.compose?.at ? ` · ${fmtDate(t.compose.at)}` : ""}</button></div>
+    ${open ? `<pre class="log">${esc(tail(log, live ? 60 : 1000))}</pre>` : ""}`;
+}
+/** Une carte par story, mise à jour par morceaux : une saisie en cours ou une vidéo qui joue ne sont jamais écrasées. */
+function fillTale(el, t) {
+  const part = (n) => el.querySelector(`[data-part="${n}"]`);
+  setHTML(part("head"), taleHead(t));
+  const main = part("main");
+  if (!main.contains(document.activeElement)) setHTML(main, t.status === "script" ? scriptEditor(t) : taleProduction(t));
+  const lg = part("log"), before = lg._h;
+  setHTML(lg, taleLogPart(t));
+  if (lg._h !== before) { const pre = lg.querySelector("pre"); if (pre) pre.scrollTop = pre.scrollHeight; }
+}
+function renderStories() {
+  storiesUnavailable($("#storiesAlert"));
+  const tales = tl().tales;
+  const cnt = { active: tales.filter((t) => !isSched(t)).length, sched: tales.filter(isSched).length, all: tales.length };
+  setHTML($("#taleFilter"), [["active", "En cours"], ["sched", "Programmées"], ["all", "Toutes"]].map(([k, l]) => `<button data-v="${k}" class="${taleFilterVal === k ? "on" : ""}">${l}<span class="n">${cnt[k]}</span></button>`).join(""));
+  const list = tales.filter((t) => taleFilterVal === "all" || (taleFilterVal === "sched") === isSched(t))
+    .sort((a, b) => taleRank(a) - taleRank(b) || (b.eventDate ?? "").localeCompare(a.eventDate ?? ""));
+  const box = $("#taleList"), key = list.map((t) => t.slug).join("|") || `empty:${taleFilterVal}`;
+  if (box._k !== key) {
+    box.innerHTML = list.map((t) => `<div class="card tale" data-tale="${esc(t.slug)}"><div data-part="head"></div><div data-part="main"></div><div data-part="log"></div></div>`).join("")
+      || `<div class="card empty"><b>${taleFilterVal === "sched" ? "Aucune story programmée" : "Aucune story en cours"}</b>${taleFilterVal === "sched" ? "" : `Choisis une idée dans <a href="#ideas" style="color:var(--accent)">Idées</a> pour écrire un script.`}</div>`;
+    box._k = key;
+  }
+  list.forEach((t) => fillTale(box.querySelector(`[data-tale="${CSS.escape(t.slug)}"]`), t));
+}
+$("#taleFilter").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; taleFilterVal = b.dataset.v; renderStories(); };
+$("#talesIdeasBtn").innerHTML = `${ic("bulb")}Idées`;
+
+/** Beats tels qu'ils sont dans l'éditeur (saisies pas encore enregistrées comprises). */
+const collectBeats = (card) => [...card.querySelectorAll("[data-beat]")].map((el) => ({
+  id: el.dataset.beat, role: el.querySelector('[data-bf="role"]').value, text: el.querySelector('[data-bf="text"]').value, visual: el.querySelector('[data-bf="visual"]').value,
+}));
+const patchTale = (slug, body) => taleAct(api(`/api/tales/${encodeURIComponent(slug)}`, body, "PATCH"));
+const taleList = $("#taleList");
+taleList.addEventListener("change", async (e) => {
+  const t = e.target, card = t.closest("[data-tale]"); if (!card) return;
+  const tale = taleBySlug(card.dataset.tale); if (!tale) return;
+  if (t.dataset.bf) await patchTale(tale.slug, { beats: collectBeats(card) });
+  else if (t.dataset.tf === "yttitle") await patchTale(tale.slug, { yt: { ...tale.yt, title: t.value } });
+  else if (t.dataset.tf === "feature") await patchTale(tale.slug, { product: { ...tale.product, featureId: t.value } });
+  else return;
+  if (t.tagName === "SELECT") t.blur();
+  refresh();
+});
+taleList.addEventListener("input", (e) => {
+  const t = e.target;
+  if (t.dataset.tnote) noteDraft[t.dataset.tnote] = t.value;
+  if (t.dataset.tf === "yttitle") { const c = t.nextElementSibling; c.textContent = `${t.value.length}/100`; c.classList.toggle("over", t.value.length > 100); }
+});
+document.body.addEventListener("click", async (e) => {
+  const t = e.target.closest("[data-ideawrite],[data-ideaskip],[data-taleapprove],[data-taledel],[data-talecompose],[data-talerender],[data-beatdel],[data-beatadd],[data-talelog],#taleSearch,#taleTopicGo");
+  if (!t) return;
+  const d = t.dataset;
+  if (t.id === "taleSearch") {
+    busy.add("search"); renderIdeas();
+    await taleAct(api("/api/tales/ideas/search", {}));
+    busy.delete("search");
+  } else if (t.id === "taleTopicGo") {
+    const topic = $("#taleTopic").value.trim(); if (!topic) return $("#taleTopic").focus();
+    busy.add("topic"); renderIdeas();
+    const r = await taleAct(api("/api/tales", { topic }));
+    busy.delete("topic");
+    if (!r?.error) { $("#taleTopic").value = ""; taleFilterVal = "active"; location.hash = "stories"; }
+  } else if (d.ideawrite) {
+    busy.add(`idea:${d.ideawrite}`); renderIdeas();
+    const r = await taleAct(api("/api/tales", { ideaId: d.ideawrite }));
+    busy.delete(`idea:${d.ideawrite}`);
+    if (!r?.error) { taleFilterVal = "active"; location.hash = "stories"; }
+  } else if (d.ideaskip) {
+    await taleAct(api(`/api/tales/ideas/${encodeURIComponent(d.ideaskip)}`, null, "DELETE"));
+  } else if (d.taleapprove) {
+    const card = t.closest("[data-tale]");
+    busy.add(`approve:${d.taleapprove}`);
+    await patchTale(d.taleapprove, { beats: collectBeats(card) }); // dernières saisies d'abord
+    await taleAct(api(`/api/tales/${encodeURIComponent(d.taleapprove)}/approve`, {}));
+    busy.delete(`approve:${d.taleapprove}`);
+  } else if (d.taledel) {
+    if (!confirm("Supprimer cette story (script, voix et visuels) ? Une vidéo déjà envoyée sur YouTube y reste.")) return;
+    await taleAct(api(`/api/tales/${encodeURIComponent(d.taledel)}`, null, "DELETE"));
+  } else if (d.talecompose) {
+    const note = (noteDraft[d.talecompose] ?? "").trim();
+    const r = await taleAct(api(`/api/tales/${encodeURIComponent(d.talecompose)}/compose`, { note }));
+    if (!r?.error) delete noteDraft[d.talecompose];
+  } else if (d.talerender) {
+    await taleAct(api("/api/render", { ids: [d.talerender], force: true }));
+  } else if (d.beatdel || d.beatadd) {
+    const card = t.closest("[data-tale]"), slug = card.dataset.tale;
+    let beats = collectBeats(card);
+    if (d.beatdel) beats = beats.filter((b) => b.id !== d.beatdel);
+    else beats.push({ id: `b${Date.now().toString(36)}`, role: "build", text: "", visual: "" });
+    await patchTale(slug, { beats });
+  } else if (d.talelog) {
+    openLogs.has(d.talelog) ? openLogs.delete(d.talelog) : openLogs.add(d.talelog);
+    return renderStories();
+  }
+  if (document.activeElement && document.activeElement !== document.body && !document.activeElement.matches("input,textarea")) document.activeElement.blur();
+  refresh();
+});
+$("#taleTopic").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#taleTopicGo").click(); });
+$("#taleTtToggle").onclick = async () => { await api("/api/settings", { taleAutoTikTok: !S.settings.taleAutoTikTok }, "PATCH"); refresh(); };
+
 /* ------------------------------------------------------------------ Actions globales */
 document.body.addEventListener("click", async (e) => {
   const t = e.target.closest("[data-go],[data-render],[data-upload],[data-play],[data-app],[data-unlink],[data-stage],[data-jump],[data-calpast],[data-autotoggle],#cancelQ");
@@ -1087,16 +1569,23 @@ function renderAll() {
   if (tab === "calendar") renderCalendar();
   if (tab === "library") renderLibrary();
   if (tab === "tiktok") renderTikTok();
+  if (tab === "tales") renderTalesToday();
+  if (tab === "ideas") renderIdeas();
+  if (tab === "stories") renderStories();
 }
 async function refresh() {
-  S = await api("/api/state");
-  if (S.profile && !S.profile.setupDone && !sessionStorage.getItem("skipSetup")) { location.href = "/setup.html"; return; } // premier lancement → guide
+  const [st, tales] = await Promise.all([api("/api/state"), mode === "stories" ? api("/api/tales").catch(() => null) : null]);
+  RAW = st;
+  if (mode === "stories") TL = Array.isArray(tales?.tales) ? { ideas: [], job: null, ...tales } : null;
+  if (RAW.profile && !RAW.profile.setupDone && !sessionStorage.getItem("skipSetup")) { location.href = "/setup.html"; return; } // premier lancement → guide
+  applyMode();
   renderAll();
 }
 
 renderTheme();
+applyMode();
 (async () => {
-  const start = location.hash.slice(1) || "today";
+  const start = location.hash.slice(1) || tabsOf()[0][0];
   await Promise.all([refresh(), refreshTikTok()]);
   go(start);
 })();

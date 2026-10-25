@@ -5,6 +5,9 @@ import type { AppContent, Lang, VideoProps, VoiceTrack } from "./lib/types";
 import { Video } from "./compositions/Video";
 import { Thumbnail } from "./compositions/Thumbnail";
 import { KeynoteVideo } from "./keynote/Keynote";
+import { taleTimeline } from "../shared/tales.mjs";
+import { makeTaleVideo } from "./tales/TaleVideo";
+import type { StoryProps, Tale } from "./tales/types";
 // Toutes les apps de content/apps/*.json sont chargées automatiquement (ajouter un fichier = nouvelles vidéos).
 const appFiles = require.context("../content/apps", false, /\.json$/);
 const ORDER = ["hyrox", "sociaflow", "beautyflow", "mrrkit", "decido", "revenuepilot"];
@@ -17,6 +20,23 @@ const LANGS: Lang[] = ["fr", "en"];
 // Voix off (générée par scripts/gen-voice.mjs) : facultative.
 const voiceFiles = require.context("../content", false, /^\.\/voices\.json$/);
 const VOICES = (voiceFiles.keys().length ? voiceFiles(voiceFiles.keys()[0]) : {}) as Record<string, VoiceTrack>;
+// Stories crypto : content/tales/<slug>.json + visuels src/tales/stories/<slug>.tsx (écrits par Claude, cf. src/tales/KIT.md).
+// Les brouillons (src/tales/drafts) ne sont jamais chargés ici : un brouillon cassé ne casse pas le rendu.
+const taleFiles = require.context("../content/tales", false, /\.json$/);
+const storyFiles = require.context("./tales/stories", false, /\.tsx$/);
+const TALE_APP = APPS.find((a) => a.slug === "wheredgainsgo");
+const TALES = TALE_APP
+  ? taleFiles
+      .keys()
+      .filter((k) => k.startsWith("./"))
+      .map((k) => taleFiles(k) as Tale)
+      .filter((t) => storyFiles.keys().includes(`./${t.slug}.tsx`))
+      .map((tale) => ({
+        tale,
+        frames: (tale.timeline ?? taleTimeline(tale.beats, tale.voice?.segments)).totalFrames,
+        component: makeTaleVideo((storyFiles(`./${tale.slug}.tsx`) as { Story: React.FC<StoryProps> }).Story),
+      }))
+  : [];
 
 export const Root: React.FC = () => (
   <>
@@ -83,5 +103,12 @@ export const Root: React.FC = () => (
         ))}
       </Folder>
     ))}
+    {TALE_APP && TALES.length ? (
+      <Folder name="tales">
+        {TALES.map(({ tale, frames, component }) => (
+          <Composition key={tale.id} id={tale.id} component={component} durationInFrames={frames} fps={FPS} {...FORMATS.short} defaultProps={{ tale, app: TALE_APP }} />
+        ))}
+      </Folder>
+    ) : null}
   </>
 );

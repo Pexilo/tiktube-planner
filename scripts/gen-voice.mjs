@@ -35,7 +35,7 @@ export function pickVoice(lang) {
 }
 
 /** Répartit la durée sur les mots selon leur longueur (+ pauses à la ponctuation). */
-function wordTimings(text, dur) {
+export function wordTimings(text, dur) {
   const words = text.split(/\s+/).filter(Boolean);
   const weight = (w) => Math.max(2, w.replace(/[^\p{L}\p{N}]/gu, "").length) + 1.5 + (/[.,:;!?]$/.test(w) ? 3 : 0);
   const total = words.reduce((a, w) => a + weight(w), 0);
@@ -50,10 +50,10 @@ function wordTimings(text, dur) {
   });
 }
 
-const dur = (f) => Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f], { encoding: "utf8" }).trim());
+export const dur = (f) => Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f], { encoding: "utf8" }).trim());
 
 /** Voix système : fichier brut → voix off traitée (silences coupés, coupe-bas, compression, présence, niveau). */
-function systemSegment(voice, lang, text, raw, out) {
+export function systemSegment(voice, lang, text, raw, out) {
   speakToFile(voice, lang === "fr" ? 205 : 195, text, raw);
   execFileSync("ffmpeg", ["-v", "error", "-y", "-i", raw, "-af",
     "silenceremove=start_periods=1:start_threshold=-45dB,areverse,silenceremove=start_periods=1:start_threshold=-45dB,areverse," +
@@ -67,7 +67,7 @@ function systemSegment(voice, lang, text, raw, out) {
  * ElevenLabs : le son arrive déjà propre, on le coupe juste au premier / dernier caractère prononcé
  * (d'après l'alignement) et on égalise le niveau. Renvoie les mots horodatés, décalés de la coupe.
  */
-async function elevenSegment(voice, lang, lines, k, raw, out) {
+export async function elevenSegment(voice, lang, lines, k, raw, out) {
   const { audio, words } = await synthesize(voice, lang, lines[k], { previous: lines.slice(0, k).join(" "), next: lines.slice(k + 1).join(" ") });
   writeFileSync(raw, audio);
   const from = words ? Math.max(0, words[0].s - 0.04) : 0;
