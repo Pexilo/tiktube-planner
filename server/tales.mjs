@@ -320,7 +320,7 @@ function toTale(j, idea) {
     facts: (Array.isArray(j.facts) ? j.facts : []).map(String),
     beats,
     product: { featureId: FEATURES.includes(j.product?.featureId) ? j.product.featureId : idea?.wggAngle?.featureId ?? "pnl", beat: productIdx >= 0 ? beats[productIdx].id : "" },
-    music: { style: String(j.music?.style ?? "trap"), mood: (Array.isArray(j.music?.mood) ? j.music.mood : []).map(String).slice(0, 4) },
+    music: { style: String(j.music?.style ?? "ambient"), mood: (Array.isArray(j.music?.mood) ? j.music.mood : []).map(String).slice(0, 4) },
     yt: { title: String(j.yt?.title ?? j.hook ?? slug).slice(0, 100), description: String(j.yt?.description ?? ""), hashtags: (Array.isArray(j.yt?.hashtags) ? j.yt.hashtags : ["crypto", "cryptostories"]).map((h) => String(h).replace(/^#/, "")) },
     compose: { notes: [] },
     error: null,
@@ -356,13 +356,12 @@ function scriptProblems(t) {
   return out;
 }
 
-export async function writeScript({ ideaId, topic }) {
-  const ideas = readIdeas();
-  const idea = ideaId ? ideas.ideas.find((i) => i.id === ideaId) : null;
-  if (ideaId && !idea) throw new Error("Idée introuvable");
-  const subject = idea
-    ? `${idea.title} (${idea.type}, event date ${idea.eventDate})\n${idea.summary}\nSuggested hook: ${idea.hook}\nSources:\n${idea.sources.map((s) => `- ${s.title}${s.date ? ` (${s.date})` : ""}: ${s.url}`).join("\n")}\nSuggested Where'd Gains Go? angle: ${idea.wggAngle.featureId} — ${idea.wggAngle.why}`
-    : `The creator's own topic or link: ${topic}\nResearch it first, decide whether it is "recent" (less than 60 days before today) or "offbeat", and find dated sources.`;
+const ideaSubject = (idea) =>
+  `${idea.title} (${idea.type}, event date ${idea.eventDate})\n${idea.summary}\nSuggested hook: ${idea.hook}\nSources:\n${idea.sources.map((s) => `- ${s.title}${s.date ? ` (${s.date})` : ""}: ${s.url}`).join("\n")}\nSuggested Where'd Gains Go? angle: ${idea.wggAngle.featureId} — ${idea.wggAngle.why}`;
+const topicSubject = (topic) => `The creator's own topic or link: ${topic}\nResearch it first, decide whether it is "recent" (less than 60 days before today) or "offbeat", and find dated sources.`;
+
+/** Écrit un script (2 essais si le premier sort des règles). Renvoie la story normalisée et ses écarts aux règles. */
+async function generateScript(subject, idea) {
   const settings = settingsFile("script", ["WebSearch", "WebFetch", "Skill"], ["Bash", "Edit", "Write"]);
   let problems = null;
   let result = null;
@@ -374,13 +373,81 @@ export async function writeScript({ ideaId, topic }) {
     problems = result.problems.map((p) => `- ${p}`).join("\n");
     log(`Script hors règles :\n${problems}`);
   }
+  return result;
+}
+
+export async function writeScript({ ideaId, topic }) {
+  const ideas = readIdeas();
+  const idea = ideaId ? ideas.ideas.find((i) => i.id === ideaId) : null;
+  if (ideaId && !idea) throw new Error("Idée introuvable");
+  const result = await generateScript(idea ? ideaSubject(idea) : topicSubject(topic), idea);
   const { tale } = result;
   if (result.problems.length) tale.warnings = result.problems;
+  // Le sujet d'origine reste dans la story : on peut en réécrire le script plus tard, même si l'idée a disparu.
+  tale.subject = idea ? ideaSubject(idea) : topicSubject(topic);
   saveTale(tale);
   if (idea) writeIdeas({ ...ideas, ideas: ideas.ideas.filter((i) => i.id !== idea.id) });
   log(`Script prêt : ${tale.slug} (${tale.beats.reduce((a, b) => a + words(b.text), 0)} mots, ${tale.beats.length} beats)`);
   logEvent("info", `Stories : script écrit, ${tale.yt.title}`, tale.id);
   return tale;
+}
+
+/** Ce qu'une version de script contient (le reste de la story ne change pas d'une version à l'autre). */
+const SCRIPT_KEYS = ["type", "eventDate", "hook", "summary", "sources", "facts", "beats", "product", "music", "yt", "warnings"];
+const MAX_VERSIONS = 6;
+const scriptOf = (t) => Object.fromEntries(SCRIPT_KEYS.filter((k) => t[k] !== undefined).map((k) => [k, t[k]]));
+
+/** Sujet d'une story existante : celui gardé à l'écriture, sinon l'idée d'origine, sinon la story elle-même (résumé, sources). */
+function subjectOf(t) {
+  if (t.subject) return t.subject;
+  const idea = t.ideaId ? readIdeas().ideas.find((i) => i.id === t.ideaId) : null;
+  if (idea) return ideaSubject(idea);
+  return `${t.yt?.title ?? t.slug} (${t.type}, event date ${t.eventDate || "unknown"})\n${t.summary}\nFacts:\n${(t.facts ?? []).map((x) => `- ${x}`).join("\n")}\nSources:\n${(t.sources ?? []).map((s) => `- ${s.title}${s.date ? ` (${s.date})` : ""}: ${s.url}`).join("\n")}`;
+}
+
+/**
+ * Réécrit le script d'une story pour le même sujet (nouvel angle, nouveau hook), en gardant son slug.
+ * La version actuelle est gardée dans `versions` (les plus récentes d'abord) et peut être restaurée.
+ */
+export async function rewriteScript(slug, note = "") {
+  const t = loadTale(slug);
+  if (!t) throw new Error("Story introuvable");
+  const previous = t.beats.map((b) => `- [${b.role}] ${b.text}`).join("\n");
+  const subject = `${subjectOf(t)}
+
+THIS IS A REWRITE. The previous script for this story is below: write a clearly different version (another hook and angle, another structure for the reveal), with the same facts and sources, and the same rules.
+Previous on-screen hook: ${t.hook}
+Previous beats:
+${previous}${note ? `\n\nTHE CREATOR'S NOTE FOR THIS VERSION (follow it): ${note}` : ""}`;
+  const result = await generateScript(subject, null);
+  const next = result.tale;
+  const cur = loadTale(slug);
+  if (cur.status !== "script") throw new Error("La story a été validée pendant la réécriture : script inchangé.");
+  cur.versions = [{ at: new Date().toISOString(), ...scriptOf(cur) }, ...(cur.versions ?? [])].slice(0, MAX_VERSIONS);
+  for (const k of SCRIPT_KEYS) delete cur[k];
+  Object.assign(cur, scriptOf(next));
+  if (result.problems.length) cur.warnings = result.problems;
+  cur.rewrites = [...(cur.rewrites ?? []), { at: new Date().toISOString(), ...(note ? { note } : {}) }];
+  saveTale(cur);
+  log(`Nouvelle version : ${cur.beats.reduce((a, b) => a + words(b.text), 0)} mots, ${cur.beats.length} beats`);
+  logEvent("info", `Stories : script réécrit, ${cur.yt.title}`, cur.id);
+  return cur;
+}
+
+/** Restaure la version `index` de `versions` ; la version actuelle prend sa place dans l'historique. */
+export function restoreScript(slug, index) {
+  const t = loadTale(slug);
+  if (!t) throw new Error("Story introuvable");
+  const v = t.versions?.[index];
+  if (!v) throw new Error("Version introuvable");
+  const { at: _at, ...script } = v;
+  const versions = [...t.versions];
+  versions.splice(index, 1);
+  t.versions = [{ at: new Date().toISOString(), ...scriptOf(t) }, ...versions].slice(0, MAX_VERSIONS);
+  for (const k of SCRIPT_KEYS) delete t[k];
+  Object.assign(t, script);
+  saveTale(t);
+  return t;
 }
 
 /* ------------------------------------------------------------------ 3. voix */
@@ -621,6 +688,33 @@ export function setupTaleRoutes(app, opts) {
     if (!t.warnings.length) delete t.warnings;
     saveTale(t);
     res.json(taleSummary(t));
+  });
+
+  // Réécrire le script (même sujet, nouvelle version), avec une note facultative. Long (Claude) : la réponse part tout de suite.
+  app.post("/api/tales/:slug/rewrite", (req, res) => {
+    const t = loadTale(req.params.slug);
+    if (!t) return fail(res, "Story introuvable", 404);
+    if (t.status !== "script") return fail(res, "Story déjà validée : seul un script pas encore validé se réécrit.", 400);
+    if (busyWith(t.slug)) return fail(res, "Déjà dans la file", 409);
+    const note = String(req.body?.note ?? "").trim().slice(0, 1000);
+    void runJob(t.slug, "Réécriture du script", () => rewriteScript(t.slug, note)).catch((e) => {
+      logEvent("error", `Stories : réécriture échouée, ${String(e.message).slice(0, 160)}`, t.id);
+      patchTale(t.slug, (x) => (x.rewriteError = String(e.message).slice(0, 300)));
+    });
+    patchTale(t.slug, (x) => delete x.rewriteError);
+    res.json({ ok: true });
+  });
+
+  app.post("/api/tales/:slug/restore", (req, res) => {
+    const t = loadTale(req.params.slug);
+    if (!t) return fail(res, "Story introuvable", 404);
+    if (t.status !== "script") return fail(res, "Story déjà validée : on ne change plus de version.", 400);
+    if (busyWith(t.slug)) return fail(res, "Réécriture en cours", 409);
+    try {
+      res.json(taleSummary(restoreScript(t.slug, Number(req.body?.index))));
+    } catch (e) {
+      fail(res, e, 400);
+    }
   });
 
   app.post("/api/tales/:slug/approve", (req, res) => {

@@ -1347,11 +1347,24 @@ function beatEdit(b, i) {
     <textarea data-bf="visual" rows="2" class="vis" placeholder="Brief visuel : ce que l'image montre pendant cette phrase">${esc(b.visual)}</textarea>
   </div>`;
 }
+/** Réécriture du script (même sujet) : note facultative, bouton, et versions précédentes à restaurer. */
+function scriptRewrite(t, rewriting) {
+  const vs = t.versions ?? [];
+  return `<div><span class="lbl-up">Régénérer le script</span>
+      <textarea data-trnote="${esc(t.slug)}" rows="2" placeholder="Facultatif : ex. un hook plus choc, raconte-la du point de vue de la victime…" ${rewriting ? "disabled" : ""}>${esc(noteDraft[`rw:${t.slug}`] ?? "")}</textarea>
+      <button class="btn sm" data-talerewrite="${esc(t.slug)}" style="margin-top:6px" ${rewriting ? "disabled" : ""}>${rewriting ? '<span class="spin"></span>Réécriture…' : `${ic("redo")}Régénérer`}</button>
+      <div class="note" style="margin-top:4px">Même sujet, nouvelle version écrite par Claude (quelques minutes). La version actuelle est gardée ci-dessous.</div>
+      ${vs.length ? `<details style="margin-top:6px"><summary>Versions précédentes (${vs.length})</summary>${vs.map((v, i) => `<div class="trow" style="margin-top:8px;align-items:flex-start"><div style="flex:1;min-width:0"><div class="hook">${accent(v.hook ?? "")}</div><div class="note">${fmtDate(v.at)} · ${v.beats?.length ?? 0} phrases · ${esc(v.beats?.[0]?.text ?? "")}</div></div><button class="btn sm ghost" data-talerestore="${esc(t.slug)}" data-idx="${i}" ${rewriting ? "disabled" : ""}>Restaurer</button></div>`).join("")}</details>` : ""}
+    </div>`;
+}
 function scriptEditor(t) {
   const est = t.beats.reduce((a, b) => a + estDur(b.text), 0);
+  const rewriting = busy.has(`rewrite:${t.slug}`) || tl().job?.slug === t.slug;
   const feats = { ...WGG_FEATURES }; if (t.product?.featureId && !feats[t.product.featureId]) feats[t.product.featureId] = t.product.featureId;
   const title = t.yt?.title ?? "";
-  return `<div class="tale-grid" style="margin-top:6px">
+  return `${rewriting ? `<div class="alert" style="margin-top:6px"><span class="spin"></span><div><b>Claude réécrit le script.</b> La nouvelle version remplacera celle-ci (l'actuelle reste dans « Versions précédentes »).</div></div>` : ""}
+    ${t.rewriteError ? `<div class="alert red" style="margin-top:6px">${ic("alert")}<div><b>Réécriture échouée.</b> ${esc(t.rewriteError)}</div></div>` : ""}
+    <div class="tale-grid" style="margin-top:6px">
     <div>
       <div class="trow"><span class="lbl-up" style="margin:0">Script · ${t.beats.length} phrases · <span style="color:${est < 30 || est > 60 ? "var(--c-work)" : "inherit"}">≈ ${Math.round(est)} s</span></span><span class="spacer"></span><span class="note">Enregistré automatiquement</span></div>
       ${t.beats.map(beatEdit).join("")}
@@ -1364,8 +1377,9 @@ function scriptEditor(t) {
       <div><span class="lbl-up">Résumé</span><div class="note">${esc(t.summary)}</div></div>
       <div><span class="lbl-up">Sources</span>${srcList(t.sources)}</div>
       ${t.facts?.length ? `<details><summary>Faits vérifiés (${t.facts.length})</summary><ul class="note" style="padding-left:18px;margin:6px 0 0">${t.facts.map((f) => `<li>${esc(f)}</li>`).join("")}</ul></details>` : ""}
-      <button class="btn primary" data-taleapprove="${esc(t.slug)}" style="justify-content:center" ${busy.has(`approve:${t.slug}`) ? "disabled" : ""}>${busy.has(`approve:${t.slug}`) ? '<span class="spin"></span>Validation…' : `${ic("check")}Valider le script`}</button>
+      <button class="btn primary" data-taleapprove="${esc(t.slug)}" style="justify-content:center" ${busy.has(`approve:${t.slug}`) || rewriting ? "disabled" : ""}>${busy.has(`approve:${t.slug}`) ? '<span class="spin"></span>Validation…' : `${ic("check")}Valider le script`}</button>
       <div class="note" style="margin-top:-6px">Ensuite tout est automatique : voix, musique, visuels écrits par Claude, rendu et programmation.</div>
+      ${scriptRewrite(t, rewriting)}
     </div></div>`;
 }
 function taleProduction(t) {
@@ -1463,10 +1477,11 @@ taleList.addEventListener("change", async (e) => {
 taleList.addEventListener("input", (e) => {
   const t = e.target;
   if (t.dataset.tnote) noteDraft[t.dataset.tnote] = t.value;
+  if (t.dataset.trnote) noteDraft[`rw:${t.dataset.trnote}`] = t.value;
   if (t.dataset.tf === "yttitle") { const c = t.nextElementSibling; c.textContent = `${t.value.length}/100`; c.classList.toggle("over", t.value.length > 100); }
 });
 document.body.addEventListener("click", async (e) => {
-  const t = e.target.closest("[data-ideawrite],[data-ideaskip],[data-taleapprove],[data-taledel],[data-talecompose],[data-talerender],[data-beatdel],[data-beatadd],[data-talelog],#taleSearch,#taleTopicGo");
+  const t = e.target.closest("[data-ideawrite],[data-ideaskip],[data-taleapprove],[data-taledel],[data-talecompose],[data-talerender],[data-talerewrite],[data-talerestore],[data-beatdel],[data-beatadd],[data-talelog],#taleSearch,#taleTopicGo");
   if (!t) return;
   const d = t.dataset;
   if (t.id === "taleSearch") {
@@ -1499,6 +1514,16 @@ document.body.addEventListener("click", async (e) => {
     const note = (noteDraft[d.talecompose] ?? "").trim();
     const r = await taleAct(api(`/api/tales/${encodeURIComponent(d.talecompose)}/compose`, { note }));
     if (!r?.error) delete noteDraft[d.talecompose];
+  } else if (d.talerewrite) {
+    const slug = d.talerewrite, card = t.closest("[data-tale]");
+    busy.add(`rewrite:${slug}`); renderStories();
+    await patchTale(slug, { beats: collectBeats(card) }); // la version actuelle, avec ses dernières saisies, part dans l'historique
+    const r = await taleAct(api(`/api/tales/${encodeURIComponent(slug)}/rewrite`, { note: (noteDraft[`rw:${slug}`] ?? "").trim() }));
+    busy.delete(`rewrite:${slug}`);
+    if (!r?.error) delete noteDraft[`rw:${slug}`];
+  } else if (d.talerestore) {
+    if (!confirm("Restaurer cette version ? Le script actuel passe dans les versions précédentes.")) return;
+    await taleAct(api(`/api/tales/${encodeURIComponent(d.talerestore)}/restore`, { index: Number(d.idx) }));
   } else if (d.talerender) {
     await taleAct(api("/api/render", { ids: [d.talerender], force: true }));
   } else if (d.beatdel || d.beatadd) {
