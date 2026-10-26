@@ -268,7 +268,7 @@ ${featureList()}
 - "hook": on-screen title, max 8 words, the key word wrapped in *asterisks*.
 - "slug": short kebab-case id (2 to 4 words, a-z 0-9 -), e.g. "pizza-day".
 - "facts": the verified facts the video relies on, one per item, with numbers. "sources": every source used, with dates.
-- "music": a style among trap, lofi, synthwave, cinematic, house, and 2-3 mood words.
+- "music": a style among ambient, piano, lofi, chill (a discreet bed under the narrator, never epic), and 2-3 mood words.
 - "yt": title (max 70 chars, intriguing, one emoji max, ends with " #shorts"), description (2 sentences), hashtags (5, without #, lowercase, include "cryptostories").
 ${problems ? `\nYOUR PREVIOUS ANSWER WAS REJECTED, FIX THIS:\n${problems}\n` : ""}
 REFERENCE SCRIPT (format and quality to match; a different and shorter story, yours must follow the length rules above):

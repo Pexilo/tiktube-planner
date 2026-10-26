@@ -22,7 +22,31 @@ import type { StoryProps, Tale } from "./types";
 
 export type TaleVideoProps = { tale: Tale; app: AppContent };
 
-const MUSIC_BED = 0.3;
+/** Musique en second plan : niveau de base, et baisse supplémentaire (ducking) pendant que le narrateur parle. */
+const MUSIC_BED = 0.2;
+const DUCK = 0.45;
+
+/**
+ * Enveloppe de ducking, une valeur par frame (0 = pas de baisse, 1 = baisse complète) : la musique descend 4 frames avant
+ * chaque mot et remonte doucement (~0,5 s) dans les pauses. Calculée sur les mots horodatés de la voix (ou estimés).
+ */
+function duckEnvelope(totalFrames: number, timeline: { beats: { from: number }[] }, words: Word[][]) {
+  const speak = new Float32Array(totalFrames);
+  words.forEach((ws, i) =>
+    ws.forEach((w) => {
+      const a = timeline.beats[i].from + TALE_VOICE_DELAY + Math.floor(w.s * 30) - 4;
+      const b = timeline.beats[i].from + TALE_VOICE_DELAY + Math.ceil(w.e * 30) + 2;
+      for (let f = Math.max(0, a); f < Math.min(totalFrames, b); f++) speak[f] = 1;
+    }),
+  );
+  const env = new Float32Array(totalFrames);
+  let v = 0;
+  for (let f = 0; f < totalFrames; f++) {
+    v = speak[f] ? Math.min(1, v + 0.25) : Math.max(0, v - 1 / 15);
+    env[f] = v;
+  }
+  return env;
+}
 /** Ligne du haut des sous-titres (cellules) : sous les plans, au-dessus du texte de la plateforme. */
 export const CAPTION_ROW = 120;
 
@@ -143,6 +167,18 @@ const Inner: React.FC<TaleVideoProps & { Story: React.FC<StoryProps> }> = ({ tal
   );
 };
 
+/** Musique sous la voix : fond bas, qui s'efface davantage quand le narrateur parle (lit les mots du TaleProvider). */
+const MusicBed: React.FC<{ file: string }> = ({ file }) => {
+  const { timeline, words } = useTale();
+  const env = React.useMemo(() => duckEnvelope(timeline.totalFrames, timeline, words), [timeline, words]);
+  return (
+    <Audio
+      src={staticFile(file)}
+      volume={(f) => interpolate(f, [0, 3, timeline.totalFrames - 12, timeline.totalFrames], [0.7, 1, 1, 0], clamp) * MUSIC_BED * (1 - DUCK * (env[f] ?? 0))}
+    />
+  );
+};
+
 export const TaleVideo: React.FC<TaleVideoProps & { Story: React.FC<StoryProps> }> = (props) => {
   const { tale, app } = props;
   const timeline = tale.timeline ?? taleTimeline(tale.beats, tale.voice?.segments);
@@ -160,14 +196,9 @@ export const TaleVideo: React.FC<TaleVideoProps & { Story: React.FC<StoryProps> 
         <SfxMute.Provider value={true}>
           <TaleProvider tale={tale} timeline={timeline}>
             <Inner {...props} />
+            {tale.musicTrack ? <MusicBed file={tale.musicTrack.file} /> : null}
           </TaleProvider>
         </SfxMute.Provider>
-        {tale.musicTrack ? (
-          <Audio
-            src={staticFile(tale.musicTrack.file)}
-            volume={(f) => interpolate(f, [0, 3, timeline.totalFrames - 12, timeline.totalFrames], [0.7, 1, 1, 0], clamp) * MUSIC_BED}
-          />
-        ) : null}
       </AbsoluteFill>
     </ThemeProvider>
   );

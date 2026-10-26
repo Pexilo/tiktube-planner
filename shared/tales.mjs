@@ -33,17 +33,25 @@ export function taleTimeline(beats, segments = null) {
   return { beats: out, totalFrames: from };
 }
 
-/** Musique (format de ensureMusic, scripts/gen-all-audio.mjs) : fond sous voix off, drop après le hook, final sur l'outro. */
+/**
+ * Styles de musique des stories : uniquement des styles calmes (pas de drop ni de montée dans gen-all-audio.mjs).
+ * La musique accompagne la voix en second plan ; les anciens styles « pub » sont ramenés au style calme le plus proche.
+ */
+export const TALE_MUSIC_STYLES = ["ambient", "piano", "lofi", "chill"];
+const CALM_FOR = { cinematic: "ambient", synthwave: "ambient", darksynth: "ambient", trap: "lofi", dreamtrap: "lofi", phonk: "lofi", house: "chill" };
+
+/** Musique (format de ensureMusic, scripts/gen-all-audio.mjs) : un fond discret sous la voix off, sans drop, qui ne fait que l'accompagner. */
 export function taleMusic(tale, timeline) {
   const bars = Math.ceil(timeline.totalFrames / 60);
-  const style = tale.music?.style ?? "trap";
+  const asked = tale.music?.style ?? "ambient";
+  const style = TALE_MUSIC_STYLES.includes(asked) ? asked : CALM_FOR[asked] ?? "ambient";
   const seed = 50 + ([...tale.slug].reduce((a, c) => a + c.charCodeAt(0), 0) % 50);
   const outro = timeline.beats.at(-1);
   return {
     file: `audio/music/tale-${tale.slug}-${style}-${bars}b.wav`,
     style,
     kind: "story",
-    theme: ["investigative storytelling", ...(tale.music?.mood ?? [])],
+    theme: ["understated documentary underscore", "background bed under narration", "low and steady intensity", "no build-ups", ...(tale.music?.mood ?? []).slice(0, 2)],
     bars,
     drop: Math.max(1, Math.round(timeline.beats[0].dur / 60)),
     cta: Math.max(2, Math.floor(outro.from / 60)),
