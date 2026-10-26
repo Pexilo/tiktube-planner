@@ -13,7 +13,7 @@ import { TALE_APP, taleId, taleMusic, taleTimeline } from "../shared/tales.mjs";
 import { ensureMusic } from "../scripts/gen-all-audio.mjs";
 import { dur, elevenSegment, pickVoice, systemSegment, wordTimings } from "../scripts/gen-voice.mjs";
 import { DATA, getState, save, video } from "./state.mjs";
-import { enqueue, isRendered, onRendered, outFile } from "./render.mjs";
+import { current as renderCurrent, enqueue, isRendered, onRendered, outFile, queue as renderQueue, thumbFile } from "./render.mjs";
 import { scheduleTales } from "./scheduler.mjs";
 import { logEvent } from "./events.mjs";
 import { buildMetadata, tiktokCaption } from "./youtube.mjs";
@@ -560,6 +560,7 @@ async function composeTale(slug) {
     t.status = "composed";
     t.error = null;
     t.compose = { ...t.compose, notes: t.compose?.notes ?? [], log: tail, at: now.toISOString() };
+    delete t.compose.stale;
   });
 }
 
@@ -605,7 +606,7 @@ async function produce(slug, { recompose = false } = {}) {
     let tale = await ensureTaleVoice(slug);
     tale = await ensureTaleMusic(slug);
     const hasStory = existsSync(join(TALE_STORIES, `${slug}.tsx`));
-    if (recompose || !hasStory) tale = await composeTale(slug);
+    if (recompose || !hasStory || tale.compose?.stale) tale = await composeTale(slug);
     else patchTale(slug, (t) => (t.status = "composed"));
     queueRender(slug);
     logEvent("info", `Stories : ${tale.yt.title} prête pour le rendu`, tale.id);
@@ -619,6 +620,60 @@ async function produce(slug, { recompose = false } = {}) {
     });
     logEvent("error", `Story ${slug} : ${msg.slice(0, 160)}`, taleId(slug));
   }
+}
+
+/* ------------------------------------------------------------------ retour au script, suppression */
+
+/** Story de référence des prompts (script et visuels) : jamais supprimée. */
+const REFERENCE_SLUG = "howells";
+
+/**
+ * Retire une story produite de la publication locale : rendu en file, vidéo rendue et miniature, créneau, brouillon TikTok.
+ * Refuse si la vidéo est déjà partie sur YouTube ou TikTok, ou si elle est en train d'être rendue.
+ */
+function unpublish(t) {
+  if (getState().videos[t.id]?.youtubeId) throw new Error("Déjà envoyée sur YouTube : supprime-la de YouTube et délie-la d'abord.");
+  if (tt.posts().some((p) => p.videoId === t.id && ["sent", "sending"].includes(p.status))) throw new Error("Déjà envoyée sur TikTok : on ne peut plus la retirer d'ici.");
+  if (renderCurrent.id === t.id) throw new Error("Rendu en cours : attends la fin du rendu.");
+  for (const p of tt.posts().filter((p) => p.videoId === t.id)) tt.deletePost(p.id);
+  const qi = renderQueue.indexOf(t.id);
+  if (qi >= 0) renderQueue.splice(qi, 1);
+  delete getState().videos[t.id];
+  save();
+  rmSync(outFile(t.id), { force: true });
+  rmSync(thumbFile(t.id), { force: true });
+}
+
+/**
+ * Remet une story produite (pas encore envoyée) au stade « script » : on peut alors modifier ou régénérer le script, puis
+ * le revalider. La voix, la musique et la timeline sont refaites ; les visuels seront recomposés (Claude repart des actuels).
+ */
+export function reopenScript(slug) {
+  const t = loadTale(slug);
+  if (!t) throw new Error("Story introuvable");
+  if (t.status === "script") return t;
+  unpublish(t);
+  return patchTale(slug, (x) => {
+    x.status = "script";
+    x.error = null;
+    for (const k of ["voice", "timeline", "musicTrack", "approvedAt"]) delete x[k];
+    if (existsSync(join(TALE_STORIES, `${slug}.tsx`))) x.compose = { ...x.compose, stale: true };
+  });
+}
+
+/** Supprime une story pas encore envoyée : script, voix, musique, visuels, vidéo rendue, créneau et brouillon TikTok. */
+export function deleteTale(slug) {
+  const t = loadTale(slug);
+  if (!t) throw new Error("Story introuvable");
+  if (slug === REFERENCE_SLUG) throw new Error("C'est la story de référence utilisée par les prompts : elle ne se supprime pas.");
+  unpublish(t);
+  rmSync(join(TALES_DIR, `${slug}.json`), { force: true });
+  rmSync(join(DRAFTS, `${slug}.tsx`), { force: true });
+  rmSync(join(TALE_STORIES, `${slug}.tsx`), { force: true });
+  rmSync(join(ROOT, "public", "voice", t.id), { recursive: true, force: true });
+  if (t.musicTrack?.file) for (const x of [t.musicTrack.file, `${t.musicTrack.file}.json`]) rmSync(join(ROOT, "public", x), { force: true });
+  rmSync(join(ROOT, "out", "tales-preview", slug), { recursive: true, force: true });
+  logEvent("info", `Stories : story supprimée, ${t.yt?.title ?? slug}`, t.id);
 }
 
 /* ------------------------------------------------------------------ routes */
@@ -751,10 +806,24 @@ export function setupTaleRoutes(app, opts) {
   app.delete("/api/tales/:slug", (req, res) => {
     const t = loadTale(req.params.slug);
     if (!t) return fail(res, "Story introuvable", 404);
-    if (!["idea", "script"].includes(t.status)) return fail(res, "Seules les stories au stade idée ou script se suppriment.", 400);
     if (busyWith(t.slug)) return fail(res, "Story en cours de traitement", 409);
-    rmSync(join(TALES_DIR, `${t.slug}.json`), { force: true });
-    rmSync(join(DRAFTS, `${t.slug}.tsx`), { force: true });
-    res.json({ ok: true });
+    try {
+      deleteTale(t.slug);
+      res.json({ ok: true });
+    } catch (e) {
+      fail(res, e, 400);
+    }
+  });
+
+  // Revenir au script d'une story déjà produite (pas encore envoyée) pour le modifier ou le régénérer.
+  app.post("/api/tales/:slug/reopen", (req, res) => {
+    const t = loadTale(req.params.slug);
+    if (!t) return fail(res, "Story introuvable", 404);
+    if (busyWith(t.slug)) return fail(res, "Story en cours de traitement", 409);
+    try {
+      res.json(taleSummary(reopenScript(t.slug)));
+    } catch (e) {
+      fail(res, e, 400);
+    }
   });
 }

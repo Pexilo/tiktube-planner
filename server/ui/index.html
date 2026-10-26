@@ -1363,6 +1363,7 @@ function scriptEditor(t) {
   const feats = { ...WGG_FEATURES }; if (t.product?.featureId && !feats[t.product.featureId]) feats[t.product.featureId] = t.product.featureId;
   const title = t.yt?.title ?? "";
   return `${rewriting ? `<div class="alert" style="margin-top:6px"><span class="spin"></span><div><b>Claude réécrit le script.</b> La nouvelle version remplacera celle-ci (l'actuelle reste dans « Versions précédentes »).</div></div>` : ""}
+    ${t.compose?.stale ? `<div class="alert" style="margin-top:6px">${ic("redo")}<div>Cette story avait déjà été produite : après validation, Claude recomposera ses visuels d'après le nouveau script.</div></div>` : ""}
     ${t.rewriteError ? `<div class="alert red" style="margin-top:6px">${ic("alert")}<div><b>Réécriture échouée.</b> ${esc(t.rewriteError)}</div></div>` : ""}
     <div class="tale-grid" style="margin-top:6px">
     <div>
@@ -1405,6 +1406,8 @@ function taleProduction(t) {
         <div class="trow" style="margin-top:6px"><button class="btn sm" data-talecompose="${esc(t.slug)}" ${composing || t.status === "approved" ? "disabled" : ""}>${ic("sparkle")}Recomposer</button>
           <button class="btn sm" data-talerender="${esc(t.id)}" ${composedOnce && !composing ? "" : "disabled"}>${ic("redo")}Re-rendre</button></div>
         ${t.compose?.notes?.length ? `<div class="note" style="margin-top:6px">Notes déjà données : ${t.compose.notes.map((n) => `« ${esc(n)} »`).join(" · ")}</div>` : ""}</div>`}
+      ${ytId ? `<div class="note">Déjà envoyée sur YouTube : le script ne se change plus d'ici.</div>` : `<div><button class="btn sm" data-talereopen="${esc(t.slug)}" ${composing ? "disabled" : ""}>${ic("redo")}Modifier ou régénérer le script</button>
+        <div class="note" style="margin-top:4px">Repasse la story au stade script. La vidéo rendue, son créneau et son brouillon TikTok sont retirés ; après la nouvelle validation, voix, musique et visuels sont refaits.</div></div>`}
       <details><summary>Script validé · ${t.beats.length} phrases</summary><div class="script-ro" style="margin-top:6px">${t.beats.map((b) => `<div class="b"><span class="tag" style="justify-self:start">${ROLES[b.role] ?? b.role}</span><div>${esc(b.text)}<small>${esc(b.visual)}</small></div></div>`).join("")}</div></details>
       <details><summary>Sources (${t.sources?.length ?? 0}) · ${esc(featLabel(t.product?.featureId))}</summary><div style="margin-top:6px">${srcList(t.sources)}</div></details>
     </div></div>`;
@@ -1481,7 +1484,7 @@ taleList.addEventListener("input", (e) => {
   if (t.dataset.tf === "yttitle") { const c = t.nextElementSibling; c.textContent = `${t.value.length}/100`; c.classList.toggle("over", t.value.length > 100); }
 });
 document.body.addEventListener("click", async (e) => {
-  const t = e.target.closest("[data-ideawrite],[data-ideaskip],[data-taleapprove],[data-taledel],[data-talecompose],[data-talerender],[data-talerewrite],[data-talerestore],[data-beatdel],[data-beatadd],[data-talelog],#taleSearch,#taleTopicGo");
+  const t = e.target.closest("[data-ideawrite],[data-ideaskip],[data-taleapprove],[data-taledel],[data-talecompose],[data-talerender],[data-talerewrite],[data-talerestore],[data-talereopen],[data-beatdel],[data-beatadd],[data-talelog],#taleSearch,#taleTopicGo");
   if (!t) return;
   const d = t.dataset;
   if (t.id === "taleSearch") {
@@ -1508,7 +1511,7 @@ document.body.addEventListener("click", async (e) => {
     await taleAct(api(`/api/tales/${encodeURIComponent(d.taleapprove)}/approve`, {}));
     busy.delete(`approve:${d.taleapprove}`);
   } else if (d.taledel) {
-    if (!confirm("Supprimer cette story (script, voix et visuels) ? Une vidéo déjà envoyée sur YouTube y reste.")) return;
+    if (!confirm("Supprimer cette story ? Script, voix, musique, visuels, vidéo rendue, créneau et brouillon TikTok sont supprimés. (Impossible si elle est déjà partie sur YouTube ou TikTok.)")) return;
     await taleAct(api(`/api/tales/${encodeURIComponent(d.taledel)}`, null, "DELETE"));
   } else if (d.talecompose) {
     const note = (noteDraft[d.talecompose] ?? "").trim();
@@ -1521,6 +1524,9 @@ document.body.addEventListener("click", async (e) => {
     const r = await taleAct(api(`/api/tales/${encodeURIComponent(slug)}/rewrite`, { note: (noteDraft[`rw:${slug}`] ?? "").trim() }));
     busy.delete(`rewrite:${slug}`);
     if (!r?.error) delete noteDraft[`rw:${slug}`];
+  } else if (d.talereopen) {
+    if (!confirm("Revenir au script ? La vidéo rendue, son créneau et son brouillon TikTok sont retirés. Après la nouvelle validation, voix, musique et visuels sont refaits.")) return;
+    await taleAct(api(`/api/tales/${encodeURIComponent(d.talereopen)}/reopen`, {}));
   } else if (d.talerestore) {
     if (!confirm("Restaurer cette version ? Le script actuel passe dans les versions précédentes.")) return;
     await taleAct(api(`/api/tales/${encodeURIComponent(d.talerestore)}/restore`, { index: Number(d.idx) }));
