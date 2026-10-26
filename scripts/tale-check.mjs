@@ -3,7 +3,7 @@
 // Usage : node scripts/tale-check.mjs <slug> [--draft | --stories] [--frames=12,140,…]
 // Sortie : la dernière ligne de stdout est un JSON { ok, errors, stills, sheet, frames }. Code de sortie 0 si ok.
 import { execFile } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { bundle } from "@remotion/bundler";
@@ -53,6 +53,8 @@ const ALLOWED = ["react", "remotion", "../kit", "../types"];
 for (const i of imports) if (!ALLOWED.includes(i)) errors.push(`Import non autorisé : "${i}" (autorisés : ${ALLOWED.join(", ")}).`);
 const ids = new Set(tale.beats.map((b) => b.id));
 for (const m of src.matchAll(/<Beat\s+id=["']([^"']+)["']/g)) if (!ids.has(m[1])) errors.push(`<Beat id="${m[1]}"> : beat inconnu (ids : ${[...ids].join(", ")}).`);
+const lastId = tale.beats.at(-1)?.id;
+if (lastId && !new RegExp(`<Beat\\s+id=["']${lastId}["'][^>]*\\bloop\\b`).test(src)) errors.push(`Le dernier beat doit boucler sur le premier : <Beat id="${lastId}" loop> (cf. KIT.md).`);
 
 // 2. Typecheck isolé (le brouillon et ce qu'il importe)
 const tsconfig = join(outDir, "tsconfig.json");
@@ -69,12 +71,18 @@ if (errors.length) done();
 // 3. Une image par beat (aux 2/3 du beat : la plupart des éléments sont arrivés), avec le vrai JSON
 const timeline = tale.timeline ?? taleTimeline(tale.beats, tale.voice?.segments);
 const extra = (args.find((a) => a.startsWith("--frames="))?.slice(9) ?? "").split(",").filter(Boolean).map(Number);
-const frames = [...timeline.beats.map((b) => b.from + Math.round(b.dur * 0.66)), ...extra].filter((f) => f >= 0 && f < timeline.totalFrames);
+// + la jointure de la boucle : dernière frame et frame 0 doivent être identiques (loop-end.png / loop-start.png).
+const frames = [...timeline.beats.map((b) => b.from + Math.round(b.dur * 0.66)), timeline.totalFrames - 1, 0, ...extra].filter((f) => f >= 0 && f < timeline.totalFrames);
+// Les images fixes n'ont besoin ni de la voix ni de la musique : un public minimal (liens vers apps/ et fx/) évite de copier
+// tout public/ (plusieurs centaines de Mo) dans chaque bundle temporaire.
+const publicDir = join(ROOT, "out", "tales-preview", "_public");
+mkdirSync(publicDir, { recursive: true });
+for (const d of ["apps", "fx"]) if (!existsSync(join(publicDir, d))) symlinkSync(join(ROOT, "public", d), join(publicDir, d), "junction");
 let serveUrl;
 try {
   serveUrl = await bundle({
     entryPoint: join(ROOT, "src/tales/preview/index.tsx"),
-    publicDir: join(ROOT, "public"),
+    publicDir,
     webpackOverride: (c) => ({ ...c, resolve: { ...c.resolve, alias: { ...(c.resolve?.alias ?? {}), "@tale-story$": storyFile, "@tale-json$": jsonFile } } }),
   });
 } catch (e) {
@@ -86,7 +94,7 @@ const browser = await openBrowser("chrome");
 const composition = await selectComposition({ serveUrl, id: "tale-preview", puppeteerInstance: browser });
 const stills = [];
 for (const [i, frame] of frames.entries()) {
-  const name = i < timeline.beats.length ? `beat-${String(i + 1).padStart(2, "0")}.png` : `frame-${frame}.png`;
+  const name = i < timeline.beats.length ? `beat-${String(i + 1).padStart(2, "0")}.png` : i === timeline.beats.length ? "loop-end.png" : i === timeline.beats.length + 1 ? "loop-start.png" : `frame-${frame}.png`;
   const output = join(outDir, name);
   try {
     await renderStill({ composition, serveUrl, output, frame, imageFormat: "png", scale: 0.5, puppeteerInstance: browser });
@@ -97,6 +105,7 @@ for (const [i, frame] of frames.entries()) {
 }
 
 await browser.close({ silent: true }).catch(() => {});
+rmSync(serveUrl, { recursive: true, force: true }); // le bundle temporaire de cette vérification
 
 // 4. Planche contact (4 colonnes)
 let sheet = null;

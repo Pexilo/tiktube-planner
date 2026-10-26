@@ -250,7 +250,7 @@ const Outro: React.FC = () => {
         <Icon name="pizza" x={390} y={230} at={4} size={240} color={PAPER} fill={ORANGE} />
         <Tag x={390} y={440} at={8} color={PAPER} size={20}>2 pizzas · 10,000 BTC</Tag>
       </Board>
-      <Stamp x={500} y={820} at={b.at("next")} text="Case closed" size={80} color={PINK} rot={-6} />
+      <Stamp x={500} y={820} at={b.at("remember")} text="Case closed" size={80} color={PINK} rot={-6} />
     </>
   );
 };
@@ -276,7 +276,8 @@ export const Story: React.FC<StoryProps> = () => (
     <Beat id="b7">
       <PizzaDay />
     </Beat>
-    <Beat id="b8">
+    {/* Dernier plan : il boucle sur le premier (« …remember: » → « This is the most expensive pizza order in history. »). */}
+    <Beat id="b8" loop>
       <Outro />
     </Beat>
   </>

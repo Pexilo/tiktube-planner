@@ -333,12 +333,12 @@ const Outro: React.FC = () => {
       </Appear>
       <Icon name="check" x={700} y={330} at={b.at("source")} size={120} box={LIME} />
       <Tag x={500} y={700} at={b.at("source")} color={LIME} size={26}>official store</Tag>
-      <Appear at={b.at("follow")} from="scale" style={{ position: "absolute", left: 175, top: 810 }}>
+      <Appear at={b.at("end")} from="scale" style={{ position: "absolute", left: 175, top: 810 }}>
         <Chip size={130} color={PINK}>
           <Icon name="question" size={80} />
         </Chip>
       </Appear>
-      <Stamp x={620} y={875} at={b.at("next")} text="Next case?" size={64} color={PINK} rot={-6} />
+      <Stamp x={620} y={875} at={b.at("like")} text="Check the seal" size={64} color={PINK} rot={-6} />
     </>
   );
 };
@@ -364,7 +364,8 @@ export const Story: React.FC<StoryProps> = () => (
       <Frozen />
     </Beat>
     {/* b7 = moment produit : dessiné par l'habillage (TaleVideo), rien ici. */}
-    <Beat id="b8">
+    {/* Dernier plan : il boucle sur le premier (« …end up like this: » → « This hardware wallet was built… »). */}
+    <Beat id="b8" loop>
       <Outro />
     </Beat>
   </>

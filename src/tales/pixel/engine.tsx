@@ -91,6 +91,24 @@ export class Canvas {
     this.cells.set(key(Math.round(x), Math.round(y)), c);
     return this;
   }
+  /** Ligne d’un pixel d’épaisseur (Bresenham) : nette, sans épaisseur variable. `step` > 1 = pointillés. */
+  line(x0: number, y0: number, x1: number, y1: number, c: string, step = 1) {
+    let [x, y] = [Math.round(x0), Math.round(y0)];
+    const [tx, ty] = [Math.round(x1), Math.round(y1)];
+    const dx = Math.abs(tx - x);
+    const dy = -Math.abs(ty - y);
+    const sx = x < tx ? 1 : -1;
+    const sy = y < ty ? 1 : -1;
+    let err = dx + dy;
+    for (let n = 0; ; n++) {
+      if (n % step === 0) this.set(x, y, c);
+      if (x === tx && y === ty) break;
+      const e2 = 2 * err;
+      if (e2 >= dy) { err += dy; x += sx; }
+      if (e2 <= dx) { err += dx; y += sy; }
+    }
+    return this;
+  }
   /** Efface une cellule (trou dans une forme). */
   del(x: number, y: number) {
     this.cells.delete(key(Math.round(x), Math.round(y)));
@@ -176,13 +194,15 @@ export const PixelArt: React.FC<{ canvas: Canvas; p?: number; style?: React.CSSP
 export type Look = {
   skin?: string;
   hair?: string;
+  /** Coupe : courte (défaut), longue, chauve. */
+  hairStyle?: "short" | "long" | "bald";
   shirt: string;
   pants?: string;
   shoes?: string;
-  /** Accessoire de rôle. */
+  /** Accessoire de rôle (un seul). */
   wear?: "hood" | "cap" | "tie" | "glasses" | "beanie" | "none";
-  /** Objet tenu à la main avant. */
-  hold?: "drive" | "laptop" | "phone" | "coin" | "bag" | "none";
+  /** Petit objet tenu dans la main avant (à l'échelle du personnage). */
+  hold?: "drive" | "laptop" | "phone" | "coin" | "bag" | "doc" | "none";
 };
 
 export type Pose = "idle" | "walk" | "cheer" | "point" | "shrug" | "sit";
@@ -193,95 +213,86 @@ const shade = (hex: string, k = 0.72) => {
   return `#${[f((n >> 16) & 255), f((n >> 8) & 255), f(n & 255)].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
 };
 
-/**
- * Personnage de profil (regard vers la droite), 18 × 34 pixels environ, pieds en (9, 33).
- * `t` = phase de l'animation (frames), `pose` = attitude.
+/*
+ * Personnage simple, dessiné à la main en gabarits de 12 × 20 pixels (≈ 1,70 m : 1 pixel ≈ 8,5 cm), de profil vers la droite.
+ * Lettres : H cheveux · S peau · E œil · T haut · A bras (haut plus sombre) · P jambe avant · Q jambe arrière · B chaussures
+ * · K capuche · D visage dans l'ombre · G yeux lumineux · C bonnet / casquette · I monture de lunettes · L verre.
  */
-export function personCanvas(look: Look, pose: Pose, t: number): Canvas {
+const HEAD: Record<"short" | "long" | "bald", string[]> = {
+  short: ["....HHHH....", "...HHHHHH...", "..HHHSSSS...", "..HHSSSES...", "..HHSSSSS...", "...HSSSS....", ".....SS....."],
+  long: ["....HHHH....", "...HHHHHH...", "..HHHSSSS...", "..HHSSSES...", "..HHSSSSS...", "..HHSSSS....", "..HH.SS....."],
+  bald: ["....SSSS....", "...SSSSSS...", "..SSSSSSS...", "..SSSSSES...", "..SSSSSSS...", "...SSSSS....", ".....SS....."],
+};
+const HOOD = ["....KKKK....", "...KKKKKK...", "..KKKDDDDK..", "..KKKDDGD...", "..KKKDDDD...", "..KKKKKKK...", "...KKKKK...."];
+const BODY = ["....TTTT....", "...TTTTTT...", "...TTTTTT...", "...TTTTTT...", "...TTTTTT...", "...PPPPPP..."];
+const LEGS = {
+  stand: ["...QQ..PP...", "...QQ..PP...", "...QQ..PP...", "...QQ..PP...", "...QQ..PP...", "...QQ..PP...", "...BBB.BBB.."],
+  strideA: ["...QQPPP....", "..QQ...PP...", "..QQ...PP...", ".QQ.....PP..", ".QQ.....PP..", "QQ.......PP.", "BB.......BBB"],
+  strideB: ["...PPQQQ....", "..PP...QQ...", "..PP...QQ...", ".PP.....QQ..", ".PP.....QQ..", "PP.......QQ.", "BB.......BBB"],
+};
+const SIT = ["...QQQQQQQ..", "...PPPPPPP..", ".........PP.", ".........PP.", ".........PP.", ".........PP.", ".........BBB"];
+
+/** Pose du bras avant : cellules du bras (A) puis de la main (S). */
+const ARMS: Record<string, { arm: [number, number][]; hand: [number, number] }> = {
+  down: { arm: [[6, 8], [6, 9], [6, 10]], hand: [6, 11] },
+  fwd: { arm: [[7, 8], [8, 9]], hand: [9, 10] },
+  back: { arm: [[4, 8], [3, 9]], hand: [2, 10] },
+  up: { arm: [[8, 8], [9, 7], [10, 6], [10, 5]], hand: [10, 4] },
+  point: { arm: [[7, 8], [8, 8], [9, 8]], hand: [10, 8] },
+  shrug: { arm: [[7, 8]], hand: [8, 7] },
+};
+
+/**
+ * Sprite d'un personnage (12 × 20, pieds sur la ligne 19, contour encre ajouté).
+ * Marche : cycle de 4 poses (foulée, passage, foulée inverse, passage), 4 frames vidéo chacune.
+ */
+export function personSprite(look: Look, pose: Pose, t: number): Canvas {
   const c = new Canvas();
-  const skin = look.skin ?? PAL.skin1;
-  const hair = look.hair ?? PAL.hair1;
-  const pants = look.pants ?? PAL.ink3;
-  const shoes = look.shoes ?? PAL.ink;
-  const ph = (t / 16) * Math.PI * 2; // un pas toutes les 8 frames
+  const col: Record<string, string> = {
+    H: look.hair ?? PAL.hair1,
+    S: look.skin ?? PAL.skin1,
+    E: PAL.ink,
+    T: look.shirt,
+    A: shade(look.shirt, 0.78),
+    P: look.pants ?? PAL.ink3,
+    Q: shade(look.pants ?? PAL.ink3, 0.7),
+    B: look.shoes ?? PAL.ink,
+    K: look.wear === "hood" ? look.shirt : PAL.ink3,
+    D: "#1A1922",
+    G: PAL.lime,
+    C: shade(look.shirt, 0.85),
+    I: PAL.ink,
+    L: PAL.cyan,
+  };
+  const paint = (rows: string[], y0: number) => rows.forEach((r, j) => [...r].forEach((ch, i) => ch !== "." && c.set(i, y0 + j, col[ch])));
+  const step = Math.floor(t / 4) % 4;
   const walking = pose === "walk";
-  const swing = walking ? Math.sin(ph) : 0;
-  const bob = walking ? Math.round(Math.abs(Math.cos(ph)) * 1) : pose === "idle" ? (Math.floor(t / 20) % 2) * 0 : 0;
-  const hipY = 22 - bob;
-  const hip = 9;
-  const leg = (a: number, col: string) => {
-    const kx = hip + Math.sin(a) * 5.2;
-    const ky = hipY + Math.cos(a) * 5.2;
-    const back = walking ? Math.max(0, -Math.sin(a)) * 1.6 : 0;
-    const fx = kx + Math.sin(a * 0.4 - back * 0.3) * 5.2;
-    const fy = Math.min(33, ky + 5.2);
-    c.limb(hip, hipY, kx, ky, 3.2, col);
-    c.limb(kx, ky, fx, fy, 3, col);
-    c.rect(Math.round(fx) - 1, 32, 4, 2, shoes);
-  };
-  const shoulderY = 12 - bob;
-  const arm = (a: number, col: string, hand: boolean) => {
-    const ex = 9 + Math.sin(a) * 4.6;
-    const ey = shoulderY + Math.cos(a) * 4.6;
-    const hx = ex + Math.sin(a + (pose === "point" ? 0 : 0.35)) * 4.4;
-    const hy = ey + Math.cos(a + (pose === "point" ? 0 : 0.35)) * 4.4;
-    c.limb(9, shoulderY, ex, ey, 3, col);
-    c.limb(ex, ey, hx, hy, 2.6, col);
-    if (hand) c.circle(hx, hy, 1.4, skin);
-    return [hx, hy] as const;
-  };
-  // Membres arrière (plus sombres) d'abord.
-  const legA = walking ? swing * 0.55 : 0.04;
-  const armA = walking ? -swing * 0.6 : 0.12;
-  if (pose === "sit") {
-    c.limb(hip, hipY, hip + 6, hipY, 3.4, shade(pants));
-    c.limb(hip + 6, hipY, hip + 6, 32, 3, shade(pants));
-    c.rect(hip + 5, 32, 4, 2, shoes);
-  } else leg(-legA, shade(pants));
-  if (pose === "cheer") arm(Math.PI - 1.1, shade(look.shirt), true);
-  else if (pose !== "shrug") arm(-armA, shade(look.shirt), true);
-  // Torse
-  c.limb(9, shoulderY + 1, 9, hipY - 1, 6.4, look.shirt);
-  c.rect(6, hipY - 2, 7, 3, pants);
-  if (look.wear === "tie") {
-    c.rect(10, shoulderY + 1, 1, 7, PAL.pink);
-    c.set(10, shoulderY, PAL.paper);
-  }
-  // Jambe avant
-  if (pose === "sit") {
-    c.limb(hip, hipY + 1, hip + 7, hipY + 1, 3.4, pants);
-    c.limb(hip + 7, hipY + 1, hip + 7, 32, 3, pants);
-    c.rect(hip + 6, 32, 4, 2, shoes);
-  } else leg(legA, pants);
-  // Tête (profil vers la droite)
-  const hy = 6 - bob;
-  if (look.wear === "hood") {
-    c.circle(9, hy, 5.2, PAL.ink3);
-    c.circle(10.3, hy + 0.6, 3.1, PAL.ink);
-    c.set(11, hy, PAL.lime);
-    c.set(12, hy, PAL.lime);
-  } else {
-    c.circle(9.2, hy, 4.4, skin);
-    c.set(12, hy + 1, skin); // nez
-    c.circle(8.4, hy - 1.2, 4.2, hair, (x, y) => y <= hy - 1 || x <= 7);
-    c.set(11, hy - 0.4, PAL.ink); // œil
-    if (look.wear === "glasses") c.rect(10, hy - 1, 3, 2, PAL.ink).set(11, hy - 0.4, PAL.cyan);
-    if (look.wear === "cap") c.rect(5, hy - 5, 8, 2, look.shirt).rect(11, hy - 3, 4, 1, look.shirt);
-    if (look.wear === "beanie") c.circle(8.8, hy - 1.4, 4.6, look.shirt, (_x, y) => y <= hy - 3).rect(5, hy - 3, 9, 1, shade(look.shirt));
-    c.limb(9, hy + 3.5, 9, shoulderY, 2.4, skin); // cou
-  }
-  // Bras avant + objet tenu
-  let hand: readonly [number, number];
-  if (pose === "cheer") hand = arm(Math.PI - 0.95, look.shirt, true);
-  else if (pose === "point") hand = arm(Math.PI / 2 + 0.05, look.shirt, true);
-  else if (pose === "shrug") hand = arm(Math.PI / 2 - 0.2, look.shirt, true);
-  else hand = arm(armA, look.shirt, true);
-  const [hx, hy2] = hand;
-  if (look.hold === "drive") c.rect(hx - 1, hy2 - 2, 5, 4, PAL.pink).set(hx + 2, hy2, PAL.ink);
-  if (look.hold === "laptop") c.rect(hx - 4, hy2 - 1, 8, 2, PAL.grey).set(hx + 2, hy2 - 1, PAL.lime);
-  if (look.hold === "phone") c.rect(hx, hy2 - 3, 2, 3, PAL.ink3);
-  if (look.hold === "coin") c.circle(hx + 1, hy2 - 2, 2, PAL.btc);
-  if (look.hold === "bag") c.rect(hx - 2, hy2, 5, 5, PAL.ink3);
+  const sit = pose === "sit";
+  const dy = sit ? 1 : 0; // assis : le buste descend d'une ligne
+  // Tête
+  paint(look.wear === "hood" ? HOOD : HEAD[look.hairStyle ?? "short"], dy);
+  if (look.wear === "cap") paint(["...CCCC.....", "...CCCCCCC.."], dy);
+  if (look.wear === "beanie") paint(["....CCCC....", "...CCCCCC...", "...CCCCCC..."], dy);
+  if (look.wear === "glasses") paint(["......ILI..."], 3 + dy);
+  // Corps
+  paint(BODY, 7 + dy);
+  if (look.wear === "tie") for (let y = 8; y < 12; y++) c.set(6, y + dy, PAL.pink);
+  // Jambes
+  if (sit) paint(SIT, 13);
+  else paint(walking ? (step === 0 ? LEGS.strideA : step === 2 ? LEGS.strideB : LEGS.stand) : LEGS.stand, 13);
+  // Bras avant
+  const arms = walking ? (step === 0 ? ARMS.fwd : step === 2 ? ARMS.back : ARMS.down) : pose === "cheer" ? ARMS.up : pose === "point" ? ARMS.point : pose === "shrug" ? ARMS.shrug : ARMS.down;
+  for (const [x, y] of arms.arm) c.set(x, y + dy, col.A);
+  const [hx, hy] = [arms.hand[0], arms.hand[1] + dy];
+  c.set(hx, hy, col.S);
+  if (pose === "shrug") c.set(2, 7 + dy, col.S);
+  // Objet tenu (petit, à l'échelle)
+  if (look.hold === "drive") c.rect(hx, hy - 1, 3, 2, PAL.pink);
+  if (look.hold === "laptop") c.rect(hx - 3, hy, 5, 1, PAL.grey);
+  if (look.hold === "phone") c.rect(hx + 1, hy - 1, 1, 2, PAL.ink3);
+  if (look.hold === "coin") c.rect(hx + 1, hy - 1, 2, 2, PAL.btc);
+  if (look.hold === "bag") c.rect(hx, hy, 3, 3, "#C9A46A");
+  if (look.hold === "doc") c.rect(hx + 1, hy - 2, 2, 3, PAL.paper);
   return c.outline();
 }
 
@@ -307,8 +318,9 @@ export function useDrop(at: number) {
 /**
  * Place une grille dessinée : (x, y) en cellules. `anchor` "bottom" (défaut) = (x, y) est le milieu du bas
  * (posé sur le sol), "center" = le centre, "topleft" = le coin haut gauche. `w` / `h` = taille du dessin en cellules.
+ * `p` = taille d'un pixel du dessin (P par défaut ; P / 2 pour les icônes fines, dont les coordonnées sont en demi-cellules).
  */
-export const Sprite: React.FC<{ canvas: Canvas; x: number; y: number; w: number; h: number; at?: number; anchor?: "bottom" | "center" | "topleft"; drop?: boolean }> = ({
+export const Sprite: React.FC<{ canvas: Canvas; x: number; y: number; w: number; h: number; at?: number; anchor?: "bottom" | "center" | "topleft"; drop?: boolean; p?: number }> = ({
   canvas,
   x,
   y,
@@ -317,6 +329,7 @@ export const Sprite: React.FC<{ canvas: Canvas; x: number; y: number; w: number;
   at = 0,
   anchor = "bottom",
   drop = true,
+  p = P,
 }) => {
   const d = useDrop(at);
   if (d === null) return null;
@@ -324,7 +337,7 @@ export const Sprite: React.FC<{ canvas: Canvas; x: number; y: number; w: number;
   const top = anchor === "topleft" ? y : anchor === "center" ? y - Math.floor(h / 2) : y - h;
   return (
     <div style={{ position: "absolute", left: Math.round(left) * P, top: (Math.round(top) + (drop ? d : 0)) * P }}>
-      <PixelArt canvas={canvas} />
+      <PixelArt canvas={canvas} p={p} />
     </div>
   );
 };
@@ -339,15 +352,15 @@ export const LOOKS = {
   cop: { shirt: "#3B5BA9", wear: "cap", pants: "#2A3F78", skin: PAL.skin3 },
   trader: { shirt: PAL.lime, wear: "glasses", hair: PAL.hair3 },
   teen: { shirt: PAL.orange, wear: "beanie", skin: PAL.skin2 },
-  judge: { shirt: PAL.ink, hair: PAL.paper2, skin: PAL.skin1, pants: PAL.ink },
+  judge: { shirt: PAL.ink, hair: PAL.paper2, hairStyle: "long", skin: PAL.skin1, pants: PAL.ink },
   worker: { shirt: PAL.orange, wear: "cap", pants: "#2A3F78", skin: PAL.skin3 },
-  founder: { shirt: PAL.pink, hair: PAL.hair1, skin: PAL.skin2 },
-  whale: { shirt: PAL.paper, wear: "glasses", hair: PAL.hair3, pants: PAL.ink2 },
+  founder: { shirt: PAL.pink, hair: PAL.hair1, hairStyle: "long", skin: PAL.skin2 },
+  whale: { shirt: PAL.paper, wear: "glasses", hairStyle: "bald", skin: PAL.skin1, pants: PAL.ink2 },
 } satisfies Record<string, Look>;
 export type LookName = keyof typeof LOOKS;
 
 /**
- * Personnage pixel. `x` = colonne des pieds, `y` = ligne du sol (cellules). `look` = un rôle du casting ou une tenue.
+ * Personnage pixel (12 × 20 cellules ≈ 1,70 m). `x` = colonne des pieds, `y` = ligne du sol (cellules). `look` = un rôle du casting ou une tenue.
  * Avec `to` (colonne) il marche de `x` à `to` en `dur` frames (cycle de marche), puis prend `pose`.
  * `hold` = objet tenu (drive, laptop, phone, coin, bag).
  */
@@ -370,10 +383,10 @@ export const Person: React.FC<{
   const col = Math.round(to === undefined ? x : x + (to - x) * k);
   const dir = face ?? (to !== undefined && to < x ? "left" : "right");
   const base = typeof look === "string" ? LOOKS[look] : look;
-  const canvas = personCanvas(hold ? { ...base, hold } : base, moving ? "walk" : pose, t);
-  if (dir === "left") canvas.flipX(19);
+  const canvas = personSprite(hold ? { ...base, hold } : base, moving ? "walk" : pose, t);
+  if (dir === "left") canvas.flipX(12);
   return (
-    <div style={{ position: "absolute", left: (col - 9) * P, top: (y - 34) * P }}>
+    <div style={{ position: "absolute", left: (col - 6) * P, top: (y - 20) * P }}>
       <PixelArt canvas={canvas} />
     </div>
   );

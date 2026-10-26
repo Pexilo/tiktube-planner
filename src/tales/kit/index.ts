@@ -3,5 +3,8 @@
 export { Beat, useBeat, useTale } from "./core";
 export { P, PAL, COLS, ROWS, GROUND, LOOKS, Person, Sprite, Canvas, PixelArt, useDrop, shade } from "../pixel/engine";
 export type { Look, LookName, Pose } from "../pixel/engine";
-export { Sky, City, Street, Room, Hill, Prop, PROP_NAMES, propSize, Fly, Title, Counter, Label, Bubble, Stamp, Screen, Chart, Bar, Arrow, Pin } from "../pixel/props";
-export type { PropName, SkyKind } from "../pixel/props";
+export { Prop, Move, Icon, Fly, PROP_NAMES, ICON_NAMES, propSize, iconSize, Title, Counter, Label, Bubble, Stamp, Screen, Chart, Bar, Arrow, Pin, Pulse, Sparkle, Rain, Tile, Flow } from "../pixel/props";
+export type { PropName, IconName } from "../pixel/props";
+export { Mound, Skyline, TONES, useBg } from "../pixel/backdrop";
+export type { Tone, Light, Ambient } from "../pixel/backdrop";
+export { PixelText } from "../pixel/font";

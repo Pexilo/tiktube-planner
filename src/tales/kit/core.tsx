@@ -1,7 +1,9 @@
-import React, { createContext, useContext } from "react";
-import { interpolate, Sequence, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import React, { createContext, useContext, useMemo } from "react";
+import { Freeze, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { TALE_VOICE_DELAY } from "../../../shared/tales.mjs";
 import { clamp, EASE_IN_OUT, EASE_OUT } from "../../components/fx";
+import { Backdrop, BgCtx, isLight, type Ambient, type Light, type Tone } from "../pixel/backdrop";
+import { LayoutCtx, newRegistry } from "../pixel/layout";
 import type { Tale, TaleTimeline } from "../types";
 
 /*
@@ -32,7 +34,9 @@ export const RIGHT_RAIL = { x: 880, y: 700 };
 export const CAPTIONS_Y = 1440;
 
 export type Word = { w: string; s: number; e: number };
-type TaleCtx = { tale: Tale; timeline: TaleTimeline; words: Word[][] };
+/** Ce que chaque <Beat> déclare (fond + plan), pour que le plan qui boucle puisse rejouer le premier. */
+type BeatLook = { tone: Tone; floor: boolean; light: Light; ambient: Ambient; bg: boolean; children: React.ReactNode };
+type TaleCtx = { tale: Tale; timeline: TaleTimeline; words: Word[][]; looks: Map<string, BeatLook> };
 const Ctx = createContext<TaleCtx | null>(null);
 
 /** Mots horodatés estimés (même règle que scripts/gen-voice.mjs) quand la voix n'existe pas encore. */
@@ -52,7 +56,8 @@ export function estimateWords(text: string, dur: number): Word[] {
 
 export const TaleProvider: React.FC<{ tale: Tale; timeline: TaleTimeline; children: React.ReactNode }> = ({ tale, timeline, children }) => {
   const words = tale.beats.map((b, i) => tale.voice?.segments[i]?.words ?? estimateWords(b.text, (timeline.beats[i].dur - TALE_VOICE_DELAY) / 30 - 0.3));
-  return <Ctx.Provider value={{ tale, timeline, words }}>{children}</Ctx.Provider>;
+  const looks = useMemo(() => new Map<string, BeatLook>(), []);
+  return <Ctx.Provider value={{ tale, timeline, words, looks }}>{children}</Ctx.Provider>;
 };
 
 export const useTale = () => {
@@ -84,6 +89,12 @@ export function useBeatInfo(id: string) {
   return { index: i, beat: tale.beats[i], from: timeline.beats[i].from, dur: timeline.beats[i].dur, words: ws, at, end: toFrame(ws.at(-1)?.e ?? 0) };
 }
 
+/**
+ * Plan qui boucle (dernier beat) : frame (relative au beat) à partir de laquelle il montre la frame 0 du premier plan,
+ * juste après son dernier mot (et au moins 10 frames avant la fin). La plateforme relance la vidéo sur cette même image.
+ */
+export const loopHoldFrom = (dur: number, end: number) => Math.max(0, Math.min(end + 4, dur - 10));
+
 const BeatCtx = createContext<ReturnType<typeof useBeatInfo> | null>(null);
 /** Dans un <Beat> : infos du beat courant (frames relatives au début du beat). */
 export const useBeat = () => {
@@ -94,14 +105,73 @@ export const useBeat = () => {
 
 /**
  * Séquence d'un beat : visible pendant la phrase (+ `tail` frames de chevauchement pour fondre avec le suivant).
- * À l'intérieur, useCurrentFrame() part de 0 au début du beat.
+ * À l'intérieur, useCurrentFrame() part de 0 au début du beat. `bg` = fond aplat de la palette (ink, deep, paper, pink, lime, cyan)
+ * avec un sol (`floor={false}` pour un plan sans sol) ; les textes du kit s'y adaptent. `light` = éclairage tramé du fond
+ * (glow par défaut, spot, top, none), `ambient` = particules (dust, sparks, none).
+ * `loop` (dernier beat seulement) : la vidéo boucle sur son début. Le plan reprend le fond du premier beat (couleur, lumière,
+ * particules, animation calée pour que sa dernière frame précède la frame 0), joue ses enfants pendant la phrase, puis montre la
+ * frame 0 du premier plan jusqu'à la fin : quand TikTok / Shorts relancent la vidéo, l'image ne saute pas.
  */
-export const Beat: React.FC<{ id: string; tail?: number; children: React.ReactNode }> = ({ id, tail = 0, children }) => {
+export const Beat: React.FC<{ id: string; tail?: number; bg?: Tone; floor?: boolean; light?: Light; ambient?: Ambient; loop?: boolean; children?: React.ReactNode }> = ({
+  id,
+  tail = 0,
+  bg,
+  floor = true,
+  light = "glow",
+  ambient = "none",
+  loop = false,
+  children,
+}) => {
   const info = useBeatInfo(id);
+  const { tale, timeline, looks } = useTale();
+  // Les beats se rendent dans l'ordre : le premier est déjà enregistré quand le plan qui boucle le lit.
+  if (!loop) looks.set(id, { tone: bg ?? "ink", floor, light, ambient, bg: !!bg, children });
+  const firstId = tale.beats[0].id;
+  const first = loop ? looks.get(firstId) : undefined;
+  const look = first ?? { tone: bg ?? "ink", floor, light, ambient, bg: !!bg, children };
+  // Garde-fou : registre des textes du plan (aucun texte ne chevauche un autre, cf. pixel/layout.tsx).
+  const registry = useMemo(newRegistry, []);
+  const firstRegistry = useMemo(newRegistry, []);
+  const firstInfo = useBeatInfo(firstId);
+  const len = loop ? timeline.totalFrames - info.from : info.dur + tail;
   return (
-    <Sequence from={info.from} durationInFrames={info.dur + tail} name={`beat ${id} · ${info.beat.role}`} layout="none">
-      <BeatCtx.Provider value={info}>{children}</BeatCtx.Provider>
+    <Sequence from={info.from} durationInFrames={len} name={`beat ${id} · ${info.beat.role}${loop ? " · boucle" : ""}`} layout="none">
+      <BeatCtx.Provider value={info}>
+        <BgCtx.Provider value={{ tone: look.tone, light: isLight(look.tone) }}>
+          <LayoutCtx.Provider value={registry}>
+            {look.bg ? (
+              <Backdrop tone={look.tone} floor={look.floor} light={look.light} ambient={look.ambient} seed={loop ? firstId : id} offset={loop ? -len : 0} />
+            ) : null}
+            {loop && first ? (
+              <LoopBody hold={loopHoldFrom(len, info.end)} first={first.children} firstInfo={firstInfo} firstRegistry={firstRegistry}>
+                {children}
+              </LoopBody>
+            ) : (
+              children
+            )}
+          </LayoutCtx.Provider>
+        </BgCtx.Provider>
+      </BeatCtx.Provider>
     </Sequence>
+  );
+};
+
+/** Corps du plan qui boucle : ses enfants jusqu'à `hold`, puis le premier plan figé sur sa frame 0. */
+const LoopBody: React.FC<{ hold: number; first: React.ReactNode; firstInfo: ReturnType<typeof useBeatInfo>; firstRegistry: ReturnType<typeof newRegistry>; children?: React.ReactNode }> = ({
+  hold,
+  first,
+  firstInfo,
+  firstRegistry,
+  children,
+}) => {
+  const frame = useCurrentFrame();
+  if (frame < hold) return <>{children}</>;
+  return (
+    <Freeze frame={0}>
+      <BeatCtx.Provider value={firstInfo}>
+        <LayoutCtx.Provider value={firstRegistry}>{first}</LayoutCtx.Provider>
+      </BeatCtx.Provider>
+    </Freeze>
   );
 };
 

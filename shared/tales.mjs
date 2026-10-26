@@ -5,9 +5,9 @@ import { FPS } from "./timeline.mjs";
 
 /** App mise en avant (discrètement) dans les stories. */
 export const TALE_APP = "wheredgainsgo";
-/** Respiration après chaque phrase (s) et queue finale après l'outro (s). */
+/** Respiration après chaque phrase (s) et queue finale après l'outro (s), courte : la vidéo boucle sur le hook. */
 export const TALE_PAD = 0.3;
-export const TALE_TAIL = 1.2;
+export const TALE_TAIL = 0.3;
 /** La voix démarre ce nombre de frames après le début de son beat. */
 export const TALE_VOICE_DELAY = 4;
 

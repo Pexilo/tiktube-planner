@@ -174,7 +174,7 @@ They are written for brand social media. There is no brand profile, voice file o
 /* ------------------------------------------------------------------ 1. idées */
 
 function ideasPrompt(avoid) {
-  return `You are the researcher of "Crypto stories", a channel of 30-60 second vertical videos telling intriguing, semi-niche crypto / blockchain stories in English.
+  return `You are the researcher of "Crypto stories", a channel of 1-2 minute vertical videos telling intriguing, semi-niche crypto / blockchain stories in English.
 Today's date is ${today()}.
 
 ${skillsBlock(["social-media-skills:content-research-and-sourcing (find and verify primary, dated sources)", "social-media-skills:trend-jacking (what is timely right now, and whether a story is still fresh)", "social-media-skills:idea-generation-and-ideation (sharp, specific angles instead of generic news)"])}
@@ -245,7 +245,7 @@ export async function searchIdeas() {
 
 function scriptPrompt(subject, problems) {
   const ref = readFileSync(join(TALES_DIR, "howells.json"), "utf8");
-  return `You write the script of a "Crypto stories" vertical video (30-60 s, English voice-over, 2D schematic animation) for YouTube Shorts and TikTok.
+  return `You write the script of a "Crypto stories" vertical video (1 to 2 minutes, English voice-over, minimalist pixel-art animation) for YouTube Shorts and TikTok.
 Today's date is ${today()}.
 
 STORY
@@ -255,20 +255,20 @@ Check the facts with WebSearch / WebFetch when the sources above are not enough,
 
 ${skillsBlock(["social-media-skills:storytelling-and-narrative (story arc, tension, the twist, the payoff)", "social-media-skills:hook-writer (the first beat and the on-screen hook: stop the scroll in under 2 seconds)", "social-media-skills:short-form-video-script (pacing for 30-60 s vertical video, retention, a line per visual change)", "social-media-skills:youtube-publishing-and-metadata (the yt title, description and hashtags for Shorts)"])}
 RULES
-- 110 to 160 spoken words in total (all beats together), short punchy sentences written to be read aloud. Numbers spelled the way they are said ("eight thousand bitcoin").
-- 6 to 9 beats, each one sentence or two. Roles: hook (first beat, a curiosity gap, never "in this video"), context, build, twist, payoff, outro (last beat).
+- 180 to 300 spoken words in total (all beats together), about 1 to 2 minutes of voice-over; aim for about 230. Short punchy sentences written to be read aloud. Numbers spelled the way they are said ("eight thousand bitcoin").
+- 10 to 18 beats, each one or two short sentences (30 words max per beat, so the picture changes every 5 to 10 seconds). Roles: hook (first beat, a curiosity gap, never "in this video"), context, build, twist, payoff, outro (last beat). Tell it in acts so the length never drags: setup, escalation, twist, consequences, a final reveal or open question. Re-hook the viewer every 20 to 30 seconds with a new question, number or turn.
 - Exactly ONE beat with role "product", about 5 seconds (10 to 16 words), placed in the middle or right before the outro, never first. Its line bridges from the story to one feature of Where'd Gains Go? (wallet audit web app) with a light, self-aware tone. No hard sell, no price, no "link in bio". Features:
 ${featureList()}
-- The last beat (outro) invites people to follow for more crypto stories, in a fresh way.
+- The video LOOPS: TikTok and Shorts replay it automatically, so the last beat (outro) closes the story AND flows straight back into the hook. Its last words lead into the hook's first words as one sentence across the loop, e.g. outro "…and until someone is allowed to dig," → hook "Somewhere under this landfill in Wales, there's a hard drive…", or outro "…and that's exactly why" → hook. Read outro + hook aloud in a row: it must sound natural. No "follow", "subscribe" or "like" anywhere. The outro's visual starts with its own shot; the loop back to the first shot is handled by the kit.
 - Facts are attributed to their sources ("according to …", "court filings say …"). No accusation beyond what the sources report: use "allegedly" when they do. Do not invent quotes, figures or headlines.
-- Each beat has a "visual" brief: what the 2D schematic image shows during that sentence (ink diagrams, wallets, arrows, charts, stamps, timelines, maps). The product beat's visual is "Product cameo (handled by the wrapper)".
+- Each beat has a "visual" brief: what the minimalist pixel-art shot shows during that sentence (one lit flat background color, one main element: a character only when someone acts, otherwise an object, a screen or a row of icons; 2 to 4 small living details; at most 2 on-screen texts). The product beat's visual is "Product cameo (handled by the wrapper)".
 - "hook": on-screen title, max 8 words, the key word wrapped in *asterisks*.
 - "slug": short kebab-case id (2 to 4 words, a-z 0-9 -), e.g. "pizza-day".
 - "facts": the verified facts the video relies on, one per item, with numbers. "sources": every source used, with dates.
 - "music": a style among trap, lofi, synthwave, cinematic, house, and 2-3 mood words.
 - "yt": title (max 70 chars, intriguing, one emoji max, ends with " #shorts"), description (2 sentences), hashtags (5, without #, lowercase, include "cryptostories").
 ${problems ? `\nYOUR PREVIOUS ANSWER WAS REJECTED, FIX THIS:\n${problems}\n` : ""}
-REFERENCE SCRIPT (format and quality to match, a different story):
+REFERENCE SCRIPT (format and quality to match; a different and shorter story, yours must follow the length rules above):
 ${ref}
 
 Answer ONLY with the JSON of the new story, same shape as the reference, without "id", "lang", "status", "voice", "timeline", "musicTrack", "compose":
@@ -330,8 +330,10 @@ function toTale(j, idea) {
 function scriptProblems(t) {
   const out = [];
   const n = t.beats.reduce((a, b) => a + words(b.text), 0);
-  if (n < 110 || n > 160) out.push(`${n} spoken words: must be 110-160.`);
-  if (t.beats.length < 6 || t.beats.length > 9) out.push(`${t.beats.length} beats: must be 6-9.`);
+  if (n < 180 || n > 300) out.push(`${n} spoken words: must be 180-300 (1 to 2 minutes).`);
+  if (t.beats.length < 10 || t.beats.length > 18) out.push(`${t.beats.length} beats: must be 10-18.`);
+  const long = t.beats.filter((b) => b.role !== "product" && words(b.text) > 32);
+  if (long.length) out.push(`Beats ${long.map((b) => b.id).join(", ")} are too long: 30 words max per beat.`);
   const products = t.beats.filter((b) => b.role === "product");
   if (products.length !== 1) out.push(`${products.length} product beats: exactly one is required.`);
   else {
@@ -342,6 +344,8 @@ function scriptProblems(t) {
   }
   if (t.beats[0]?.role !== "hook") out.push("First beat must be the hook.");
   if (t.beats.at(-1)?.role !== "outro") out.push("Last beat must be the outro.");
+  else if (/\b(follow|subscribe|like and)\b/i.test(t.beats.at(-1).text)) out.push("The outro must loop into the hook (its last words lead into the hook's first words), not ask to follow or subscribe.");
+  else if (/[.!?]["”']?\s*$/.test(t.beats.at(-1).text.trim())) out.push("The outro must end mid-sentence (comma or no punctuation) so it flows into the hook when the video loops.");
   if (t.beats.some((b) => !b.text || !b.visual)) out.push("Every beat needs text and visual.");
   if (!t.sources.length) out.push("Sources are required.");
   return out;

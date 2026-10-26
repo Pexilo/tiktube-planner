@@ -12,7 +12,7 @@ les installations de modules, les médias et `@remotion/effects`. En cas de conf
 
 À faire :
 1. Écris `src/tales/drafts/{{slug}}.tsx` (export `Story`, un `<Beat>` par beat sauf le beat produit « {{productBeat}} »).
-   Chaque beat = un plan pixel art : un décor plein écran, des personnages qui marchent, des objets qui apparaissent ou volent,
+   Chaque beat = un plan pixel art minimaliste : un fond aplat de la palette (`<Beat bg>`), un personnage qui marche, 2 ou 3 objets,
    chaque mouvement calé sur le mot qui le nomme (`useBeat().at("mot")`). Assemble les pièces du kit, reste simple.
    Reste fidèle aux faits du JSON : n'invente ni chiffre, ni citation, ni titre de presse.
 2. Lance `node scripts/tale-check.mjs {{slug}} --draft`. La dernière ligne de sortie est un JSON `{ ok, errors, stills, sheet }`.
