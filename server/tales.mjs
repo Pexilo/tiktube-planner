@@ -177,7 +177,7 @@ function ideasPrompt(avoid) {
   return `You are the researcher of "Crypto stories", a channel of 1-2 minute vertical videos telling intriguing, semi-niche crypto / blockchain stories in English.
 Today's date is ${today()}.
 
-${skillsBlock(["social-media-skills:content-research-and-sourcing (find and verify primary, dated sources)", "social-media-skills:trend-jacking (what is timely right now, and whether a story is still fresh)", "social-media-skills:idea-generation-and-ideation (sharp, specific angles instead of generic news)"])}
+${skillsBlock(["social-media-skills:content-research-and-sourcing (find and verify primary, dated sources)", "social-media-skills:trend-jacking (what is timely right now, and whether a story is still fresh)", "social-media-skills:idea-generation-and-ideation (sharp, specific angles instead of generic news)", "storytelling-hooks (write each idea's hook with its six levers: a curiosity gap plus a concrete number or stake)"])}
 Use WebSearch and WebFetch to find 8 story ideas:
 - 5 of type "recent": the event happened less than 60 days before today (after ${new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10)}). Every source MUST have a publication date. Verify dates on the pages themselves.
 - 3 of type "offbeat": older (any year) but genuinely strange, surprising or absurd, and well documented.
@@ -253,9 +253,12 @@ ${subject}
 
 Check the facts with WebSearch / WebFetch when the sources above are not enough, and keep only what the sources support.
 
-${skillsBlock(["social-media-skills:storytelling-and-narrative (story arc, tension, the twist, the payoff)", "social-media-skills:hook-writer (the first beat and the on-screen hook: stop the scroll in under 2 seconds)", "social-media-skills:short-form-video-script (pacing for 30-60 s vertical video, retention, a line per visual change)", "social-media-skills:youtube-publishing-and-metadata (the yt title, description and hashtags for Shorts)"])}
+${skillsBlock(["storytelling-hooks (THE method for this script, and read its patterns.md: the six levers, the three hook layers, the bookend; run its generation workflow and pre-publish checklist)", "titles-and-thumbnails (the yt title: win the click without clickbait)", "social-media-skills:youtube-publishing-and-metadata (the yt description and hashtags for Shorts)"])}
+INTAKE (for storytelling-hooks, do not ask): niche = crypto / blockchain stories; audience = crypto-curious viewers who hold or follow crypto and want true stories they have not heard (qualify for them, not for everyone); platforms = TikTok and YouTube Shorts, autoplay muted; goal = follows for the next story; tone = investigative, punchy, a little ironic.
+
 RULES
 - 180 to 300 spoken words in total (all beats together), about 1 to 2 minutes of voice-over; aim for about 230. Short punchy sentences written to be read aloud. Numbers spelled the way they are said ("eight thousand bitcoin").
+- STORYTELLING (storytelling-hooks): the hook beat stacks 2 or 3 levers (curiosity gap + a concrete number or stake + relatability or an emotional mirror) and works in under 2 seconds; keep a crypto qualifier in it. Run the levers through the script: conflict (goal + obstacle) early, at least one pattern break ("but…") in the middle, every loop you open is closed before the outro. The three hook layers: the hook beat's "visual" is a first frame that intrigues with the sound off, and the on-screen "hook" title is the OTHER half of the gap (stakes or emotion), never the spoken line repeated. Before answering, generate 5 hook variants in your head, score them against the skill's pre-publish checklist, keep the best.
 - 10 to 18 beats, each one or two short sentences (30 words max per beat, so the picture changes every 5 to 10 seconds). Roles: hook (first beat, a curiosity gap, never "in this video"), context, build, twist, payoff, outro (last beat). Tell it in acts so the length never drags: setup, escalation, twist, consequences, a final reveal or open question. Re-hook the viewer every 20 to 30 seconds with a new question, number or turn.
 - Exactly ONE beat with role "product", about 5 seconds (10 to 16 words), placed in the middle or right before the outro, never first. Its line bridges from the story to one feature of Where'd Gains Go? (wallet audit web app) with a light, self-aware tone. No hard sell, no price, no "link in bio". Features:
 ${featureList()}
@@ -347,6 +350,8 @@ function scriptProblems(t) {
   else if (/\b(follow|subscribe|like and)\b/i.test(t.beats.at(-1).text)) out.push("The outro must loop into the hook (its last words lead into the hook's first words), not ask to follow or subscribe.");
   else if (/[.!?]["”']?\s*$/.test(t.beats.at(-1).text.trim())) out.push("The outro must end mid-sentence (comma or no punctuation) so it flows into the hook when the video loops.");
   if (t.beats.some((b) => !b.text || !b.visual)) out.push("Every beat needs text and visual.");
+  const plain = (x) => String(x ?? "").toLowerCase().replace(/[*]/g, "").replace(/[^\p{L}\p{N} ]/gu, " ").replace(/\s+/g, " ").trim();
+  if (t.hook && t.beats[0] && plain(t.beats[0].text).includes(plain(t.hook))) out.push("The on-screen hook repeats the spoken first line: make it the other half of the curiosity gap (stakes or emotion).");
   if (!t.sources.length) out.push("Sources are required.");
   return out;
 }
