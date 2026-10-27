@@ -72,3 +72,5 @@ export const isTaleId = (id) => /^tale-/.test(id ?? "");
 export const pubsOn = () => state.settings.pubsEnabled !== false;
 /** Une vidéo du catalogue peut-elle partir (langue active, et pubs actives sauf pour une story) ? */
 export const videoOn = (v) => langOn(v.lang) && (v.kind === "tale" || isTaleId(v.id) || pubsOn());
+/** L'autopilote doit-il attendre ? En retouche, ou story rendue pas encore validée à la main (chaque nouveau rendu se revalide). */
+export const awaitingOk = (v) => !!state.videos[v.id]?.hold || ((v.kind === "tale" || isTaleId(v.id)) && !state.videos[v.id]?.released);

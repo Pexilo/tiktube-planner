@@ -1431,10 +1431,14 @@ function taleProduction(t) {
       <div><span class="lbl-up">Publication</span>
         <div class="note trow">${sched ? `${platIc("yt")}${isPub(t) ? "Publiée" : "Sort"} ${fmtDate(at)}` : at ? `Créneau prévu ${fmtDate(at)}` : "Pas encore de créneau : il est attribué une fois la vidéo rendue."}</div>
         ${ytId ? `<a class="btn sm" style="margin-top:6px" target="_blank" href="${isPub(t) ? `https://youtu.be/${ytId}` : `https://studio.youtube.com/video/${ytId}/edit`}">${ic("ext")}${isPub(t) ? "Voir sur YouTube" : "YouTube Studio"}</a>` : ""}
-        ${t.hold ? `<div class="alert" style="margin-top:6px">${ic("sound")}<div>En retouche : modifie les bruitages puis clique « Remixer le son ». La nouvelle version repart ensuite sur YouTube et TikTok à son créneau.</div></div>` : ""}</div>
+        ${t.hold ? `<div class="alert" style="margin-top:6px">${ic("sound")}<div>En retouche : modifie les bruitages puis clique « Remixer le son ». Tu valideras ensuite la nouvelle version avant qu'elle reparte.</div></div>` : ""}
+        ${!ytId && rendered && !t.hold ? (t.released
+          ? `<div class="note trow" style="margin-top:6px">${ic("check")}Validée : part sur YouTube à son créneau.<button class="btn sm ghost" data-talerelease="${esc(t.slug)}" data-undo="1">Annuler</button></div>`
+          : `<div class="alert" style="margin-top:6px">${ic("play")}<div>À valider : regarde la vidéo et retouche les bruitages si besoin. Rien ne part sur YouTube avant ton feu vert.
+            <div style="margin-top:6px"><button class="btn sm" data-talerelease="${esc(t.slug)}" ${composing ? "disabled" : ""}>${ic("check")}Valider pour publication</button></div></div></div>`) : ""}</div>
       ${ytId ? `<div><span class="lbl-up">Retoucher</span>
         <button class="btn sm" data-taleunlink="${esc(t.slug)}">${ic("redo")}Supprimée de YouTube : retoucher</button>
-        <div class="note" style="margin-top:4px">Supprime d'abord la vidéo dans YouTube Studio. Les bruitages redeviennent modifiables ; après le remix, la nouvelle version est renvoyée sur YouTube et TikTok.</div></div>` : ""}
+        <div class="note" style="margin-top:4px">Supprime d'abord la vidéo dans YouTube Studio. Les bruitages redeviennent modifiables ; après le remix, tu valides la nouvelle version avant qu'elle reparte.</div></div>` : ""}
       ${sched || !(composedOnce || t.status === "error") ? "" : `<div><span class="lbl-up">Recomposer avec une note</span>
         <textarea data-tnote="${esc(t.slug)}" rows="3" placeholder="Ex. : plus de rythme sur le rebondissement, le graphique de la phrase 3 est illisible…">${esc(noteDraft[t.slug] ?? "")}</textarea>
         <div class="trow" style="margin-top:6px"><button class="btn sm" data-talecompose="${esc(t.slug)}" ${composing || t.status === "approved" ? "disabled" : ""}>${ic("sparkle")}Recomposer</button>
@@ -1553,7 +1557,7 @@ document.body.addEventListener("click", async (e) => {
     a.volume = Math.min(1, Number(play.closest("[data-sfx]")?.querySelector('[data-bf="sfxvol"]')?.value ?? 1) * 0.5);
     return void a.play().catch(() => {});
   }
-  const t = e.target.closest("[data-ideawrite],[data-ideaskip],[data-taleapprove],[data-taledel],[data-talecompose],[data-talerender],[data-talerewrite],[data-talerestore],[data-talereopen],[data-taleunlink],[data-talesfx],[data-talesfxai],[data-talesfxundo],[data-beatdel],[data-beatadd],[data-talelog],#taleSearch,#taleTopicGo");
+  const t = e.target.closest("[data-ideawrite],[data-ideaskip],[data-taleapprove],[data-taledel],[data-talecompose],[data-talerender],[data-talerewrite],[data-talerestore],[data-talereopen],[data-taleunlink],[data-talerelease],[data-talesfx],[data-talesfxai],[data-talesfxundo],[data-beatdel],[data-beatadd],[data-talelog],#taleSearch,#taleTopicGo");
   if (!t) return;
   const d = t.dataset;
   if (t.id === "taleSearch") {
@@ -1596,8 +1600,10 @@ document.body.addEventListener("click", async (e) => {
   } else if (d.talereopen) {
     if (!confirm("Revenir au script ? La vidéo rendue, son créneau et son brouillon TikTok sont retirés. Après la nouvelle validation, voix, bruitages et visuels sont refaits.")) return;
     await taleAct(api(`/api/tales/${encodeURIComponent(d.talereopen)}/reopen`, {}));
+  } else if (d.talerelease) {
+    await taleAct(api(`/api/tales/${encodeURIComponent(d.talerelease)}/release`, d.undo ? { undo: true } : {}));
   } else if (d.taleunlink) {
-    if (!confirm("As-tu bien supprimé la vidéo dans YouTube Studio ? L'app l'oublie, retire son post TikTok et attend ton remix pour renvoyer la nouvelle version.")) return;
+    if (!confirm("As-tu bien supprimé la vidéo dans YouTube Studio ? L'app l'oublie, retire son post TikTok et attend ton remix puis ta validation pour renvoyer la nouvelle version.")) return;
     openSfx.add(d.taleunlink);
     const r = await taleAct(api(`/api/tales/${encodeURIComponent(d.taleunlink)}/unlink`, {}));
     if (!r?.error) { taleFilterVal = "active"; renderStories(); }

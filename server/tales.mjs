@@ -678,10 +678,10 @@ export function tiktokDraft(v, c) {
 
 onRendered.push((v) => {
   if (v.kind !== "tale") return;
-  if (video(v.id).hold) {
-    delete video(v.id).hold; // retouche terminée : l'autopilote peut renvoyer la nouvelle version
-    save();
-  }
+  // Nouveau rendu : rien ne part sur YouTube avant que tu l'aies regardé et validé (bruitages à retoucher…).
+  delete video(v.id).hold;
+  delete video(v.id).released;
+  save();
   patchTale(v.taleSlug, (t) => {
     t.status = "rendered";
     t.error = null;
@@ -769,7 +769,7 @@ export function deleteTale(slug) {
 
 function taleSummary(t) {
   const st = getState().videos[t.id] ?? {};
-  return { ...t, rendered: isRendered(t.id), publishAt: st.publishAt ?? null, youtubeId: st.youtubeId ?? null, hold: !!st.hold, busy: busyWith(t.slug) };
+  return { ...t, rendered: isRendered(t.id), publishAt: st.publishAt ?? null, youtubeId: st.youtubeId ?? null, hold: !!st.hold, released: !!st.released, busy: busyWith(t.slug) };
 }
 
 const sortTales = (a, b) => (b.createdAt ?? b.eventDate ?? "").localeCompare(a.createdAt ?? a.eventDate ?? "");
@@ -878,6 +878,19 @@ export function setupTaleRoutes(app, opts) {
     logEvent("info", `Stories : script validé, ${t.yt.title}`, t.id);
     void runJob(t.slug, "Production", () => produce(t.slug));
     res.json({ ok: true });
+  });
+
+  // Vidéo rendue regardée et jugée bonne : l'autopilote peut l'envoyer sur YouTube à son créneau.
+  app.post("/api/tales/:slug/release", (req, res) => {
+    const t = loadTale(req.params.slug);
+    if (!t) return fail(res, "Story introuvable", 404);
+    if (!isRendered(t.id)) return fail(res, "Vidéo pas encore rendue", 400);
+    if (busyWith(t.slug) || renderCurrent.id === t.id || renderQueue.includes(t.id)) return fail(res, "Rendu en cours, attends la nouvelle version", 409);
+    const st = video(t.id);
+    st.released = !req.body?.undo;
+    save();
+    logEvent("info", `Stories : ${t.yt.title} ${st.released ? "validée pour publication" : "remise en attente de validation"}`, t.id);
+    res.json(taleSummary(loadTale(t.slug)));
   });
 
   app.post("/api/tales/:slug/compose", (req, res) => {

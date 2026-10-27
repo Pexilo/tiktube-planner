@@ -4,7 +4,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { loadCatalog, ROOT } from "../shared/catalog.mjs";
 import { openPath, revealPath, spawnNpx } from "../shared/platform.mjs";
-import { getState, langOn, pubsOn, save, updateSettings, video, videoOn, OUT } from "./state.mjs";
+import { awaitingOk, getState, langOn, pubsOn, save, updateSettings, video, videoOn, OUT } from "./state.mjs";
 import { generateSchedule } from "./scheduler.mjs";
 import { cancelQueue, current, dropPausedFromQueue, enqueue, isRendered, queue, STAGES } from "./render.mjs";
 import { avgSeconds, events, logEvent } from "./events.mjs";
@@ -350,7 +350,7 @@ async function autopilot() {
   // Pubs en pause : leurs créneaux passés ne comptent pas (replanifiés à la réactivation), et rien ne part.
   const missed = c.videos.filter((v) => {
     const st = s.videos[v.id];
-    if (!videoOn(v) || st?.hold) return false; // en retouche : son créneau attend la nouvelle version
+    if (!videoOn(v) || awaitingOk(v)) return false; // en retouche ou à valider : son créneau attend ton feu vert
     return st?.publishAt && !st.youtubeId && new Date(st.publishAt).getTime() < Date.now() + 30 * 60000;
   });
   if (missed.length) {
@@ -365,7 +365,7 @@ async function autopilot() {
   const due = c.videos
     .filter((v) => {
       const st = s.videos[v.id];
-      return videoOn(v) && !st?.hold && st?.publishAt && !st.youtubeId && new Date(st.publishAt).getTime() < horizon && new Date(st.publishAt).getTime() > Date.now() + 20 * 60000;
+      return videoOn(v) && !awaitingOk(v) && st?.publishAt && !st.youtubeId && new Date(st.publishAt).getTime() < horizon && new Date(st.publishAt).getTime() > Date.now() + 20 * 60000;
     })
     .sort((a, b) => s.videos[a.id].publishAt.localeCompare(s.videos[b.id].publishAt));
   const toRender = due.filter((v) => !isRendered(v.id)).map((v) => v.id);
