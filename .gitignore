@@ -7,6 +7,10 @@ client_secret*.json
 content/profile.json
 content/external.json
 content/voices.json
+content/tales/*
+!content/tales/.gitkeep
+src/tales/stories/*
+!src/tales/stories/.gitkeep
 public/audio/
 public/voice/
 tools/ocr
