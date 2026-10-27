@@ -13,8 +13,9 @@ export type TaleBeat = {
   text: string;
   /** Brief visuel pour Claude : ce que l'image doit montrer pendant cette phrase. */
   visual: string;
-  /** Bruitages narratifs (au plus 2) calés sur un mot de la phrase (début de la phrase sans mot) : shared/tale-sfx.mjs. */
-  sfx?: { cue: StorySfxName; word?: string }[];
+  /** Bruitages narratifs (au plus 2) calés sur un mot de la phrase (début de la phrase sans mot) : shared/tale-sfx.mjs.
+   * `vol` = volume réglé à la main (multiplie le gain de base du son, 1 par défaut). */
+  sfx?: { cue: StorySfxName; word?: string; vol?: number }[];
 };
 
 /** Frames (30 fps), un élément par beat dans le même ordre ; `from` relatif au début de la vidéo. */
@@ -45,6 +46,12 @@ export type Tale = {
   voice?: VoiceTrack & { sig?: string };
   timeline?: TaleTimeline;
   compose?: { notes: string[]; log?: string; at?: string };
+  /** Bruitages modifiés après la production, pas encore remixés dans la vidéo (POST /api/tales/:slug/sfx). */
+  sfxPending?: boolean;
+  /** Bruitages d'avant le dernier retravail par Claude (un niveau d'annulation). */
+  sfxPrevious?: { id: string; sfx: NonNullable<TaleBeat["sfx"]> }[];
+  /** Notes données à Claude pour retravailler les bruitages. */
+  sfxNotes?: string[];
   error?: string | null;
 };
 

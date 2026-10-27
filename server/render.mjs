@@ -1,5 +1,5 @@
 // File de rendu : bundle Remotion (mis en cache), rendu MP4, mastering audio (-14 LUFS), miniature.
-import { existsSync, readdirSync, statSync, unlinkSync, renameSync } from "node:fs";
+import { existsSync, readdirSync, renameSync, rmSync, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -15,11 +15,15 @@ import { logEvent, recordDuration } from "./events.mjs";
 const run = promisify(execFile);
 
 export const queue = []; // ids en attente
+/** Ids à remixer seulement (stories : bruitages changés) : audio rendu à nouveau, image existante copiée telle quelle. */
+const audioOnly = new Set();
 export const STAGES = ["Voix off", "Musique", "Préparation", "Rendu des images", "Mastering audio", "Miniature"];
 export const current = { id: null, progress: 0, stage: "", stageIndex: -1, startedAt: null, stageStartedAt: null };
 const stage = (i) => Object.assign(current, { stage: STAGES[i], stageIndex: i, stageStartedAt: Date.now() });
 let serveUrl = null;
 let bundledAt = 0;
+/** Dossier du bundle en service (serveUrl peut être remis à null pour forcer un nouveau bundle). */
+let bundleDir = null;
 let working = false;
 let catalogRef = null;
 
@@ -65,12 +69,19 @@ async function getBundle() {
     stage(2);
     serveUrl = await bundle({ entryPoint: join(ROOT, "src/index.ts"), publicDir: join(ROOT, "public") });
     bundledAt = Date.now();
+    // Chaque bundle copie tout public/ (voix, sons) dans le dossier temporaire : l'ancien part, sinon le disque se remplit.
+    if (bundleDir && bundleDir !== serveUrl) rmSync(bundleDir, { recursive: true, force: true });
+    bundleDir = serveUrl;
   }
   return serveUrl;
 }
 
-export function enqueue(ids, catalog) {
+export function enqueue(ids, catalog, { audioOnly: onlyAudio = false } = {}) {
   catalogRef = catalog;
+  for (const id of ids) {
+    if (onlyAudio) audioOnly.add(id);
+    else audioOnly.delete(id); // un rendu complet demandé l'emporte
+  }
   const before = queue.length;
   for (const id of ids) if (!queue.includes(id) && current.id !== id) queue.push(id);
   if (queue.length > before) logEvent("info", `${queue.length - before} vidéo(s) ajoutée(s) à la file de rendu`);
@@ -85,6 +96,7 @@ export function dropPausedFromQueue() {
 }
 
 export function cancelQueue() {
+  audioOnly.clear();
   if (queue.length) logEvent("info", `File de rendu vidée (${queue.length} vidéo(s) retirée(s))`);
   queue.length = 0;
 }
@@ -147,6 +159,22 @@ async function work() {
       const url = await getBundle();
       stage(3);
       const composition = await selectComposition({ serveUrl: url, id });
+      if (audioOnly.delete(id) && v.kind === "tale" && existsSync(outFile(id))) {
+        // Remix : seul le son est rendu (pas de capture d'images), puis remonté sur la piste vidéo existante, copiée sans réencodage.
+        const wav = join(OUT, `${id}.remix.wav`);
+        await renderMedia({ composition, serveUrl: url, codec: "wav", outputLocation: wav, onProgress: ({ progress }) => (current.progress = progress) });
+        stage(4);
+        const tmp = join(OUT, `${id}.tmp.mp4`);
+        await master(["-i", outFile(id), "-i", wav], ["-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy"], null, tmp);
+        renameSync(tmp, outFile(id));
+        unlinkSync(wav);
+        Object.assign(st, { rendered: true, renderedAt: new Date().toISOString(), renderError: null });
+        logEvent("render", `Son remixé : ${v.title} (${Math.round((Date.now() - current.startedAt) / 1000)} s, image inchangée)`, id);
+        for (const f of onRendered) Promise.resolve().then(() => f(v)).catch((e) => console.error("après rendu", e));
+        save();
+        Object.assign(current, { id: null, progress: 0, stage: "", stageIndex: -1 });
+        continue;
+      }
       const raw = join(OUT, `${id}.raw.mp4`);
       await renderMedia({
         composition,

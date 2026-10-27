@@ -8,7 +8,7 @@ import { createReadStream, existsSync, mkdirSync, readFileSync, readdirSync, rmS
 import { basename, extname, join } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { DATA, langOn } from "./state.mjs";
+import { DATA, getState, isTaleId, langOn, pubsOn } from "./state.mjs";
 import { logEvent } from "./events.mjs";
 import { copyToClipboard, notify } from "../shared/platform.mjs";
 
@@ -46,13 +46,19 @@ export function postLang(p) {
   return (t.match(EN_HINT)?.length ?? 0) > (t.match(FR_HINT)?.length ?? 0) ? "en" : "fr";
 }
 
+/** Post d'une story crypto (jamais concerné par la pause des pubs). */
+const isTalePost = (p) => isTaleId(p.videoId) || p.source === "tales";
+/** Le post peut-il partir (langue active, et pubs actives sauf pour une story) ? */
+export const postOn = (p) => langOn(postLang(p)) && (isTalePost(p) || pubsOn());
+
 /**
  * Programme tous les brouillons complets sur les prochains créneaux libres :
  * créneaux FR et EN séparés (réglages), lots alternés pour ne pas enchaîner deux posts de la même app.
+ * `only` = ids à programmer (sinon tous les brouillons complets). Pubs en pause : leurs brouillons restent brouillons.
  */
-export function scheduleDrafts() {
+export function scheduleDrafts(only = null) {
   const s = ttSettings();
-  const ready = store.posts.filter((p) => p.status === "draft" && (p.type === "video" ? p.videoFile || p.videoId : p.images.length));
+  const ready = store.posts.filter((p) => p.status === "draft" && (!only || only.has(p.id)) && (isTalePost(p) || pubsOn()) && (p.type === "video" ? p.videoFile || p.videoId : p.images.length));
   const taken = new Set(store.posts.filter((p) => p.publishAt && (p.status === "scheduled" || p.status === "sending")).map((p) => p.publishAt.slice(0, 16)));
   let n = 0;
   for (const lang of ["fr", "en"]) {
@@ -300,15 +306,45 @@ export async function sendPost(post) {
   }
 }
 
+/**
+ * Stories : le post TikTok suit le créneau YouTube de sa story, y compris quand il bouge.
+ * Créneau raté et pas encore sur YouTube : le post repasse en brouillon jusqu'au nouveau créneau.
+ */
+export function syncTalePosts() {
+  const vids = getState().videos;
+  let changed = false;
+  for (const p of store.posts) {
+    if (!isTaleId(p.videoId) || !["draft", "scheduled"].includes(p.status)) continue;
+    const st = vids[p.videoId];
+    const ok = st?.publishAt && (st.youtubeId || new Date(st.publishAt).getTime() > Date.now() + 30 * 60000);
+    const next = ok ? { publishAt: st.publishAt, status: "scheduled" } : { publishAt: null, status: "draft" };
+    if (p.publishAt === next.publishAt && p.status === next.status) continue;
+    Object.assign(p, next, { retryAt: null, waiting: null });
+    changed = true;
+  }
+  if (changed) saveStore();
+}
+
 /** Planificateur : envoie les brouillons dont l'heure est arrivée (appelé chaque minute). */
 export async function tick() {
+  syncTalePosts();
   if (!status().connected || tiktokState.sending) return;
   const at = (p) => (p.retryAt && p.retryAt > p.publishAt ? p.retryAt : p.publishAt);
-  const due = store.posts.filter((p) => p.status === "scheduled" && langOn(postLang(p)) && p.publishAt && new Date(at(p)) <= new Date()).sort((a, b) => a.publishAt.localeCompare(b.publishAt));
+  const due = store.posts.filter((p) => p.status === "scheduled" && postOn(p) && p.publishAt && new Date(at(p)) <= new Date()).sort((a, b) => a.publishAt.localeCompare(b.publishAt));
   for (const p of due.slice(0, 3)) {
     await sendPost(p); // TikTok : 6 requêtes / minute max
     if (p.waiting) break; // boîte pleine : inutile d'essayer les suivants maintenant
   }
+}
+
+/**
+ * Fin de la pause des pubs : les posts pubs dont l'heure est passée pendant la pause ne partent pas tous d'un coup,
+ * ils reprennent les prochains créneaux libres. Renvoie le nombre de posts reprogrammés.
+ */
+export function rescheduleOverduePubs() {
+  const late = store.posts.filter((p) => p.status === "scheduled" && !isTalePost(p) && p.publishAt && new Date(p.publishAt).getTime() < Date.now() + 15 * 60000);
+  for (const p of late) Object.assign(p, { status: "draft", publishAt: null, retryAt: null });
+  return late.length ? scheduleDrafts(new Set(late.map((p) => p.id))) : 0;
 }
 
 /* ------------------------------------------------------------------ gestion des posts */

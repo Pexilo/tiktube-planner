@@ -27,6 +27,7 @@ const DEFAULTS = {
     uploadHorizonDays: 14,
     autopilot: false,
     frEnabled: true, // FR en pause = aucune action (rendu, voix, planning, YouTube, TikTok) sur les vidéos FR
+    pubsEnabled: true, // Pubs en pause = rien ne part (YouTube, TikTok) pour les vidéos des apps ; les stories continuent
     taleTime: "20:00", // Stories crypto : créneau dédié, séparé des pubs
     talesPerDay: 1,
     taleAutoTikTok: true, // brouillon TikTok créé dès qu'une story est rendue
@@ -64,3 +65,10 @@ export function updateSettings(patch) {
 
 /** Langue active ? (FR peut être mis en pause depuis le dashboard, sans rien supprimer.) */
 export const langOn = (lang) => lang !== "fr" || state.settings.frEnabled !== false;
+
+/** Vidéo (ou post TikTok) d'une story crypto : jamais concernée par la pause des pubs. */
+export const isTaleId = (id) => /^tale-/.test(id ?? "");
+/** Pubs actives ? (mises en pause depuis le dashboard : rien n'est envoyé ni programmé, rien n'est supprimé.) */
+export const pubsOn = () => state.settings.pubsEnabled !== false;
+/** Une vidéo du catalogue peut-elle partir (langue active, et pubs actives sauf pour une story) ? */
+export const videoOn = (v) => langOn(v.lang) && (v.kind === "tale" || isTaleId(v.id) || pubsOn());

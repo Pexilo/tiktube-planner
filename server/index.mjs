@@ -4,7 +4,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { loadCatalog, ROOT } from "../shared/catalog.mjs";
 import { openPath, revealPath, spawnNpx } from "../shared/platform.mjs";
-import { getState, langOn, save, updateSettings, video, OUT } from "./state.mjs";
+import { getState, langOn, pubsOn, save, updateSettings, video, videoOn, OUT } from "./state.mjs";
 import { generateSchedule } from "./scheduler.mjs";
 import { cancelQueue, current, dropPausedFromQueue, enqueue, isRendered, queue, STAGES } from "./render.mjs";
 import { avgSeconds, events, logEvent } from "./events.mjs";
@@ -16,7 +16,7 @@ import { smartImport } from "./smartimport.mjs";
 import * as watch from "./watchfolder.mjs";
 import { setupRoutes } from "./setup.mjs";
 import { loadProfile } from "../shared/profile.mjs";
-import { authUrl, buildMetadata, handleCallback, PORT, refreshChannel, status as ytStatus, tiktokCaption, uploadMany, uploadState, uploadsToday } from "./youtube.mjs";
+import { authUrl, buildMetadata, handleCallback, PORT, refreshChannel, status as ytStatus, tiktokCaption, uploadMany, uploadOne, uploadState, uploadsToday } from "./youtube.mjs";
 import { setupTaleRoutes } from "./tales.mjs";
 
 const app = express();
@@ -110,6 +110,9 @@ app.patch("/api/videos/:id", (req, res) => {
   const st = video(req.params.id);
   if (st.youtubeId) return res.status(400).json({ error: "Déjà envoyée sur YouTube : modifie la date dans YouTube Studio." });
   if (req.body.publishAt !== undefined) {
+    // L'autopilote passe toutes les 10 min et YouTube veut l'envoi 15 min avant : en dessous de 30 min, le créneau serait raté.
+    if (new Date(req.body.publishAt).getTime() < Date.now() + 30 * 60000)
+      return res.status(400).json({ error: "Trop proche : choisis une heure au moins 30 min plus tard (YouTube doit recevoir la vidéo avant)." });
     st.publishAt = new Date(req.body.publishAt).toISOString();
     st.locked = true;
   }
@@ -123,6 +126,13 @@ app.patch("/api/settings", (req, res) => {
   if (req.body.frEnabled !== undefined) {
     dropPausedFromQueue();
     logEvent("info", req.body.frEnabled ? "Vidéos FR réactivées" : "Vidéos FR en pause : aucune action sur le FR");
+  }
+  if (req.body.pubsEnabled !== undefined) {
+    if (req.body.pubsEnabled) {
+      const n = tt.rescheduleOverduePubs();
+      logEvent("info", `Pubs réactivées${n ? ` : ${n} post(s) TikTok en retard reprogrammé(s)` : ""}`);
+      void autopilot().catch((e) => console.error("autopilote", e)); // créneaux YouTube passés pendant la pause : replanifiés tout de suite
+    } else logEvent("info", "Pubs en pause : rien n'est envoyé sur YouTube ni TikTok (les stories continuent)");
   }
   res.json(getState().settings);
 });
@@ -168,11 +178,31 @@ app.get("/oauth/callback", async (req, res) => {
 app.post("/api/upload", async (req, res) => {
   const c = activeCatalog();
   const ids = new Set(req.body.ids ?? []);
+  if (!pubsOn() && c.videos.some((v) => ids.has(v.id) && !videoOn(v))) return res.status(400).json({ error: "Pubs en pause : réactive les pubs pour les envoyer sur YouTube." });
   const list = c.videos
     .filter((v) => ids.has(v.id) && isRendered(v.id) && !getState().videos[v.id]?.youtubeId)
     .sort((a, b) => (getState().videos[a.id]?.publishAt ?? "").localeCompare(getState().videos[b.id]?.publishAt ?? ""));
   res.json({ queued: list.length });
   void uploadMany(list, c);
+});
+
+// Créneau raté : la vidéo part tout de suite en public au lieu d'attendre un nouveau créneau.
+app.post("/api/videos/:id/publish-now", async (req, res) => {
+  const c = activeCatalog();
+  const v = c.videos.find((x) => x.id === req.params.id);
+  if (!v || !videoOn(v)) return res.status(400).json({ error: "Vidéo introuvable ou en pause." });
+  if (!isRendered(v.id)) return res.status(400).json({ error: "Vidéo pas encore rendue." });
+  if (uploadState.id) return res.status(409).json({ error: "Un envoi est déjà en cours, réessaie dans un instant." });
+  try {
+    res.json({ youtubeId: await uploadOne(v, c.apps.find((a) => a.slug === v.slug), { now: true }) });
+  } catch (e) {
+    const msg = e?.errors?.[0]?.reason ?? e.message;
+    logEvent("error", `Échec de l'envoi de ${v.id} : ${msg}`, v.id);
+    res.status(500).json({ error: String(msg) });
+  } finally {
+    uploadState.id = null;
+    uploadState.progress = 0;
+  }
 });
 
 // ---------------------------------------------------------------- TikTok (brouillons programmés)
@@ -270,6 +300,7 @@ app.post("/api/tiktok/posts/:id/send", async (req, res) => {
   const p = tt.posts().find((x) => x.id === req.params.id);
   if (!p) return res.status(404).end();
   if (!langOn(tt.postLang(p))) return res.status(400).json({ error: "FR en pause : réactive le français pour envoyer ce post." });
+  if (!tt.postOn(p)) return res.status(400).json({ error: "Pubs en pause : réactive les pubs pour envoyer ce post." });
   res.json({ ok: true });
   await tt.sendPost(p).catch((e) => console.error("tiktok", e.message));
 });
@@ -316,11 +347,15 @@ async function autopilot() {
   }
   const c = activeCatalog();
   // Créneau raté (quota, Mac éteint…) : on replanifie plutôt que de laisser la vidéo bloquée.
-  const missed = c.videos.some((v) => {
+  // Pubs en pause : leurs créneaux passés ne comptent pas (replanifiés à la réactivation), et rien ne part.
+  const missed = c.videos.filter((v) => {
     const st = s.videos[v.id];
+    if (!videoOn(v) || st?.hold) return false; // en retouche : son créneau attend la nouvelle version
     return st?.publishAt && !st.youtubeId && new Date(st.publishAt).getTime() < Date.now() + 30 * 60000;
   });
-  if (missed) {
+  if (missed.length) {
+    // Une date fixée à la main mais ratée ne doit pas rester bloquée : elle repart dans le planning.
+    for (const v of missed) s.videos[v.id].locked = false;
     logEvent("schedule", "Créneau raté détecté : planning recalculé automatiquement");
     const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
     if (s.settings.startDate < tomorrow) updateSettings({ startDate: tomorrow });
@@ -330,7 +365,7 @@ async function autopilot() {
   const due = c.videos
     .filter((v) => {
       const st = s.videos[v.id];
-      return st?.publishAt && !st.youtubeId && new Date(st.publishAt).getTime() < horizon && new Date(st.publishAt).getTime() > Date.now() + 20 * 60000;
+      return videoOn(v) && !st?.hold && st?.publishAt && !st.youtubeId && new Date(st.publishAt).getTime() < horizon && new Date(st.publishAt).getTime() > Date.now() + 20 * 60000;
     })
     .sort((a, b) => s.videos[a.id].publishAt.localeCompare(s.videos[b.id].publishAt));
   const toRender = due.filter((v) => !isRendered(v.id)).map((v) => v.id);

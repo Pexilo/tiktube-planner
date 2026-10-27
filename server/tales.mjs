@@ -26,6 +26,8 @@ const FEATURES = ["pnl", "address", "grade", "whatif", "regrets", "gas", "trophi
 const ROLES = ["hook", "context", "build", "twist", "product", "payoff", "outro"];
 /** Toutes les étapes des stories (idées, script, visuels) : Claude Opus 5.5, effort maximal (xhigh). */
 const STORY_MODEL = ["--model", "claude-opus-5-5", "--effort", "xhigh"];
+/** Retravail des seuls bruitages : petit prompt sans outils, effort moyen (quelques centimes au lieu d'une recomposition). */
+const SFX_MODEL = ["--model", "claude-opus-5-5", "--effort", "medium"];
 const COMPOSE_TIMEOUT = 45 * 60 * 1000;
 mkdirSync(join(DATA, "tales"), { recursive: true });
 mkdirSync(TALES_DIR, { recursive: true });
@@ -244,6 +246,11 @@ export async function searchIdeas() {
 
 /* ------------------------------------------------------------------ 2. script */
 
+/** Règles de sound design, communes au script et au retravail des seuls bruitages. */
+const sfxRules = () => `SOUND DESIGN (no music at all: the narrator carries the video, like a true-crime storytelling account): each beat may have "sfx", at most ${MAX_SFX_PER_BEAT} narrative sound cues tied to what is SAID, each {"cue": name, "word": a word of that beat's text the sound lands on}. Subtle and purposeful: 5 to 9 cues in the whole script, mostly on the hook, the escalation, the twist, the payoff and the outro; none on the product beat; never the same cue twice in a row. The animation already has its own tiny sounds, so do not add cues for things that merely appear on screen. Timing by type: "hit" starts on the word, "swell" ends on the word (it builds into it), "bed" holds from the word to the end of the sentence, quietly under the voice. Cues:
+${Object.entries(STORY_SFX).map(([k, v]) => `  - ${k} (${v.mode}): ${v.use}`).join("\n")}
+  Good habits: a "boom" or "hit" on the hook's shocking number, a "riser" or "reverse" into the twist word, a "drone", "heartbeat" or "clock" bed under the tense build-up, a "cash" / "fall" / "gavel" / "slam" / "glitch" when the words say it, a soft bed or "shimmer" on the outro so the loop back to the hook feels like a cliffhanger.`;
+
 function scriptPrompt(subject, problems) {
   const ref = readFileSync(join(TALES_DIR, "howells.json"), "utf8");
   return `You write the script of a "Crypto stories" vertical video (1 to 2 minutes, English voice-over, minimalist pixel-art animation) for YouTube Shorts and TikTok.
@@ -269,9 +276,7 @@ ${featureList()}
 - "hook": on-screen title, max 8 words, the key word wrapped in *asterisks*.
 - "slug": short kebab-case id (2 to 4 words, a-z 0-9 -), e.g. "pizza-day".
 - "facts": the verified facts the video relies on, one per item, with numbers. "sources": every source used, with dates.
-- SOUND DESIGN (no music at all: the narrator carries the video, like a true-crime storytelling account): each beat may have "sfx", at most ${MAX_SFX_PER_BEAT} narrative sound cues tied to what is SAID, each {"cue": name, "word": a word of that beat's text the sound lands on}. Subtle and purposeful: 5 to 9 cues in the whole script, mostly on the hook, the escalation, the twist, the payoff and the outro; none on the product beat; never the same cue twice in a row. The animation already has its own tiny sounds, so do not add cues for things that merely appear on screen. Timing by type: "hit" starts on the word, "swell" ends on the word (it builds into it), "bed" holds from the word to the end of the sentence, quietly under the voice. Cues:
-${Object.entries(STORY_SFX).map(([k, v]) => `  - ${k} (${v.mode}): ${v.use}`).join("\n")}
-  Good habits: a "boom" or "hit" on the hook's shocking number, a "riser" or "reverse" into the twist word, a "drone", "heartbeat" or "clock" bed under the tense build-up, a "cash" / "fall" / "gavel" / "slam" / "glitch" when the words say it, a soft bed or "shimmer" on the outro so the loop back to the hook feels like a cliffhanger.
+- ${sfxRules()}
 - "yt": title (max 70 chars, intriguing, one emoji max, ends with " #shorts"), description (2 sentences), hashtags (5, without #, lowercase, include "cryptostories").
 ${problems ? `\nYOUR PREVIOUS ANSWER WAS REJECTED, FIX THIS:\n${problems}\n` : ""}
 REFERENCE SCRIPT (format and quality to match; a different and shorter story, yours must follow the length rules above):
@@ -497,6 +502,82 @@ async function ensureTaleSounds(slug) {
   return tale;
 }
 
+/**
+ * Retravaille les seuls bruitages d'une story produite (Claude, sans outils) : la voix, la timeline et les visuels ne
+ * bougent pas. Les bruitages actuels restent dans `sfxPrevious` (un niveau d'annulation).
+ */
+async function reworkSfx(slug, note = "") {
+  stage("Bruitages (Claude)");
+  const t = loadTale(slug);
+  const lines = t.beats.map((b, i) => {
+    const tb = t.timeline?.beats[i];
+    const when = tb ? ` (${(tb.from / 30).toFixed(1)}–${((tb.from + tb.dur) / 30).toFixed(1)} s)` : "";
+    const cur = (b.sfx ?? []).map((x) => `${x.cue}${x.word ? ` on "${x.word}"` : ""}`).join(", ") || "none";
+    return `- ${b.id} [${b.role}]${when}: ${b.text}
+  current sfx: ${b.role === "product" ? "none (product beat, no cues)" : cur}`;
+  });
+  const prompt = `You are the sound designer of a finished "Crypto stories" vertical video (pixel-art animation, English voice-over, no music). The voice-over and the visuals are FINAL and will not change: you only choose the narrative sound cues. Do not use any tool.
+
+BEATS (id [role] (time in the video): spoken text):
+${lines.join("\n")}
+
+The video loops: the outro flows straight back into the hook.
+
+${note ? `THE CREATOR'S NOTE (follow it first): ${note}` : "Redesign the sound so it serves the story better than the current cues: keep what clearly works, fix the rest."}
+
+RULES
+- ${sfxRules()}
+- "word" must be a word that appears in that beat's text (copy it exactly).
+
+Answer ONLY with this JSON, every beat listed, "sfx" empty when a beat has no cue:
+{"beats":[{"id":"b1","sfx":[{"cue":"boom","word":"…"}]}]}`;
+  const settings = settingsFile("sfx", [], ["Bash", "Edit", "Write", "Read", "Glob", "Grep", "WebSearch", "WebFetch", "Skill"]);
+  const w = await claude([...SFX_MODEL, "--max-turns", "2", "--settings", settings], prompt, { timeout: 5 * 60 * 1000 });
+  const answer = new Map((jsonFrom(w.result).beats ?? []).map((b) => [String(b?.id), b?.sfx]));
+  // Un son que Claude garde sur la même phrase garde le volume réglé à la main.
+  const keepVol = (b, list) => (Array.isArray(list) ? list : []).map((x) => ({ ...x, vol: b.sfx?.find((o) => o.cue === x?.cue)?.vol }));
+  const next = new Map(t.beats.map((b) => [b.id, b.role === "product" ? [] : cleanSfx(keepVol(b, answer.get(b.id)), b.text)]));
+  const cues = [...next.values()].flat().map((x) => x.cue);
+  if (!cues.length) throw new Error("Claude n'a proposé aucun bruitage : bruitages inchangés.");
+  log(`Nouveaux bruitages : ${cues.join(", ")}`);
+  return patchTale(slug, (x) => {
+    x.sfxPrevious = x.beats.map((b) => ({ id: b.id, sfx: b.sfx ?? [] }));
+    for (const b of x.beats) {
+      const sfx = next.get(b.id) ?? [];
+      if (sfx.length) b.sfx = sfx;
+      else delete b.sfx;
+    }
+    x.sfxNotes = [...(x.sfxNotes ?? []), ...(note ? [note] : [])];
+  });
+}
+
+/** Story produite dont on peut encore changer le son : visuels et voix prêts, pas encore partie sur YouTube / TikTok. */
+function remixProblem(t) {
+  if (!t.voice || !t.timeline || !existsSync(join(TALE_STORIES, `${t.slug}.tsx`))) return "Les bruitages se retravaillent une fois la story composée.";
+  if (["script", "approved", "composing"].includes(t.status)) return "Story pas encore produite.";
+  if (getState().videos[t.id]?.youtubeId) return "Déjà envoyée sur YouTube : le son ne se change plus d'ici.";
+  if (tt.posts().some((p) => p.videoId === t.id && ["sent", "sending"].includes(p.status))) return "Déjà envoyée sur TikTok : le son ne se change plus d'ici.";
+  return null;
+}
+
+/**
+ * Remet le son de la story au propre avec ses bruitages actuels : si la vidéo est déjà rendue, seul l'audio est rendu à
+ * nouveau et remonté sur l'image existante (piste vidéo copiée telle quelle) ; sinon, rendu complet.
+ */
+async function remixSfx(slug) {
+  stage("Bruitages");
+  await ensureTaleSfx({ log });
+  const t = patchTale(slug, (x) => delete x.sfxPending);
+  const v = activeCatalog().videos.find((x) => x.taleSlug === slug);
+  if (!v) throw new Error("Story absente du catalogue (timeline ou visuels manquants)");
+  const audioOnly = isRendered(v.id);
+  video(v.id).rendered = false;
+  save();
+  enqueue([v.id], activeCatalog(), { audioOnly });
+  log(audioOnly ? "Remix du son en file (image gardée telle quelle)" : "Ajoutée à la file de rendu");
+  return t;
+}
+
 /* ------------------------------------------------------------------ 5. composition */
 
 function composePrompt(tale, hasDraft) {
@@ -597,6 +678,10 @@ export function tiktokDraft(v, c) {
 
 onRendered.push((v) => {
   if (v.kind !== "tale") return;
+  if (video(v.id).hold) {
+    delete video(v.id).hold; // retouche terminée : l'autopilote peut renvoyer la nouvelle version
+    save();
+  }
   patchTale(v.taleSlug, (t) => {
     t.status = "rendered";
     t.error = null;
@@ -684,7 +769,7 @@ export function deleteTale(slug) {
 
 function taleSummary(t) {
   const st = getState().videos[t.id] ?? {};
-  return { ...t, rendered: isRendered(t.id), publishAt: st.publishAt ?? null, youtubeId: st.youtubeId ?? null, busy: busyWith(t.slug) };
+  return { ...t, rendered: isRendered(t.id), publishAt: st.publishAt ?? null, youtubeId: st.youtubeId ?? null, hold: !!st.hold, busy: busyWith(t.slug) };
 }
 
 const sortTales = (a, b) => (b.createdAt ?? b.eventDate ?? "").localeCompare(a.createdAt ?? a.eventDate ?? "");
@@ -808,6 +893,85 @@ export function setupTaleRoutes(app, opts) {
     });
     void runJob(t.slug, "Recomposition", () => produce(t.slug, { recompose: true }));
     res.json({ ok: true });
+  });
+
+  // Vidéo supprimée à la main dans YouTube Studio pour la retoucher : on oublie l'upload et l'ancien post TikTok,
+  // et l'autopilote attend le prochain rendu (remix du son) pour renvoyer la nouvelle version.
+  app.post("/api/tales/:slug/unlink", (req, res) => {
+    const t = loadTale(req.params.slug);
+    if (!t) return fail(res, "Story introuvable", 404);
+    const st = video(t.id);
+    if (!st.youtubeId) return fail(res, "Pas envoyée sur YouTube", 400);
+    for (const k of ["youtubeId", "uploadedAt", "uploadError", "thumbError"]) delete st[k];
+    st.hold = true;
+    // Créneau encore à venir : on le garde, sinon la story reprend le prochain créneau libre.
+    if (st.publishAt && new Date(st.publishAt).getTime() > Date.now() + 30 * 60000) st.locked = true;
+    else {
+      delete st.publishAt;
+      st.locked = false;
+      scheduleTales(activeCatalog());
+    }
+    save();
+    for (const p of tt.posts().filter((x) => x.videoId === t.id)) tt.deletePost(p.id);
+    logEvent("info", `Stories : ${t.yt.title} retirée de YouTube pour retouche`, t.id);
+    res.json(taleSummary(loadTale(t.slug)));
+  });
+
+  // Bruitages d'une story produite, modifiés à la main : enregistrés tout de suite, remixés au clic (POST …/sfx).
+  app.patch("/api/tales/:slug/sfx", (req, res) => {
+    const t = loadTale(req.params.slug);
+    if (!t) return fail(res, "Story introuvable", 404);
+    const why = remixProblem(t);
+    if (why) return fail(res, why, 400);
+    if (busyWith(t.slug)) return fail(res, "Story en cours de traitement", 409);
+    const next = new Map((Array.isArray(req.body?.beats) ? req.body.beats : []).map((b) => [String(b?.id), b?.sfx]));
+    for (const b of t.beats) {
+      if (!next.has(b.id) || b.role === "product") continue;
+      const sfx = cleanSfx(next.get(b.id), b.text);
+      if (sfx.length) b.sfx = sfx;
+      else delete b.sfx;
+    }
+    t.sfxPending = true;
+    saveTale(t);
+    res.json(taleSummary(t));
+  });
+
+  // Refaire le son seulement : `ai` = Claude retravaille les bruitages (note facultative), sinon bruitages actuels. Puis remix.
+  app.post("/api/tales/:slug/sfx", (req, res) => {
+    const t = loadTale(req.params.slug);
+    if (!t) return fail(res, "Story introuvable", 404);
+    const why = remixProblem(t);
+    if (why) return fail(res, why, 400);
+    if (busyWith(t.slug)) return fail(res, "Déjà dans la file", 409);
+    if (renderCurrent.id === t.id) return fail(res, "Rendu en cours : attends la fin du rendu.", 409);
+    const ai = !!req.body?.ai;
+    const note = String(req.body?.note ?? "").trim().slice(0, 1000);
+    void runJob(t.slug, ai ? "Bruitages (Claude)" : "Remix des bruitages", async () => {
+      if (ai) await reworkSfx(t.slug, note);
+      await remixSfx(t.slug);
+    }).catch((e) => {
+      log(`Erreur : ${e.message}`);
+      logEvent("error", `Stories : bruitages échoués, ${String(e.message).slice(0, 160)}`, t.id);
+    });
+    res.json({ ok: true });
+  });
+
+  // Annule le dernier retravail des bruitages par Claude (bruitages d'avant, à remixer).
+  app.post("/api/tales/:slug/sfx/undo", (req, res) => {
+    const t = loadTale(req.params.slug);
+    if (!t) return fail(res, "Story introuvable", 404);
+    if (!t.sfxPrevious) return fail(res, "Rien à annuler", 400);
+    if (busyWith(t.slug)) return fail(res, "Story en cours de traitement", 409);
+    const prev = new Map(t.sfxPrevious.map((b) => [b.id, b.sfx]));
+    for (const b of t.beats) {
+      const sfx = cleanSfx(prev.get(b.id), b.text);
+      if (sfx.length) b.sfx = sfx;
+      else delete b.sfx;
+    }
+    delete t.sfxPrevious;
+    t.sfxPending = true;
+    saveTale(t);
+    res.json(taleSummary(t));
   });
 
   app.delete("/api/tales/:slug", (req, res) => {

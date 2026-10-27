@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { google } from "googleapis";
 import { loadTale, ROOT } from "../shared/catalog.mjs";
 import { buildTimeline, FPS } from "../shared/timeline.mjs";
-import { DATA, getState, save, video, langOn } from "./state.mjs";
+import { DATA, getState, save, video, videoOn } from "./state.mjs";
 import { outFile, thumbFile } from "./render.mjs";
 import { logEvent } from "./events.mjs";
 import { signature } from "../shared/profile.mjs";
@@ -209,20 +209,21 @@ function buildKeynoteMetadata(v, app) {
   return { title: v.title.slice(0, 100), description: lines.join("\n").slice(0, 4900), tags, categoryId: seo.category };
 }
 
-/** Stories crypto : l'histoire et ses sources d'abord, une seule ligne discrète vers l'app, puis les hashtags. */
+/** Stories crypto : l'histoire et ses sources d'abord, une seule ligne discrète vers l'app, puis les hashtags. Aucun lien. */
 function buildTaleMetadata(v, app) {
   const tale = loadTale(v.taleSlug);
   const base = tale.yt.title.replace(/\s*#shorts\s*/i, "").trim();
   const title = `${base} #shorts`.slice(0, 100);
   const tags = [...new Set(tale.yt.hashtags.map((h) => h.replace(/^#/, "")))];
   const hashtags = ["Shorts", ...tags].slice(0, 8).map((h) => `#${h.replace(/[^\p{L}\p{N}]/gu, "")}`);
-  const lines = [tale.yt.description, "", tale.summary, ""];
+  const noLinks = (s) => String(s ?? "").replace(/\s*\(?\b(?:https?:\/\/|www\.)\S+/gi, "").trim();
+  const lines = [noLinks(tale.yt.description), "", noLinks(tale.summary), ""];
   if (tale.sources?.length) {
     lines.push("Sources:");
-    for (const s of tale.sources) lines.push(`• ${s.title}${s.date ? ` (${s.date})` : ""}: ${s.url}`);
+    for (const s of tale.sources) lines.push(`• ${noLinks(s.title)}${s.date ? ` (${s.date})` : ""}`);
     lines.push("");
   }
-  lines.push(`Check your own wallet's real P&L: ${app.links[0].url}`, "", hashtags.join(" "));
+  lines.push(`Check your own wallet's real P&L with ${app.name}.`, "", hashtags.join(" "));
   const out = [];
   let len = 0;
   for (const t of ["crypto stories", ...tags]) {
@@ -272,14 +273,16 @@ function buildExternalMetadata(v, app) {
 const today = () => new Date().toISOString().slice(0, 10);
 export const uploadsToday = () => getState().uploadsLog.filter((u) => u.at.slice(0, 10) === today()).length;
 
-export async function uploadOne(v, app) {
+/** `now` : publiée tout de suite en public (créneau raté), sinon privée et programmée sur `publishAt`. */
+export async function uploadOne(v, app, { now = false } = {}) {
   const c = client();
   if (!c || !existsSync(TOKEN)) throw new Error("YouTube non connecté");
   const st = video(v.id);
   if (st.youtubeId) return st.youtubeId;
   if (!existsSync(outFile(v.id))) throw new Error("Vidéo pas encore rendue");
+  if (now) Object.assign(st, { publishAt: new Date().toISOString(), locked: true });
   const publishAt = st.publishAt;
-  if (!publishAt || new Date(publishAt).getTime() < Date.now() + 15 * 60 * 1000)
+  if (!now && (!publishAt || new Date(publishAt).getTime() < Date.now() + 15 * 60 * 1000))
     throw new Error("Date de publication absente ou trop proche (min. 15 min) — régénère le planning");
 
   const meta = buildMetadata(v, app);
@@ -301,8 +304,7 @@ export async function uploadOne(v, app) {
           defaultAudioLanguage: v.lang,
         },
         status: {
-          privacyStatus: "private",
-          publishAt,
+          ...(now ? { privacyStatus: "public" } : { privacyStatus: "private", publishAt }),
           selfDeclaredMadeForKids: false,
           containsSyntheticMedia: false,
           embeddable: true,
@@ -320,7 +322,8 @@ export async function uploadOne(v, app) {
   Object.assign(st, { youtubeId: id, uploadedAt: new Date().toISOString(), uploadError: null });
   getState().uploadsLog.push({ at: new Date().toISOString(), id: v.id });
   save();
-  logEvent("upload", `Programmée sur YouTube : ${meta.title} → ${new Date(publishAt).toLocaleString("fr-BE", { timeZone: "Europe/Brussels", weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}`, v.id);
+  if (now) logEvent("upload", `Publiée sur YouTube : ${meta.title}`, v.id);
+  else logEvent("upload", `Programmée sur YouTube : ${meta.title} → ${new Date(publishAt).toLocaleString("fr-BE", { timeZone: "Europe/Brussels", weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}`, v.id);
 
   if (v.format === "long" && existsSync(thumbFile(v.id))) {
     try {
@@ -341,7 +344,7 @@ export async function uploadMany(list, catalog) {
   uploadState.queue = list.map((v) => v.id);
   uploadState.total = list.length;
   for (const v of list) {
-    if (!langOn(v.lang)) continue; // langue mise en pause pendant le lot
+    if (!videoOn(v)) continue; // langue ou pubs mises en pause pendant le lot
     if (uploadsToday() >= max) {
       uploadState.lastError = `Quota du jour atteint (${max} uploads). La suite partira demain.`;
       logEvent("info", uploadState.lastError);

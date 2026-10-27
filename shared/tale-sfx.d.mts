@@ -10,4 +10,7 @@ export const ANIM_SFX: Record<AnimSfxName, number>;
 export const ANIM_SFX_NAMES: AnimSfxName[];
 export function sfxFile(name: StorySfxName | AnimSfxName): string;
 export const MAX_SFX_PER_BEAT: number;
-export function cleanSfx(list: unknown, text: string): { cue: StorySfxName; word?: string }[];
+export const SFX_VOL_MIN: number;
+export const SFX_VOL_MAX: number;
+export const SFX_MAX_GAIN: number;
+export function cleanSfx(list: unknown, text: string): { cue: StorySfxName; word?: string; vol?: number }[];

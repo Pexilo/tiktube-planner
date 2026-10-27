@@ -1,6 +1,6 @@
 import React from "react";
 import { AbsoluteFill, Audio, interpolate, Sequence, staticFile, useCurrentFrame } from "remotion";
-import { STORY_SFX, sfxFile } from "../../shared/tale-sfx.mjs";
+import { SFX_MAX_GAIN, STORY_SFX, sfxFile } from "../../shared/tale-sfx.mjs";
 import { TALE_VOICE_DELAY, taleTimeline } from "../../shared/tales.mjs";
 import { clamp, SfxMute } from "../components/fx";
 import { FeatureWidget } from "../components/widgets";
@@ -197,6 +197,8 @@ const StorySfx: React.FC = () => {
           from = Math.max(0, from);
           const dur = Math.min(def.mode === "bed" ? tb.from + tb.dur + 8 - from : len - skip, total - from);
           if (dur <= 0) return null;
+          // Volume réglé à la main, plafonné pour qu'un son poussé ne sature pas.
+          const gain = Math.min(SFX_MAX_GAIN, def.gain * (c.vol ?? 1));
           const fade = (f: number) => interpolate(f, [0, def.mode === "bed" ? 10 : 1, dur - (def.mode === "bed" ? 14 : 4), dur], [0, 1, 1, 0], clamp);
           return (
             <Sequence key={`${b.id}-${k}`} from={from} durationInFrames={dur} name={`bruitage ${c.cue}`} layout="none">
@@ -204,7 +206,7 @@ const StorySfx: React.FC = () => {
                 src={staticFile(sfxFile(c.cue))}
                 startFrom={skip}
                 loop={def.mode === "bed"}
-                volume={(f) => def.gain * fade(f) * (def.mode === "bed" ? 1 - DUCK * (env[from + f] ?? 0) : 1)}
+                volume={(f) => gain * fade(f) * (def.mode === "bed" ? 1 - DUCK * (env[from + f] ?? 0) : 1)}
               />
             </Sequence>
           );
