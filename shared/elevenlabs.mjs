@@ -161,6 +161,33 @@ export async function composeMusic(model, plan, seed) {
   return Buffer.from(await r.arrayBuffer());
 }
 
+export const DEFAULT_SFX_MODEL = "eleven_text_to_sound_v2";
+
+/** Bruitages ElevenLabs : actifs dès qu'une clé est enregistrée (désactivables avec "sfx": false dans data/elevenlabs.json). */
+export function sfxConfig() {
+  const c = readConfig();
+  if (!c.apiKey || c.sfx === false) return null;
+  return { model: c.sfxModel ?? DEFAULT_SFX_MODEL };
+}
+
+/** Génère un bruitage à partir d'une description : renvoie le mp3. `dur` en secondes (0,5 à 30), `loop` = son qui boucle sans raccord. */
+export async function soundEffect(model, prompt, { dur, loop = false, influence = 0.5 } = {}) {
+  const key = readConfig().apiKey;
+  if (!key) throw new Error("Clé ElevenLabs manquante");
+  const r = await fetch(`${API}/v1/sound-generation?output_format=mp3_44100_128`, {
+    method: "POST",
+    headers: { "xi-api-key": key, "content-type": "application/json" },
+    body: JSON.stringify({ text: prompt, model_id: model, duration_seconds: dur, prompt_influence: influence, ...(loop ? { loop: true } : {}) }),
+  });
+  if (!r.ok) {
+    const j = await r.json().catch(() => ({}));
+    const d = j.detail;
+    const why = typeof d === "string" ? d : d?.message ?? (Array.isArray(d) ? d.map((x) => x.msg).join(", ") : "");
+    throw new Error(`ElevenLabs SFX ${r.status}${why ? ` : ${why}` : ""}`);
+  }
+  return Buffer.from(await r.arrayBuffer());
+}
+
 /** Regroupe l'alignement par caractère en mots (séparés par les espaces du texte d'origine). */
 function wordsFrom(text, a) {
   if (!a?.characters?.length) return null;

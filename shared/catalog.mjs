@@ -90,7 +90,6 @@ export function loadCatalog() {
       appName: "Crypto stories",
       title: tale.yt.title,
       durationSec: tale.timeline.totalFrames / FPS,
-      music: tale.musicTrack,
       color: host.brand.primary,
       tale: true,
       taleSlug: tale.slug,

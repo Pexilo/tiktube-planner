@@ -73,11 +73,12 @@ const timeline = tale.timeline ?? taleTimeline(tale.beats, tale.voice?.segments)
 const extra = (args.find((a) => a.startsWith("--frames="))?.slice(9) ?? "").split(",").filter(Boolean).map(Number);
 // + la jointure de la boucle : dernière frame et frame 0 doivent être identiques (loop-end.png / loop-start.png).
 const frames = [...timeline.beats.map((b) => b.from + Math.round(b.dur * 0.66)), timeline.totalFrames - 1, 0, ...extra].filter((f) => f >= 0 && f < timeline.totalFrames);
-// Les images fixes n'ont besoin ni de la voix ni de la musique : un public minimal (liens vers apps/ et fx/) évite de copier
-// tout public/ (plusieurs centaines de Mo) dans chaque bundle temporaire.
+// Les images fixes n'ont pas besoin de la voix : un public minimal (liens vers apps/, fx/ et les bruitages, qu'une nappe
+// bouclée doit charger même pour une image fixe) évite de copier tout public/ (plusieurs centaines de Mo) dans chaque bundle.
 const publicDir = join(ROOT, "out", "tales-preview", "_public");
-mkdirSync(publicDir, { recursive: true });
-for (const d of ["apps", "fx"]) if (!existsSync(join(publicDir, d))) symlinkSync(join(ROOT, "public", d), join(publicDir, d), "junction");
+mkdirSync(join(publicDir, "audio"), { recursive: true });
+mkdirSync(join(ROOT, "public", "audio", "tale-sfx"), { recursive: true });
+for (const d of ["apps", "fx", "audio/tale-sfx"]) if (!existsSync(join(publicDir, d))) symlinkSync(join(ROOT, "public", d), join(publicDir, d), "junction");
 let serveUrl;
 try {
   serveUrl = await bundle({

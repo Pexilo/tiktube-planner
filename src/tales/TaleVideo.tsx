@@ -1,11 +1,13 @@
 import React from "react";
 import { AbsoluteFill, Audio, interpolate, Sequence, staticFile, useCurrentFrame } from "remotion";
+import { STORY_SFX, sfxFile } from "../../shared/tale-sfx.mjs";
 import { TALE_VOICE_DELAY, taleTimeline } from "../../shared/tales.mjs";
 import { clamp, SfxMute } from "../components/fx";
 import { FeatureWidget } from "../components/widgets";
 import { font, MONO, ThemeProvider, useTheme } from "../lib/theme";
 import type { AppContent } from "../lib/types";
 import { loopHoldFrom, TaleProvider, useTale, type Word } from "./kit/core";
+import { Sound } from "./kit/sfx";
 import { Canvas, COLS, P, PAL, PixelArt } from "./pixel/engine";
 import { drawText, PixelText, textWidth, TP } from "./pixel/font";
 import { Backdrop } from "./pixel/backdrop";
@@ -14,7 +16,8 @@ import type { StoryProps, Tale } from "./types";
 
 /*
  * Habillage fixe d'une story crypto en pixel art (écrit à la main, jamais par Claude) :
- * fond encre, voix off + sous-titres pixel mot à mot, musique sous la voix, aucun bruitage,
+ * fond encre, voix off + sous-titres pixel mot à mot, pas de musique : des bruitages narratifs choisis par le script (suspense,
+ * révélation, tension, calés sur un mot) et les petits sons d'animation joués par le kit,
  * moment produit (~5 s : le vrai widget Where'd Gains Go? dans un écran pixel). Pas de carte de fin : le dernier plan boucle
  * sur le premier (<Beat loop>), la plateforme relance la vidéo sans saut d'image.
  * Claude n'écrit que <Story /> : les plans, sur la grille de 90 × 160 cellules.
@@ -22,12 +25,11 @@ import type { StoryProps, Tale } from "./types";
 
 export type TaleVideoProps = { tale: Tale; app: AppContent };
 
-/** Musique en second plan : niveau de base, et baisse supplémentaire (ducking) pendant que le narrateur parle. */
-const MUSIC_BED = 0.2;
+/** Nappes narratives (drone, battements, horloge…) : baisse supplémentaire pendant que le narrateur parle. */
 const DUCK = 0.45;
 
 /**
- * Enveloppe de ducking, une valeur par frame (0 = pas de baisse, 1 = baisse complète) : la musique descend 4 frames avant
+ * Enveloppe de ducking, une valeur par frame (0 = pas de baisse, 1 = baisse complète) : la nappe descend 4 frames avant
  * chaque mot et remonte doucement (~0,5 s) dans les pauses. Calculée sur les mots horodatés de la voix (ou estimés).
  */
 function duckEnvelope(totalFrames: number, timeline: { beats: { from: number }[] }, words: Word[][]) {
@@ -115,6 +117,8 @@ const ProductCameo: React.FC<{ dur: number }> = ({ dur }) => {
   return (
     <AbsoluteFill style={{ clipPath: `inset(${outRows * P}px 0 ${(160 - rows) * P}px 0)` }}>
       <Backdrop tone="deep" />
+      <Sound name="a-cut" volume={0.6} />
+      <Sound name="a-blip" at={10} volume={0.6} />
       <div style={{ position: "absolute", left: MON_X * P, top: MON_Y * P }}>
         <PixelArt canvas={monitor} />
       </div>
@@ -167,15 +171,46 @@ const Inner: React.FC<TaleVideoProps & { Story: React.FC<StoryProps> }> = ({ tal
   );
 };
 
-/** Musique sous la voix : fond bas, qui s'efface davantage quand le narrateur parle (lit les mots du TaleProvider). */
-const MusicBed: React.FC<{ file: string }> = ({ file }) => {
-  const { timeline, words } = useTale();
-  const env = React.useMemo(() => duckEnvelope(timeline.totalFrames, timeline, words), [timeline, words]);
+const norm = (s: string) => s.toLowerCase().replace(/[^p{L}p{N}]/gu, "");
+
+/**
+ * Bruitages narratifs du script (`beat.sfx`), calés sur le mot choisi (début de la phrase sans mot) :
+ * un impact démarre sur le mot, une montée se termine sur le mot, une nappe tient du mot à la fin de la phrase
+ * (bouclée, fondue, et plus basse pendant que le narrateur parle). Tout s'éteint avant la dernière frame : la boucle reste propre.
+ */
+const StorySfx: React.FC = () => {
+  const { tale, timeline, words } = useTale();
+  const total = timeline.totalFrames;
+  const env = React.useMemo(() => duckEnvelope(total, timeline, words), [total, timeline, words]);
   return (
-    <Audio
-      src={staticFile(file)}
-      volume={(f) => interpolate(f, [0, 3, timeline.totalFrames - 12, timeline.totalFrames], [0.7, 1, 1, 0], clamp) * MUSIC_BED * (1 - DUCK * (env[f] ?? 0))}
-    />
+    <>
+      {tale.beats.flatMap((b, i) =>
+        (b.sfx ?? []).map((c, k) => {
+          const def = STORY_SFX[c.cue];
+          if (!def) return null;
+          const tb = timeline.beats[i];
+          const w = c.word ? words[i].find((x) => norm(x.w).includes(norm(c.word!)) && norm(c.word!)) : undefined;
+          const at = tb.from + TALE_VOICE_DELAY + Math.round((w?.s ?? 0) * 30);
+          const len = Math.round(def.dur * 30);
+          let from = def.mode === "swell" ? at - len + 2 : def.mode === "bed" ? at - 3 : at - 1;
+          const skip = Math.max(0, -from);
+          from = Math.max(0, from);
+          const dur = Math.min(def.mode === "bed" ? tb.from + tb.dur + 8 - from : len - skip, total - from);
+          if (dur <= 0) return null;
+          const fade = (f: number) => interpolate(f, [0, def.mode === "bed" ? 10 : 1, dur - (def.mode === "bed" ? 14 : 4), dur], [0, 1, 1, 0], clamp);
+          return (
+            <Sequence key={`${b.id}-${k}`} from={from} durationInFrames={dur} name={`bruitage ${c.cue}`} layout="none">
+              <Audio
+                src={staticFile(sfxFile(c.cue))}
+                startFrom={skip}
+                loop={def.mode === "bed"}
+                volume={(f) => def.gain * fade(f) * (def.mode === "bed" ? 1 - DUCK * (env[from + f] ?? 0) : 1)}
+              />
+            </Sequence>
+          );
+        }),
+      )}
+    </>
   );
 };
 
@@ -196,7 +231,7 @@ export const TaleVideo: React.FC<TaleVideoProps & { Story: React.FC<StoryProps> 
         <SfxMute.Provider value={true}>
           <TaleProvider tale={tale} timeline={timeline}>
             <Inner {...props} />
-            {tale.musicTrack ? <MusicBed file={tale.musicTrack.file} /> : null}
+            <StorySfx />
           </TaleProvider>
         </SfxMute.Provider>
       </AbsoluteFill>

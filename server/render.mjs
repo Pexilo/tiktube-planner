@@ -7,6 +7,7 @@ import { bundle } from "@remotion/bundler";
 import { renderMedia, renderStill, selectComposition } from "@remotion/renderer";
 import { ROOT } from "../shared/catalog.mjs";
 import { ensureMusic, ensureSfx } from "../scripts/gen-all-audio.mjs";
+import { ensureTaleSfx } from "../scripts/gen-tale-sfx.mjs";
 import { ensureVoices } from "../scripts/gen-voice.mjs";
 import { langOn, OUT, save, video } from "./state.mjs";
 import { logEvent, recordDuration } from "./events.mjs";
@@ -140,7 +141,9 @@ async function work() {
       }
       stage(1);
       // Remotion copie public/ au moment du bundle : un fichier audio créé après → nouveau bundle.
-      if (await ensureMusic(v.music)) serveUrl = null;
+      if (v.music && (await ensureMusic(v.music))) serveUrl = null;
+      // Stories crypto : pas de musique, des bruitages (bibliothèque commune, créée une fois).
+      if (v.kind === "tale" && (await ensureTaleSfx())) serveUrl = null;
       const url = await getBundle();
       stage(3);
       const composition = await selectComposition({ serveUrl: url, id });

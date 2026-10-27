@@ -6,6 +6,7 @@ import { useBg } from "./backdrop";
 import { EXTRA_ICONS } from "./icons";
 import { FINE_ICONS } from "./fine";
 import { useTextSlot } from "./layout";
+import { enterSound, Sound } from "../kit/sfx";
 import { drawText, LINE, measure, PixelText, textWidth, TP, wrap } from "./font";
 
 /*
@@ -140,9 +141,15 @@ const pixelOf = (d: Drawer) => (d.fine ? P / 2 : P);
  */
 export const Prop: React.FC<{ name: PropName; x: number; y?: number; at?: number; flip?: boolean; out?: number }> = ({ name, x, y = GROUND, at = 0, flip = false, out }) => {
   const frame = useCurrentFrame();
-  if (out !== undefined && frame >= out) return null;
+  const sound = enterSound("a-thud", at, 0.8);
+  if (out !== undefined && frame >= out) return sound;
   const d: Drawer = WORLD[name];
-  return <Sprite canvas={render(d, frame - at, flip)} x={x} y={y} w={d.w} h={d.h} at={at} />;
+  return (
+    <>
+      {sound}
+      <Sprite canvas={render(d, frame - at, flip)} x={x} y={y} w={d.w} h={d.h} at={at} />
+    </>
+  );
 };
 
 /** Objet du monde qui se déplace de `from` à `to` ([x, y] = milieu du bas) : camion qui passe, drone qui vole, disque qui tombe. */
@@ -156,27 +163,43 @@ export const Move: React.FC<{ name: PropName; from: [number, number]; to: [numbe
   vanish = false,
 }) => {
   const frame = useCurrentFrame();
-  if (frame < at || (vanish && frame >= at + dur)) return null;
+  const sound = <Sound name="a-swish" at={at} volume={0.7} />;
+  if (frame < at || (vanish && frame >= at + dur)) return sound;
   const k = Math.min(1, (frame - at) / dur);
   const d: Drawer = WORLD[name];
   const x = Math.round(from[0] + (to[0] - from[0]) * k);
   const y = Math.round(from[1] + (to[1] - from[1]) * k - arc * 4 * k * (1 - k));
-  return <Sprite canvas={render(d, frame - at, to[0] < from[0])} x={x} y={y} w={d.w} h={d.h} at={at} drop={false} />;
+  return (
+    <>
+      {sound}
+      <Sprite canvas={render(d, frame - at, to[0] < from[0])} x={x} y={y} w={d.w} h={d.h} at={at} drop={false} />
+    </>
+  );
 };
+
+/** Icônes de pièces : elles tintent en volant. */
+const COINS: IconName[] = ["coin", "eth", "stable", "doge"];
 
 /** Icône (symbole) centrée en (x, y) cellules : en l'air, en gros plan, au-dessus d'une tête. */
 export const Icon: React.FC<{ name: IconName; x: number; y: number; at?: number; out?: number }> = ({ name, x, y, at = 0, out }) => {
   const frame = useCurrentFrame();
-  if (out !== undefined && frame >= out) return null;
+  const sound = enterSound("a-pop", at);
+  if (out !== undefined && frame >= out) return sound;
   const d: Drawer = ICONS[name];
-  return <Sprite canvas={render(d, frame - at, false)} x={x} y={y} w={d.w} h={d.h} at={at} anchor="center" p={pixelOf(d)} />;
+  return (
+    <>
+      {sound}
+      <Sprite canvas={render(d, frame - at, false)} x={x} y={y} w={d.w} h={d.h} at={at} anchor="center" p={pixelOf(d)} />
+    </>
+  );
 };
 
 /**
  * Icône qui vole de `from` à `to` (centres, cellules) entre `at` et `at + dur`, en paliers d'une cellule.
- * `arc` = hauteur de la parabole. Après l'arrivée elle reste, sauf si `vanish`.
+ * `arc` = hauteur de la parabole. Après l'arrivée elle reste, sauf si `vanish`. Son : tintement pour une pièce, souffle sinon
+ * (`sound={false}` = muet).
  */
-export const Fly: React.FC<{ name: IconName; from: [number, number]; to: [number, number]; at: number; dur?: number; arc?: number; vanish?: boolean }> = ({
+export const Fly: React.FC<{ name: IconName; from: [number, number]; to: [number, number]; at: number; dur?: number; arc?: number; vanish?: boolean; sound?: boolean }> = ({
   name,
   from,
   to,
@@ -184,14 +207,21 @@ export const Fly: React.FC<{ name: IconName; from: [number, number]; to: [number
   dur = 20,
   arc = 0,
   vanish = false,
+  sound: withSound = true,
 }) => {
   const frame = useCurrentFrame();
-  if (frame < at || (vanish && frame >= at + dur)) return null;
+  const sound = withSound ? COINS.includes(name) ? <Sound name="a-coin" at={at} volume={0.6} /> : <Sound name="a-swish" at={at} volume={0.5} /> : null;
+  if (frame < at || (vanish && frame >= at + dur)) return sound;
   const k = Math.min(1, (frame - at) / dur);
   const d: Drawer = ICONS[name];
   const x = Math.round(from[0] + (to[0] - from[0]) * k);
   const y = Math.round(from[1] + (to[1] - from[1]) * k - arc * 4 * k * (1 - k));
-  return <Sprite canvas={render(d, frame - at, false)} x={x} y={y} w={d.w} h={d.h} at={at} anchor="center" drop={false} p={pixelOf(d)} />;
+  return (
+    <>
+      {sound}
+      <Sprite canvas={render(d, frame - at, false)} x={x} y={y} w={d.w} h={d.h} at={at} anchor="center" drop={false} p={pixelOf(d)} />
+    </>
+  );
 };
 
 /* ------------------------------------------------------------------ Textes et infos */
@@ -287,7 +317,8 @@ export const Counter: React.FC<{ value: string; x?: number; y: number; at: numbe
   const lab = label ? measure(label) : null;
   const half = Math.max(cells(full + 1), lab?.wCells ?? 0) / 2;
   const dy = useTextSlot(frame >= at ? { x0: x - half, y0: y - 4, x1: x + half, y1: y + (lab ? 5 + lab.hCells : 4) } : null);
-  if (frame < at) return null;
+  const sound = /\d/.test(value) ? <Sound name="a-count" at={at} volume={0.7} /> : <Sound name="a-pop" at={at} />;
+  if (frame < at) return sound;
   const m = value.match(/^([^\d]*)(\d[\d,]*)(.*)$/);
   const k = Math.min(1, Math.floor(((frame - at) / 30) * 12) / 12);
   const shown = m ? `${m[1]}${Math.round(Number(m[2].replace(/,/g, "")) * k).toLocaleString("en-US")}${m[3]}` : value;
@@ -297,6 +328,7 @@ export const Counter: React.FC<{ value: string; x?: number; y: number; at: numbe
   drawText(c, shown, ox, 0, color, 2);
   return (
     <>
+      {sound}
       <TextGrid c={c} w={full + 1} h={15} x={x} y={y + dy} />
       {label ? <PixelText text={label} x={x} y={y + dy + 5} slot={false} /> : null}
     </>
@@ -304,7 +336,7 @@ export const Counter: React.FC<{ value: string; x?: number; y: number; at: numbe
 };
 
 /** Étiquette dans un cadre (date, lieu, nom, rôle), centrée en (x, y) cellules. */
-export const Label: React.FC<{ x: number; y: number; at?: number; text: string; color?: string; textColor?: string; out?: number; slot?: boolean; max?: number }> = ({
+export const Label: React.FC<{ x: number; y: number; at?: number; text: string; color?: string; textColor?: string; out?: number; slot?: boolean; max?: number; sound?: boolean }> = ({
   x,
   y,
   at = 0,
@@ -314,14 +346,21 @@ export const Label: React.FC<{ x: number; y: number; at?: number; text: string; 
   out,
   slot = true,
   max = 70,
+  sound: withSound = true,
 }) => {
   const frame = useCurrentFrame();
   const d = useDrop(at);
   const visible = d !== null && !(out !== undefined && frame >= out);
   const { c, w, h } = textBox(text, { fill: color, color: textColor, max });
   const dy = useTextSlot(visible && slot ? { x0: x - cells(w) / 2, y0: y - cells(h) / 2, x1: x + cells(w) / 2, y1: y + cells(h) / 2 } : null);
-  if (!visible) return null;
-  return <TextGrid c={c} w={w} h={h} x={x} y={y + dy} dy={d ?? 0} />;
+  const sound = withSound ? enterSound("a-blip", at, 0.5) : null;
+  if (!visible) return sound;
+  return (
+    <>
+      {sound}
+      <TextGrid c={c} w={w} h={h} x={x} y={y + dy} dy={d ?? 0} />
+    </>
+  );
 };
 
 /** Bulle de dialogue : (x, y) = pointe de la bulle, en cellules (au-dessus d'une tête : y = sol − 22). */
@@ -331,14 +370,18 @@ export const Bubble: React.FC<{ x: number; y: number; at: number; text: string; 
   const visible = d !== null && !(out !== undefined && frame >= out);
   const { c, w, h } = textBox(text, { fill: PAL.paper, max: width, pad: 3 });
   const dy = useTextSlot(visible ? { x0: x - 2, y0: y - cells(h + 4), x1: x - 2 + cells(w), y1: y } : null);
-  if (!visible) return null;
+  const sound = enterSound("a-pop", at, 0.8);
+  if (!visible) return sound;
   // Queue : 4 pixels qui descendent vers la pointe, à gauche de la bulle.
   c.rect(4, h - 1, 4, 1, PAL.paper).rect(4, h, 3, 1, PAL.paper).rect(4, h + 1, 2, 1, PAL.paper).rect(4, h + 2, 1, 1, PAL.paper);
   for (const [px, py] of [[3, h - 1], [3, h], [3, h + 1], [3, h + 2], [3, h + 3], [8, h - 1], [7, h], [6, h + 1], [5, h + 2], [4, h + 3]]) c.set(px, py, PAL.ink);
   return (
-    <div style={{ position: "absolute", left: Math.round((x * P - 4 * TP) / TP) * TP, top: Math.round(((y + dy + (d ?? 0)) * P - (h + 4) * TP) / TP) * TP }}>
-      <PixelArt canvas={c} p={TP} />
-    </div>
+    <>
+      {sound}
+      <div style={{ position: "absolute", left: Math.round((x * P - 4 * TP) / TP) * TP, top: Math.round(((y + dy + (d ?? 0)) * P - (h + 4) * TP) / TP) * TP }}>
+        <PixelArt canvas={c} p={TP} />
+      </div>
+    </>
   );
 };
 
@@ -349,12 +392,18 @@ export const Stamp: React.FC<{ x?: number; y: number; at: number; text: string; 
   const w = tw + 12;
   const h = 14 + 12;
   const dy = useTextSlot(frame >= at ? { x0: x - cells(w + 1) / 2, y0: y - cells(h + 1) / 2, x1: x + cells(w + 1) / 2, y1: y + cells(h + 1) / 2 } : null);
-  if (frame < at) return null;
+  const sound = <Sound name="a-stamp" at={at} />;
+  if (frame < at) return sound;
   const hit = frame - at < 3; // impact : couleurs inversées pendant 3 frames (sur la grille, sans changer de taille)
   const c = new Canvas().rect(1, 1, w, h, PAL.ink).rect(0, 0, w, h, hit ? color : PAL.ink2);
   if (!hit) c.rect(0, 0, w, 1, color).rect(0, h - 1, w, 1, color).rect(0, 0, 1, h, color).rect(w - 1, 0, 1, h, color).rect(2, 2, w - 4, 1, color).rect(2, h - 3, w - 4, 1, color).rect(2, 2, 1, h - 4, color).rect(w - 3, 2, 1, h - 4, color);
   drawText(c, text, 6, 6, hit ? PAL.ink : color, 2);
-  return <TextGrid c={c} w={w + 1} h={h + 1} x={x} y={y + dy} />;
+  return (
+    <>
+      {sound}
+      <TextGrid c={c} w={w + 1} h={h + 1} x={x} y={y + dy} />
+    </>
+  );
 };
 
 /**
@@ -375,7 +424,9 @@ export const Screen: React.FC<{ x: number; y: number; w: number; h: number; at?:
   const frame = useCurrentFrame();
   const d = useDrop(at);
   const dy = useTextSlot(d !== null ? { x0: x, y0: y, x1: x + w, y1: y + h } : null);
-  if (d === null) return null;
+  const chars = lines.reduce((a, l) => a + l.length, 0);
+  const sound = chars ? <Sound name="a-type" at={at + 4} loopFor={chars / speed} volume={0.6} /> : null;
+  if (d === null) return sound;
   const bezel = new Canvas().rect(0, 0, w, h, PAL.ink3).rect(1, 1, w - 2, h - 2, "#0E1A14").outline();
   const typed = Math.max(0, Math.floor((frame - at - 4) * speed));
   const blink = Math.floor(frame / 8) % 2 === 0;
@@ -389,6 +440,7 @@ export const Screen: React.FC<{ x: number; y: number; w: number; h: number; at?:
   const top = y + dy + d;
   return (
     <>
+      {sound}
       <div style={{ position: "absolute", left: x * P, top: top * P }}>
         <PixelArt canvas={bezel} />
       </div>
@@ -413,7 +465,8 @@ export const Chart: React.FC<{ x: number; y: number; w: number; h: number; at: n
   labels = [],
 }) => {
   const frame = useCurrentFrame();
-  if (frame < at) return null;
+  const sound = <Sound name="a-rise" at={at} volume={0.6} />;
+  if (frame < at) return sound;
   const min = Math.min(...points);
   const max = Math.max(...points);
   const pts = points.map((v, i) => [Math.round((i / Math.max(1, points.length - 1)) * (w - 4)) + 2, Math.round(h - 3 - ((v - min) / (max - min || 1)) * (h - 5))] as const);
@@ -431,12 +484,13 @@ export const Chart: React.FC<{ x: number; y: number; w: number; h: number; at: n
   c.outline();
   return (
     <>
+      {sound}
       <div style={{ position: "absolute", left: x * P, top: y * P }}>
         <PixelArt canvas={c} />
       </div>
       {labels.map((l, k) => {
         const p = pts[Math.max(0, Math.min(pts.length - 1, l.i))];
-        return p[0] <= reveal ? <Label key={k} x={x + p[0]} y={y + p[1] - 4} at={at} text={l.text} color={k % 2 ? PAL.lime : PAL.paper} /> : null;
+        return p[0] <= reveal ? <Label key={k} x={x + p[0]} y={y + p[1] - 4} at={at} text={l.text} color={k % 2 ? PAL.lime : PAL.paper} sound={false} /> : null;
       })}
     </>
   );
@@ -445,13 +499,15 @@ export const Chart: React.FC<{ x: number; y: number; w: number; h: number; at: n
 /** Jauge pixel (pleine ou tramée) qui se remplit par paliers jusqu'à `to` (0..1). (x, y) = coin haut gauche, en cellules. */
 export const Bar: React.FC<{ x: number; y: number; w: number; at: number; to: number; color?: string; label?: string; dither?: boolean }> = ({ x, y, w, at, to, color = PAL.lime, label, dither = false }) => {
   const frame = useCurrentFrame();
-  if (frame < at) return null;
+  const sound = <Sound name="a-rise" at={at} volume={0.5} />;
+  if (frame < at) return sound;
   const fill = Math.round(Math.min(1, Math.floor(((frame - at) / 24) * 8) / 8) * to * (w - 2));
   const c = new Canvas().rect(0, 0, w, 4, PAL.ink3);
   for (let i = 0; i < fill; i++) for (let j = 1; j < 3; j++) if (!dither || (i + j) % 2 === 0) c.set(1 + i, j, color);
   c.outline();
   return (
     <>
+      {sound}
       {label ? <PixelText text={label} x={x} y={y - 3} align="left" /> : null}
       <div style={{ position: "absolute", left: x * P, top: y * P }}>
         <PixelArt canvas={c} />
@@ -465,7 +521,8 @@ const DIRS: [number, number][] = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1,
 /** Flèche nette d'un pixel d'épaisseur de `from` à `to` (cellules), tracée par paliers, pointe à 45°. `dashed` = pointillés. */
 export const Arrow: React.FC<{ from: [number, number]; to: [number, number]; at: number; dur?: number; color?: string; dashed?: boolean }> = ({ from, to, at, dur = 10, color = PAL.paper, dashed = false }) => {
   const frame = useCurrentFrame();
-  if (frame < at) return null;
+  const sound = enterSound("a-tick", at, 0.6);
+  if (frame < at) return sound;
   const k = Math.min(1, Math.floor(((frame - at) / dur) * 8) / 8);
   const ex = Math.round(from[0] + (to[0] - from[0]) * k);
   const ey = Math.round(from[1] + (to[1] - from[1]) * k);
@@ -479,7 +536,12 @@ export const Arrow: React.FC<{ from: [number, number]; to: [number, number]; at:
     }
   }
   c.outline();
-  return <PixelArt canvas={c} />;
+  return (
+    <>
+      {sound}
+      <PixelArt canvas={c} />
+    </>
+  );
 };
 
 /** Épingle de lieu, pointe en (x, y) cellules, étiquette au-dessus de la tête de l'épingle. */
@@ -491,8 +553,9 @@ export const Pin: React.FC<{ x: number; y: number; at: number; label?: string; c
   c.outline();
   return (
     <>
+      {enterSound("a-pop", at, 0.8)}
       <Sprite canvas={c} x={x} y={y + 1} w={9} h={8} at={at} />
-      {label ? <Label x={x} y={y - 13} at={at + 2} text={label} /> : null}
+      {label ? <Label x={x} y={y - 13} at={at + 2} text={label} sound={false} /> : null}
     </>
   );
 };
@@ -507,11 +570,12 @@ export const Pin: React.FC<{ x: number; y: number; at: number; label?: string; c
 export const Pulse: React.FC<{ x: number; y: number; at?: number; color?: string; max?: number; every?: number }> = ({ x, y, at = 0, color, max = 12, every = 24 }) => {
   const frame = useCurrentFrame();
   const { light } = useBg();
-  if (frame < at) return null;
+  const sound = enterSound("a-ping", at, 0.45);
+  if (frame < at) return sound;
   const col = color ?? (light ? PAL.ink : PAL.lime);
   const t = (frame - at) % every;
   const r = 3 + Math.floor(t / 2);
-  if (r > max) return null;
+  if (r > max) return sound;
   const c = new Canvas();
   const size = max * 2 + 3;
   for (let j = 0; j < size; j++)
@@ -520,7 +584,12 @@ export const Pulse: React.FC<{ x: number; y: number; at?: number; color?: string
       // Anneau d'un pixel ; il se « dissout » en tramage quand il s'éloigne (1 pixel sur 2 au-delà des 2/3).
       if (d <= r && d > r - 1 && (r < (max * 2) / 3 || (i + j) % 2 === 0)) c.set(i, j, col);
     }
-  return <Sprite canvas={c} x={x} y={y} w={size} h={size} anchor="center" drop={false} />;
+  return (
+    <>
+      {sound}
+      <Sprite canvas={c} x={x} y={y} w={size} h={size} anchor="center" drop={false} />
+    </>
+  );
 };
 
 const SPARKLE = [
@@ -533,11 +602,17 @@ const SPARKLE = [
 export const Sparkle: React.FC<{ x: number; y: number; at?: number; color?: string; phase?: number }> = ({ x, y, at = 0, color, phase = 0 }) => {
   const frame = useCurrentFrame();
   const { light } = useBg();
-  if (frame < at) return null;
+  const sound = phase === 0 ? enterSound("a-twinkle", at, 0.35) : null;
+  if (frame < at) return sound;
   const shape = SPARKLE[Math.floor((frame - at + phase * 4) / 4) % SPARKLE.length];
   const c = new Canvas();
   shape.forEach((row, j) => [...row].forEach((v, i) => v === "#" && c.set(i, j, color ?? (light ? PAL.ink : PAL.paper))));
-  return <Sprite canvas={c} x={x} y={y} w={shape[0].length} h={shape.length} anchor="center" drop={false} />;
+  return (
+    <>
+      {sound}
+      <Sprite canvas={c} x={x} y={y} w={shape[0].length} h={shape.length} anchor="center" drop={false} />
+    </>
+  );
 };
 
 /**
@@ -556,7 +631,7 @@ export const Rain: React.FC<{ name: IconName; at: number; count?: number; from?:
   <>
     {Array.from({ length: count }).map((_, i) => {
       const x = Math.round(from + ((toX - from) * ((i * 37) % count)) / Math.max(1, count - 1));
-      return <Fly key={i} name={name} from={[x, 6]} to={[x, floor]} at={at + i * stagger} dur={22} vanish />;
+      return <Fly key={i} name={name} from={[x, 6]} to={[x, floor]} at={at + i * stagger} dur={22} vanish sound={i < 4} />;
     })}
   </>
 );
@@ -584,13 +659,15 @@ export const Tile: React.FC<{ icon: IconName; x: number; y: number; at?: number;
   const half = Math.max(s / 2 + 1, lab ? lab.wCells / 2 + 2 : 0);
   const dy = useTextSlot(visible ? { x0: x - half, y0: y - s / 2 - 1, x1: x + half, y1: y + s / 2 + 1 + (lab ? 3 + lab.hCells + 2 : 0) } : null);
   const pad = new Canvas().rect(1, 1, s, s, PAL.ink).rect(0, 0, s, s, color ?? (light ? PAL.paper : PAL.ink3));
-  if (!visible) return null;
+  const sound = enterSound("a-pop", at);
+  if (!visible) return sound;
   const cy = y + dy;
   return (
     <>
+      {sound}
       <Sprite canvas={pad.outline()} x={x} y={cy} w={s + 1} h={s + 1} at={at} anchor="center" />
       <Sprite canvas={render(d, frame - at, false)} x={x} y={cy} w={d.w} h={d.h} at={at} anchor="center" p={pixelOf(d)} />
-      {label ? <Label x={x} y={cy + Math.ceil(s / 2) + 3 + Math.ceil((lab?.hCells ?? 0) / 2)} at={at + 2} text={label} slot={false} max={labelMax - 4} /> : null}
+      {label ? <Label x={x} y={cy + Math.ceil(s / 2) + 3 + Math.ceil((lab?.hCells ?? 0) / 2)} at={at + 2} text={label} slot={false} max={labelMax - 4} sound={false} /> : null}
     </>
   );
 };

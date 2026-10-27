@@ -1,5 +1,5 @@
 // Stories crypto (« tales ») : idées (Claude + recherche web), script, validation, puis automatiquement
-// voix off (ElevenLabs), musique, composition des visuels par Claude (src/tales/drafts → stories), rendu, planning, TikTok.
+// voix off (ElevenLabs), bruitages, composition des visuels par Claude (src/tales/drafts → stories), rendu, planning, TikTok.
 // Stockage : content/tales/<slug>.json (contrat src/tales/types.ts) et data/tales/ideas.json.
 // Une seule file de travaux : un job Claude / ElevenLabs à la fois, étape et log visibles dans le dashboard.
 import { execFile } from "node:child_process";
@@ -9,8 +9,9 @@ import { randomBytes } from "node:crypto";
 import { loadApps, loadTale, loadTales, ROOT, TALE_STORIES, TALES_DIR } from "../shared/catalog.mjs";
 import { execClaude, IS_WIN } from "../shared/platform.mjs";
 import { voiceFor } from "../shared/elevenlabs.mjs";
-import { TALE_APP, taleId, taleMusic, taleTimeline } from "../shared/tales.mjs";
-import { ensureMusic } from "../scripts/gen-all-audio.mjs";
+import { TALE_APP, taleId, taleTimeline } from "../shared/tales.mjs";
+import { cleanSfx, MAX_SFX_PER_BEAT, STORY_SFX } from "../shared/tale-sfx.mjs";
+import { ensureTaleSfx } from "../scripts/gen-tale-sfx.mjs";
 import { dur, elevenSegment, pickVoice, systemSegment, wordTimings } from "../scripts/gen-voice.mjs";
 import { DATA, getState, save, video } from "./state.mjs";
 import { current as renderCurrent, enqueue, isRendered, onRendered, outFile, queue as renderQueue, thumbFile } from "./render.mjs";
@@ -268,14 +269,16 @@ ${featureList()}
 - "hook": on-screen title, max 8 words, the key word wrapped in *asterisks*.
 - "slug": short kebab-case id (2 to 4 words, a-z 0-9 -), e.g. "pizza-day".
 - "facts": the verified facts the video relies on, one per item, with numbers. "sources": every source used, with dates.
-- "music": a style among ambient, piano, lofi, chill (a discreet bed under the narrator, never epic), and 2-3 mood words.
+- SOUND DESIGN (no music at all: the narrator carries the video, like a true-crime storytelling account): each beat may have "sfx", at most ${MAX_SFX_PER_BEAT} narrative sound cues tied to what is SAID, each {"cue": name, "word": a word of that beat's text the sound lands on}. Subtle and purposeful: 5 to 9 cues in the whole script, mostly on the hook, the escalation, the twist, the payoff and the outro; none on the product beat; never the same cue twice in a row. The animation already has its own tiny sounds, so do not add cues for things that merely appear on screen. Timing by type: "hit" starts on the word, "swell" ends on the word (it builds into it), "bed" holds from the word to the end of the sentence, quietly under the voice. Cues:
+${Object.entries(STORY_SFX).map(([k, v]) => `  - ${k} (${v.mode}): ${v.use}`).join("\n")}
+  Good habits: a "boom" or "hit" on the hook's shocking number, a "riser" or "reverse" into the twist word, a "drone", "heartbeat" or "clock" bed under the tense build-up, a "cash" / "fall" / "gavel" / "slam" / "glitch" when the words say it, a soft bed or "shimmer" on the outro so the loop back to the hook feels like a cliffhanger.
 - "yt": title (max 70 chars, intriguing, one emoji max, ends with " #shorts"), description (2 sentences), hashtags (5, without #, lowercase, include "cryptostories").
 ${problems ? `\nYOUR PREVIOUS ANSWER WAS REJECTED, FIX THIS:\n${problems}\n` : ""}
 REFERENCE SCRIPT (format and quality to match; a different and shorter story, yours must follow the length rules above):
 ${ref}
 
-Answer ONLY with the JSON of the new story, same shape as the reference, without "id", "lang", "status", "voice", "timeline", "musicTrack", "compose":
-{"slug":"…","type":"recent"|"offbeat","eventDate":"YYYY-MM-DD","hook":"…","summary":"…","sources":[…],"facts":[…],"beats":[{"id":"b1","role":"hook","text":"…","visual":"…"}],"product":{"featureId":"…","beat":"bN"},"music":{"style":"…","mood":[…]},"yt":{"title":"…","description":"…","hashtags":[…]}}`;
+Answer ONLY with the JSON of the new story, same shape as the reference, without "id", "lang", "status", "voice", "timeline", "compose":
+{"slug":"…","type":"recent"|"offbeat","eventDate":"YYYY-MM-DD","hook":"…","summary":"…","sources":[…],"facts":[…],"beats":[{"id":"b1","role":"hook","text":"…","visual":"…","sfx":[{"cue":"boom","word":"…"}]}],"product":{"featureId":"…","beat":"bN"},"yt":{"title":"…","description":"…","hashtags":[…]}}`;
 }
 
 const slugify = (s) =>
@@ -299,12 +302,12 @@ function uniqueSlug(base) {
 
 /** Normalise la réponse de Claude en `Tale` et liste ce qui ne respecte pas les règles. */
 function toTale(j, idea) {
-  const beats = (Array.isArray(j.beats) ? j.beats : []).map((b, i) => ({
-    id: `b${i + 1}`,
-    role: ROLES.includes(b.role) ? b.role : "build",
-    text: String(b.text ?? "").trim(),
-    visual: String(b.visual ?? "").trim(),
-  }));
+  const beats = (Array.isArray(j.beats) ? j.beats : []).map((b, i) => {
+    const role = ROLES.includes(b.role) ? b.role : "build";
+    const text = String(b.text ?? "").trim();
+    const sfx = role === "product" ? [] : cleanSfx(b.sfx, text);
+    return { id: `b${i + 1}`, role, text, visual: String(b.visual ?? "").trim(), ...(sfx.length ? { sfx } : {}) };
+  });
   const productIdx = beats.findIndex((b) => b.role === "product");
   const slug = uniqueSlug(slugify(j.slug ?? j.yt?.title));
   const tale = {
@@ -320,7 +323,6 @@ function toTale(j, idea) {
     facts: (Array.isArray(j.facts) ? j.facts : []).map(String),
     beats,
     product: { featureId: FEATURES.includes(j.product?.featureId) ? j.product.featureId : idea?.wggAngle?.featureId ?? "pnl", beat: productIdx >= 0 ? beats[productIdx].id : "" },
-    music: { style: String(j.music?.style ?? "ambient"), mood: (Array.isArray(j.music?.mood) ? j.music.mood : []).map(String).slice(0, 4) },
     yt: { title: String(j.yt?.title ?? j.hook ?? slug).slice(0, 100), description: String(j.yt?.description ?? ""), hashtags: (Array.isArray(j.yt?.hashtags) ? j.yt.hashtags : ["crypto", "cryptostories"]).map((h) => String(h).replace(/^#/, "")) },
     compose: { notes: [] },
     error: null,
@@ -353,6 +355,7 @@ function scriptProblems(t) {
   const plain = (x) => String(x ?? "").toLowerCase().replace(/[*]/g, "").replace(/[^\p{L}\p{N} ]/gu, " ").replace(/\s+/g, " ").trim();
   if (t.hook && t.beats[0] && plain(t.beats[0].text).includes(plain(t.hook))) out.push("The on-screen hook repeats the spoken first line: make it the other half of the curiosity gap (stakes or emotion).");
   if (!t.sources.length) out.push("Sources are required.");
+  if (!t.beats.some((b) => b.sfx?.length)) out.push("Sound design: add 5 to 9 narrative sound cues (beat \"sfx\") tied to what is said.");
   return out;
 }
 
@@ -393,7 +396,7 @@ export async function writeScript({ ideaId, topic }) {
 }
 
 /** Ce qu'une version de script contient (le reste de la story ne change pas d'une version à l'autre). */
-const SCRIPT_KEYS = ["type", "eventDate", "hook", "summary", "sources", "facts", "beats", "product", "music", "yt", "warnings"];
+const SCRIPT_KEYS = ["type", "eventDate", "hook", "summary", "sources", "facts", "beats", "product", "yt", "warnings"];
 const MAX_VERSIONS = 6;
 const scriptOf = (t) => Object.fromEntries(SCRIPT_KEYS.filter((k) => t[k] !== undefined).map((k) => [k, t[k]]));
 
@@ -483,13 +486,14 @@ async function ensureTaleVoice(slug) {
   return tale;
 }
 
-/* ------------------------------------------------------------------ 4. musique */
+/* ------------------------------------------------------------------ 4. bruitages (pas de musique) */
 
-async function ensureTaleMusic(slug) {
-  stage("Musique");
-  const tale = patchTale(slug, (t) => (t.musicTrack = taleMusic(t, t.timeline)));
-  await ensureMusic(tale.musicTrack);
-  log(`Musique : ${tale.musicTrack.file}`);
+/** Bibliothèque commune de bruitages (shared/tale-sfx.mjs) : créée une fois, réutilisée par toutes les stories. */
+async function ensureTaleSounds(slug) {
+  stage("Bruitages");
+  await ensureTaleSfx({ log });
+  const tale = loadTale(slug);
+  log(`Bruitages narratifs : ${tale.beats.flatMap((b) => (b.sfx ?? []).map((x) => x.cue)).join(", ") || "aucun"}`);
   return tale;
 }
 
@@ -600,11 +604,11 @@ onRendered.push((v) => {
   if (getState().settings.taleAutoTikTok !== false) tiktokDraft(v, activeCatalog());
 });
 
-/** Validation → voix → musique → composition (si besoin) → rendu. Une erreur arrête la chaîne et s'affiche sur la story. */
+/** Validation → voix → bruitages → composition (si besoin) → rendu. Une erreur arrête la chaîne et s'affiche sur la story. */
 async function produce(slug, { recompose = false } = {}) {
   try {
     let tale = await ensureTaleVoice(slug);
-    tale = await ensureTaleMusic(slug);
+    tale = await ensureTaleSounds(slug);
     const hasStory = existsSync(join(TALE_STORIES, `${slug}.tsx`));
     if (recompose || !hasStory || tale.compose?.stale) tale = await composeTale(slug);
     else patchTale(slug, (t) => (t.status = "composed"));
@@ -729,12 +733,15 @@ export function setupTaleRoutes(app, opts) {
     const b = req.body ?? {};
     if (b.beats !== undefined) {
       if (!Array.isArray(b.beats) || !b.beats.length) return fail(res, "beats : liste attendue", 400);
-      t.beats = b.beats.map((x, i) => ({ id: String(x.id || `b${i + 1}`), role: ROLES.includes(x.role) ? x.role : "build", text: String(x.text ?? "").trim(), visual: String(x.visual ?? "").trim() }));
+      t.beats = b.beats.map((x, i) => {
+        const text = String(x.text ?? "").trim();
+        const sfx = cleanSfx(x.sfx, text);
+        return { id: String(x.id || `b${i + 1}`), role: ROLES.includes(x.role) ? x.role : "build", text, visual: String(x.visual ?? "").trim(), ...(sfx.length ? { sfx } : {}) };
+      });
       if (new Set(t.beats.map((x) => x.id)).size !== t.beats.length) return fail(res, "beats : ids en double", 400);
     }
     if (b.product !== undefined) t.product = { featureId: String(b.product.featureId ?? t.product.featureId), beat: String(b.product.beat ?? t.product.beat) };
     if (b.yt !== undefined) t.yt = { title: String(b.yt.title ?? t.yt.title).slice(0, 100), description: String(b.yt.description ?? t.yt.description), hashtags: (Array.isArray(b.yt.hashtags) ? b.yt.hashtags : t.yt.hashtags).map((h) => String(h).replace(/^#/, "")) };
-    if (b.music !== undefined) t.music = { style: String(b.music.style ?? t.music.style), mood: Array.isArray(b.music.mood) ? b.music.mood.map(String) : t.music.mood };
     if (!FEATURES.includes(t.product.featureId)) return fail(res, `Feature inconnue (${FEATURES.join(", ")})`, 400);
     if (!t.beats.some((x) => x.id === t.product.beat)) return fail(res, "product.beat ne correspond à aucun beat", 400);
     for (const x of t.beats) if (x.role === "product" && x.id !== t.product.beat) x.role = "build";

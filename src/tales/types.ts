@@ -1,6 +1,7 @@
 // Contrat d'une story crypto : content/tales/<slug>.json. Écrit par le pipeline serveur (server/tales.mjs),
 // lu par Remotion (Root.tsx, TaleVideo.tsx) et par les visuels écrits par Claude (src/tales/stories/<slug>.tsx).
 import type { VoiceTrack } from "../lib/types";
+import type { StorySfxName } from "../../shared/tale-sfx.mjs";
 
 export type TaleStatus = "idea" | "script" | "approved" | "voiced" | "composing" | "composed" | "rendered" | "error";
 export type TaleRole = "hook" | "context" | "build" | "twist" | "product" | "payoff" | "outro";
@@ -12,6 +13,8 @@ export type TaleBeat = {
   text: string;
   /** Brief visuel pour Claude : ce que l'image doit montrer pendant cette phrase. */
   visual: string;
+  /** Bruitages narratifs (au plus 2) calés sur un mot de la phrase (début de la phrase sans mot) : shared/tale-sfx.mjs. */
+  sfx?: { cue: StorySfxName; word?: string }[];
 };
 
 /** Frames (30 fps), un élément par beat dans le même ordre ; `from` relatif au début de la vidéo. */
@@ -35,13 +38,12 @@ export type Tale = {
   beats: TaleBeat[];
   /** Le seul moment produit (~5 s) : feature WGG liée à l'histoire. */
   product: { featureId: string; beat: string };
-  music: { style: string; mood: string[] };
+  /** Ancien choix de musique (les stories n'ont plus de musique, seulement des bruitages). */
+  music?: { style: string; mood: string[] };
   yt: { title: string; description: string; hashtags: string[] };
   /** Après la voix : un segment par beat (même ordre). */
   voice?: VoiceTrack & { sig?: string };
   timeline?: TaleTimeline;
-  /** Définition musicale passée à ensureMusic (scripts/gen-all-audio.mjs). */
-  musicTrack?: { file: string; style: string; kind: "story"; theme: string[]; bars: number; drop: number; cta: number; seed: number };
   compose?: { notes: string[]; log?: string; at?: string };
   error?: string | null;
 };

@@ -3,7 +3,9 @@
 Tu écris **uniquement les plans** d'un short narratif crypto en **pixel art** (1 à 2 minutes, 10 à 18 plans, 1080 × 1920, 30 fps).
 Tout le reste est fourni par l'habillage `src/tales/TaleVideo.tsx` et tu n'y touches pas :
 
-- la voix off, les **sous-titres pixel** mot à mot (en bas, lignes 120 à 134) et la musique ; **aucun bruitage** ;
+- la voix off, les **sous-titres pixel** mot à mot (en bas, lignes 120 à 134) et les **bruitages narratifs** choisis par le script
+  (`beat.sfx` : boum, montée, nappe de tension… calés sur un mot). **Pas de musique** ;
+- les **sons d'animation** : chaque composant du kit joue déjà son petit son quand il apparaît (voir « Sons ») ;
 - le **moment produit** (beat `role: "product"`) : un bureau, un écran pixel et la vraie fiche Where'd Gains Go?.
   **Ne dessine rien pendant ce beat** ;
 - **pas de carte de fin : la vidéo boucle.** TikTok et Shorts la relancent toute seule ; la dernière phrase se poursuit sur le hook
@@ -57,6 +59,18 @@ export const Story: React.FC<StoryProps> = () => (
 - **Interdits** (vérifiés par `tale-check`) : `<Audio>`, `<Video>`, `<Img>`, `staticFile`, URLs, `require`, `fetch`, `Math.random`,
   `Date.now`, et tout ce qui casse le pixel art : `blur(`, `rotate(`, `opacity` en fondu, `interpolate` lisse sur un sprite.
 - Les ids de `<Beat id>` doivent exister dans le JSON.
+
+## Sons
+
+Les composants du kit sonnent tout seuls, très bas sous la voix, au moment où ils apparaissent : coupe de plan (souffle),
+`Tile` / `Icon` / `Pin` / `Bubble` (pop), `Prop` (petite chute), `Label` (blip), `Stamp` (tampon), `Counter` (défilement),
+`Fly` (tintement pour une pièce, souffle sinon), `Move` (passage), `Screen` (clavier pendant la frappe), `Chart` / `Bar` (montée),
+`Arrow` (tick), `Pulse` (ping), `Sparkle` (scintillement). Un élément présent dès la frame 0 du plan ne sonne pas.
+Tu n'as donc rien à ajouter. Seule exception : une animation faite à la main (`useCurrentFrame`) qui mérite un son, avec
+`<Sound name="a-swish" at={b.at("mot")} />` (noms : `a-pop`, `a-thud`, `a-blip`, `a-stamp`, `a-count`, `a-coin`, `a-swish`,
+`a-type`, `a-rise`, `a-ping`, `a-twinkle`, `a-tick`). Sobre : un son par mouvement important, jamais en rafale.
+`Fly sound={false}` / `Label sound={false}` rendent un élément muet. Les bruitages narratifs (suspense, révélation) viennent du
+script : n'en ajoute pas.
 
 ## Repères
 

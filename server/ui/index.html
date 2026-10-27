@@ -312,6 +312,10 @@
   .beat-h select { padding: 4px 8px; font-size: 12.5px; }
   .beat textarea { width: 100%; resize: vertical; min-height: 44px; }
   .beat textarea.vis { font-size: 12.5px; color: var(--muted); background: var(--surface2); }
+  .beat-sfx { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); }
+  .beat-sfx .slot { display: inline-flex; gap: 4px; align-items: center; }
+  .beat-sfx select { padding: 3px 6px; font-size: 12px; }
+  .beat-sfx input { width: 96px; padding: 3px 6px; font-size: 12px; }
   .tale-media { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
   .tale-media video { width: 220px; aspect-ratio: 9/16; border-radius: 12px; background: #000; }
   .tale-media .sheet { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 4px; }
@@ -424,7 +428,7 @@
     <!-- ============================================================ Stories : Stories -->
     <section id="tab-stories" hidden>
       <div class="page-head">
-        <div><h1>Stories</h1><p>Valide le script : la voix, la musique, les visuels, le rendu et la programmation suivent tout seuls.</p></div>
+        <div><h1>Stories</h1><p>Valide le script : la voix, les bruitages, les visuels, le rendu et la programmation suivent tout seuls.</p></div>
         <div class="spacer"></div>
         <div class="seg" id="taleFilter"></div>
       </div>
@@ -580,6 +584,7 @@ const P = {
   bulb: '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>',
   film: '<rect x="3.5" y="4" width="17" height="16" rx="2.5"/><path d="M8 4v16M16 4v16M3.5 9H8M3.5 15H8M16 9h4.5M16 15h4.5"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
+  sound: '<path d="M4 10v4h4l5 4V6L8 10z"/><path d="M16.5 9a4 4 0 0 1 0 6M19 6.5a7.5 7.5 0 0 1 0 11"/>',
   search: '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>',
 };
 const ic = (n, extra = "") => `<svg class="i" viewBox="0 0 24 24" ${extra}>${P[n]}</svg>`;
@@ -1190,8 +1195,10 @@ $("#player").addEventListener("close", () => $("#pv").pause());
 
 /* ------------------------------------------------------------------ Stories crypto */
 const WGG_FEATURES = { pnl: "Vrai P&L, gas compris", address: "Une adresse, zéro signature", grade: "Wallet noté", whatif: "Et si… tout en ETH", regrets: "Pires calls, datés", gas: "Gas en burritos", trophies: "Trophées à débloquer", math: "FIFO, pas de boîte noire" };
+/** Bruitages narratifs (shared/tale-sfx.mjs) : posés sur un mot de la phrase. */
+const SFX_LABELS = { boom: "Boum grave", hit: "Impact sec", riser: "Montée vers le mot", reverse: "Aspiration vers le mot", whoosh: "Souffle", glitch: "Glitch", drone: "Nappe sombre", heartbeat: "Battements de cœur", clock: "Horloge", static: "Grésillement", typing: "Clavier", siren: "Sirène", cash: "Caisse", fall: "Chute", shimmer: "Scintillement", slam: "Porte qui claque", gavel: "Marteau du juge", camera: "Appareil photo" };
 const ROLES = { hook: "Accroche", context: "Contexte", build: "Montée", twist: "Rebondissement", product: "Produit", payoff: "Chute", outro: "Outro" };
-const TSTEPS = ["Script", "Validé", "Voix & musique", "Composition", "Rendu", "Programmée"];
+const TSTEPS = ["Script", "Validé", "Voix & bruitages", "Composition", "Rendu", "Programmée"];
 const featLabel = (id) => WGG_FEATURES[id] ?? id ?? "—";
 const tl = () => TL ?? { ideas: [], tales: [], job: null };
 const taleBySlug = (slug) => tl().tales.find((t) => t.slug === slug);
@@ -1345,7 +1352,17 @@ function beatEdit(b, i) {
       <span class="spacer"></span><span class="note">≈ ${estDur(b.text).toFixed(1)} s</span><button class="btn sm icon ghost" data-beatdel="${esc(b.id)}" title="Supprimer cette phrase">${ic("trash")}</button></div>
     <textarea data-bf="text" rows="2" placeholder="Phrase dite par la voix off (anglais)">${esc(b.text)}</textarea>
     <textarea data-bf="visual" rows="2" class="vis" placeholder="Brief visuel : ce que l'image montre pendant cette phrase">${esc(b.visual)}</textarea>
+    ${b.role === "product" ? "" : beatSfx(b)}
   </div>`;
+}
+/** Bruitages d'une phrase (2 au plus) : son + mot sur lequel il tombe, et une case vide pour en ajouter un. */
+function beatSfx(b) {
+  const cues = [...(b.sfx ?? [])];
+  if (cues.length < 2) cues.push({ cue: "", word: "" });
+  return `<div class="beat-sfx">${ic("sound")}<span>Bruitages</span>${cues.map((c) => `<span class="slot" data-sfx>
+      <select data-bf="sfxcue"><option value="">${c.cue ? "Aucun" : "Ajouter…"}</option>${Object.entries(SFX_LABELS).map(([k, l]) => `<option value="${k}" ${k === c.cue ? "selected" : ""}>${l}</option>`).join("")}</select>
+      ${c.cue ? `<span>sur</span><input data-bf="sfxword" value="${esc(c.word ?? "")}" placeholder="début"><button class="btn sm icon ghost" data-sfxplay="${esc(c.cue)}" title="Écouter">${ic("play")}</button>` : ""}
+    </span>`).join("")}</div>`;
 }
 /** Réécriture du script (même sujet) : note facultative, bouton, et versions précédentes à restaurer. */
 function scriptRewrite(t, rewriting) {
@@ -1379,7 +1396,7 @@ function scriptEditor(t) {
       <div><span class="lbl-up">Sources</span>${srcList(t.sources)}</div>
       ${t.facts?.length ? `<details><summary>Faits vérifiés (${t.facts.length})</summary><ul class="note" style="padding-left:18px;margin:6px 0 0">${t.facts.map((f) => `<li>${esc(f)}</li>`).join("")}</ul></details>` : ""}
       <button class="btn primary" data-taleapprove="${esc(t.slug)}" style="justify-content:center" ${busy.has(`approve:${t.slug}`) || rewriting ? "disabled" : ""}>${busy.has(`approve:${t.slug}`) ? '<span class="spin"></span>Validation…' : `${ic("check")}Valider le script`}</button>
-      <div class="note" style="margin-top:-6px">Ensuite tout est automatique : voix, musique, visuels écrits par Claude, rendu et programmation.</div>
+      <div class="note" style="margin-top:-6px">Ensuite tout est automatique : voix, bruitages, visuels écrits par Claude, rendu et programmation.</div>
       ${scriptRewrite(t, rewriting)}
     </div></div>`;
 }
@@ -1388,7 +1405,7 @@ function taleProduction(t) {
   const composing = t.status === "composing" || (j && j.slug === t.slug);
   const composedOnce = !!t.compose?.at || ["composed", "rendered"].includes(t.status) || rendered;
   const sheet = `/out/tales-preview/${encodeURIComponent(t.slug)}/sheet.png${t.compose?.at ? `?t=${encodeURIComponent(t.compose.at)}` : ""}`;
-  const pending = { approved: "Voix et musique en préparation…", voiced: "Claude va composer les visuels…", composing: "Claude compose les visuels…", composed: "Composition terminée, rendu à venir…" }[t.status] ?? "Aperçu disponible après la composition.";
+  const pending = { approved: "Voix et bruitages en préparation…", voiced: "Claude va composer les visuels…", composing: "Claude compose les visuels…", composed: "Composition terminée, rendu à venir…" }[t.status] ?? "Aperçu disponible après la composition.";
   const at = t.publishAt ?? v?.publishAt;
   const ytId = t.youtubeId ?? v?.youtubeId;
   return `<div class="tale-grid" style="margin-top:6px">
@@ -1407,7 +1424,7 @@ function taleProduction(t) {
           <button class="btn sm" data-talerender="${esc(t.id)}" ${composedOnce && !composing ? "" : "disabled"}>${ic("redo")}Re-rendre</button></div>
         ${t.compose?.notes?.length ? `<div class="note" style="margin-top:6px">Notes déjà données : ${t.compose.notes.map((n) => `« ${esc(n)} »`).join(" · ")}</div>` : ""}</div>`}
       ${ytId ? `<div class="note">Déjà envoyée sur YouTube : le script ne se change plus d'ici.</div>` : `<div><button class="btn sm" data-talereopen="${esc(t.slug)}" ${composing ? "disabled" : ""}>${ic("redo")}Modifier ou régénérer le script</button>
-        <div class="note" style="margin-top:4px">Repasse la story au stade script. La vidéo rendue, son créneau et son brouillon TikTok sont retirés ; après la nouvelle validation, voix, musique et visuels sont refaits.</div></div>`}
+        <div class="note" style="margin-top:4px">Repasse la story au stade script. La vidéo rendue, son créneau et son brouillon TikTok sont retirés ; après la nouvelle validation, voix, bruitages et visuels sont refaits.</div></div>`}
       <details><summary>Script validé · ${t.beats.length} phrases</summary><div class="script-ro" style="margin-top:6px">${t.beats.map((b) => `<div class="b"><span class="tag" style="justify-self:start">${ROLES[b.role] ?? b.role}</span><div>${esc(b.text)}<small>${esc(b.visual)}</small></div></div>`).join("")}</div></details>
       <details><summary>Sources (${t.sources?.length ?? 0}) · ${esc(featLabel(t.product?.featureId))}</summary><div style="margin-top:6px">${srcList(t.sources)}</div></details>
     </div></div>`;
@@ -1464,6 +1481,7 @@ $("#talesIdeasBtn").innerHTML = `${ic("bulb")}Idées`;
 /** Beats tels qu'ils sont dans l'éditeur (saisies pas encore enregistrées comprises). */
 const collectBeats = (card) => [...card.querySelectorAll("[data-beat]")].map((el) => ({
   id: el.dataset.beat, role: el.querySelector('[data-bf="role"]').value, text: el.querySelector('[data-bf="text"]').value, visual: el.querySelector('[data-bf="visual"]').value,
+  sfx: [...el.querySelectorAll("[data-sfx]")].map((x) => ({ cue: x.querySelector('[data-bf="sfxcue"]').value, word: x.querySelector('[data-bf="sfxword"]')?.value ?? "" })).filter((x) => x.cue),
 }));
 const patchTale = (slug, body) => taleAct(api(`/api/tales/${encodeURIComponent(slug)}`, body, "PATCH"));
 const taleList = $("#taleList");
@@ -1484,6 +1502,8 @@ taleList.addEventListener("input", (e) => {
   if (t.dataset.tf === "yttitle") { const c = t.nextElementSibling; c.textContent = `${t.value.length}/100`; c.classList.toggle("over", t.value.length > 100); }
 });
 document.body.addEventListener("click", async (e) => {
+  const play = e.target.closest("[data-sfxplay]");
+  if (play) return void new Audio(`/public/audio/tale-sfx/${encodeURIComponent(play.dataset.sfxplay)}.wav`).play().catch(() => {});
   const t = e.target.closest("[data-ideawrite],[data-ideaskip],[data-taleapprove],[data-taledel],[data-talecompose],[data-talerender],[data-talerewrite],[data-talerestore],[data-talereopen],[data-beatdel],[data-beatadd],[data-talelog],#taleSearch,#taleTopicGo");
   if (!t) return;
   const d = t.dataset;
@@ -1511,7 +1531,7 @@ document.body.addEventListener("click", async (e) => {
     await taleAct(api(`/api/tales/${encodeURIComponent(d.taleapprove)}/approve`, {}));
     busy.delete(`approve:${d.taleapprove}`);
   } else if (d.taledel) {
-    if (!confirm("Supprimer cette story ? Script, voix, musique, visuels, vidéo rendue, créneau et brouillon TikTok sont supprimés. (Impossible si elle est déjà partie sur YouTube ou TikTok.)")) return;
+    if (!confirm("Supprimer cette story ? Script, voix, visuels, vidéo rendue, créneau et brouillon TikTok sont supprimés. (Impossible si elle est déjà partie sur YouTube ou TikTok.)")) return;
     await taleAct(api(`/api/tales/${encodeURIComponent(d.taledel)}`, null, "DELETE"));
   } else if (d.talecompose) {
     const note = (noteDraft[d.talecompose] ?? "").trim();
@@ -1525,7 +1545,7 @@ document.body.addEventListener("click", async (e) => {
     busy.delete(`rewrite:${slug}`);
     if (!r?.error) delete noteDraft[`rw:${slug}`];
   } else if (d.talereopen) {
-    if (!confirm("Revenir au script ? La vidéo rendue, son créneau et son brouillon TikTok sont retirés. Après la nouvelle validation, voix, musique et visuels sont refaits.")) return;
+    if (!confirm("Revenir au script ? La vidéo rendue, son créneau et son brouillon TikTok sont retirés. Après la nouvelle validation, voix, bruitages et visuels sont refaits.")) return;
     await taleAct(api(`/api/tales/${encodeURIComponent(d.talereopen)}/reopen`, {}));
   } else if (d.talerestore) {
     if (!confirm("Restaurer cette version ? Le script actuel passe dans les versions précédentes.")) return;

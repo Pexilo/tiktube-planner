@@ -1,371 +1,529 @@
-// Story : la puce espionne cachée dans des Ledger vendus par CryptoBilis (octobre 2026).
-// Une scène par beat, chaque apparition calée sur un mot de la voix off via useBeat().at("mot").
+// Story pixel art : la puce espionne cachée dans des Ledger vendus par CryptoBilis (octobre 2026).
+// Un plan par beat (le dernier boucle sur le premier : <Beat loop>), chaque mouvement calé sur un mot via useBeat().at("mot").
+// Grille : 90 colonnes × 160 lignes. Trois fonds : encre (mystère, nuit), rose (pertes), cyan (Ledger, technique).
+// Personnages seulement quand quelqu'un agit : le propriétaire qui recopie ses mots (b2), l'inconnu qui lit par-dessus son épaule (b9).
 import React from "react";
-import { interpolate, random, useCurrentFrame } from "remotion";
-import {
-  Actor,
-  Appear,
-  Arrow,
-  Beat,
-  Board,
-  Callout,
-  Coin,
-  Counter,
-  CYAN,
-  GREY,
-  Icon,
-  INK,
-  InkPath,
-  LIME,
-  monoStyle,
-  Note,
-  PAPER,
-  PAPER_2,
-  PINK,
-  Pin,
-  Stamp,
-  Tag,
-  Title,
-  useBeat,
-  useEnter,
-  useTale,
-} from "../legacy";
+import { useCurrentFrame } from "remotion";
+import { Arrow, Beat, Canvas, Counter, Fly, GROUND, Icon, Label, PAL, Person, PixelText, Prop, Pulse, Sparkle, Sprite, Stamp, Tile, Title, useBeat, useTale } from "../kit";
+import type { IconName, Look } from "../kit";
 import type { StoryProps } from "../types";
 
-const clampOpt = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
+/** Le propriétaire : orange, lisible sur l'encre comme sur le cyan. */
+const OWNER: Look = { shirt: PAL.orange, hair: PAL.hair1, skin: PAL.skin2 };
 
-/** Wallet matériel schématique (boîtier papier, écran encre, deux boutons). Le contenu de l'écran est en coordonnées écran. */
-const Device: React.FC<{ x: number; y: number; w: number; h: number; at?: number; shadow?: string; children?: React.ReactNode }> = ({
-  x,
-  y,
-  w,
-  h,
-  at = 0,
-  shadow = PINK,
-  children,
-}) => {
+/** Modulo toujours positif. */
+const mod = (n: number, m: number) => ((n % m) + m) % m;
+
+/** Affiche ses enfants à partir de `at`. */
+const Show: React.FC<{ at: number; children: React.ReactNode }> = ({ at, children }) => (useCurrentFrame() >= at ? <>{children}</> : null);
+
+/* ------------------------------------------------------------------ Sprites absents de la bibliothèque (même style : contour encre, PAL) */
+
+/** Boîte scellée de wallet matériel (34 × 22, gros plan) ; l'espionne a une antenne qui sort du couvercle (13 lignes au-dessus). */
+const BOX_W = 34;
+const BOX_H = 22;
+const ANT = 13;
+const boxCanvas = (t: number, spy: boolean) => {
+  const y = ANT;
+  const c = new Canvas()
+    // couvercle, jointure, boîte (lumière en haut à gauche, ombre à droite et en bas)
+    .rect(0, y, BOX_W, 6, PAL.paper)
+    .rect(BOX_W - 1, y, 1, 6, PAL.paper2)
+    .rect(0, y + 6, BOX_W, 1, PAL.ink2)
+    .rect(0, y + 7, BOX_W, 15, PAL.paper2)
+    .rect(BOX_W - 1, y + 7, 1, 15, PAL.grey)
+    .rect(0, y + 21, BOX_W, 1, PAL.grey)
+    // l'appareil imprimé sur la boîte, deux lignes de texte
+    .rect(4, y + 9, 8, 10, PAL.ink3)
+    .rect(5, y + 10, 6, 3, PAL.lime)
+    .set(6, y + 15, PAL.grey)
+    .set(9, y + 15, PAL.grey)
+    .rect(15, y + 10, 12, 1, PAL.grey)
+    .rect(15, y + 13, 8, 1, PAL.grey)
+    // l'autocollant d'inviolabilité, coupé net sur la jointure
+    .rect(23, y + 2, 5, 4, PAL.pink)
+    .rect(23, y + 7, 5, 4, PAL.pink)
+    .rect(27, y + 2, 1, 4, PAL.pink2)
+    .rect(27, y + 7, 1, 4, PAL.pink2);
+  if (spy) {
+    // la lumière qui fuit par la jointure (paliers de 6 frames)
+    for (let x = 1; x < BOX_W - 1; x++) if ((x * 5 + Math.floor(t / 6)) % 7 === 0) c.set(x, y + 6, PAL.lime);
+    // l'antenne, son voyant, ses barres de signal qui se remplissent
+    c.rect(9, 2, 1, y - 2, PAL.grey).set(9, 1, Math.floor(t / 8) % 2 === 0 ? PAL.pink : PAL.pink2);
+    const lit = (Math.floor(t / 8) + 2) % 5;
+    [2, 3, 4, 5].forEach((h, i) => c.rect(12 + i * 2, 7 - h, 1, h, i < lit ? PAL.lime : PAL.grey2));
+  }
+  return c.outline();
+};
+
+/** Tapis roulant (bande encre, repères qui défilent de `shift`), posé sur le sol. Mêmes positions dans le hook et l'outro. */
+const BELT_Y = 100;
+const BOX_X = 45;
+const Belt: React.FC<{ shift?: number }> = ({ shift = 0 }) => {
+  const c = new Canvas().rect(0, 0, 90, 1, PAL.grey2).rect(0, 1, 90, 4, PAL.ink3);
+  for (let x = 0; x < 90; x++) if (mod(x - shift, 8) < 2) c.set(x, 2, PAL.grey2);
+  return <Sprite canvas={c.outline()} x={0} y={BELT_Y} w={90} h={5} anchor="topleft" drop={false} />;
+};
+
+const SealedBox: React.FC<{ x: number; spy?: boolean }> = ({ x, spy = false }) => {
   const frame = useCurrentFrame();
-  const p = useEnter(at, { damping: 13, stiffness: 190 });
-  if (frame < at) return null;
-  const pad = Math.round(Math.min(w, h) * 0.09);
+  return <Sprite canvas={boxCanvas(frame, spy)} x={x} y={BELT_Y} w={BOX_W} h={BOX_H + ANT} drop={false} />;
+};
+
+/** La carte de récupération (symbole, 23 × 20) : 12 mots en 2 colonnes ; `n` = mots déjà écrits. */
+const cardCanvas = (n: number) => {
+  const c = new Canvas().rect(0, 0, 23, 20, PAL.paper).rect(22, 0, 1, 20, PAL.paper2).rect(0, 19, 23, 1, PAL.paper2);
+  for (let i = 0; i < n; i++) {
+    const x = i < 6 ? 2 : 13;
+    const y = 2 + (i % 6) * 3;
+    c.set(x, y, PAL.grey).rect(x + 2, y, 6, 1, PAL.ink3);
+  }
+  return c.outline();
+};
+const WordCard: React.FC<{ x: number; y: number; n: number; at?: number }> = ({ x, y, n, at = 0 }) => (
+  <Sprite canvas={cardCanvas(n)} x={x} y={y} w={23} h={20} at={at} anchor="center" />
+);
+
+/** Puce vue de dessus : corps rose 15 × 11 avec reflet et ombre, pattes grises, voyant `led`. */
+const chipCanvas = (led: string) => {
+  const c = new Canvas().rect(2, 2, 15, 11, PAL.pink).rect(2, 12, 15, 1, PAL.pink2).rect(16, 2, 1, 11, PAL.pink2).rect(3, 3, 4, 1, PAL.paper).set(14, 3, led);
+  for (const k of [4, 7, 10]) c.rect(0, k, 2, 1, PAL.grey).rect(17, k, 2, 1, PAL.grey);
+  for (const k of [5, 9, 13]) c.rect(k, 0, 1, 2, PAL.grey).rect(k, 13, 1, 2, PAL.grey);
+  return c.outline();
+};
+
+/** La puce espionne (rose, un œil, voyant qui clignote) centrée en (x, y). La même dans le démontage et dans le vol des mots. */
+const SpyChip: React.FC<{ x: number; y: number; at?: number }> = ({ x, y, at = 0 }) => {
+  const frame = useCurrentFrame();
   return (
-    <div style={{ position: "absolute", left: x - w / 2, top: y - h / 2, width: w, height: h, transform: `translateY(${(1 - p) * 90}px) scale(${0.85 + 0.15 * p})`, opacity: Math.min(1, p * 2) }}>
-      {[0.22, 0.62].map((f) => (
-        <div key={f} style={{ position: "absolute", left: w * f, top: -16, width: w * 0.16, height: 22, background: PAPER_2, border: `5px solid ${INK}` }} />
-      ))}
-      <div style={{ position: "absolute", inset: 0, background: PAPER_2, border: `6px solid ${INK}`, borderRadius: 22, boxShadow: `12px 12px 0 ${shadow}` }} />
-      <div style={{ position: "absolute", left: pad, top: pad, right: pad, bottom: pad, background: INK, borderRadius: 8, overflow: "hidden" }}>{children}</div>
-    </div>
+    <>
+      <Sprite canvas={chipCanvas(Math.floor(frame / 6) % 2 === 0 ? PAL.lime : PAL.ink3)} x={x} y={y} w={19} h={15} at={at} anchor="center" />
+      <Icon name="eye" x={x} y={y} at={at} />
+    </>
   );
 };
 
-/** Puce vue de dessus : carré coloré, pattes sur les 4 côtés. */
-const Chip: React.FC<{ size: number; color: string; children?: React.ReactNode }> = ({ size, color, children }) => {
-  const pins = [0.2, 0.4, 0.6, 0.8];
-  const leg = size * 0.14;
-  return (
-    <div style={{ position: "relative", width: size, height: size }}>
-      <svg width={size} height={size} style={{ position: "absolute", left: 0, top: 0, overflow: "visible" }}>
-        {pins.map((f) => (
-          <g key={f} stroke={INK} strokeWidth={5} strokeLinecap="round">
-            <line x1={size * f} y1={-leg} x2={size * f} y2={0} />
-            <line x1={size * f} y1={size} x2={size * f} y2={size + leg} />
-            <line x1={-leg} y1={size * f} x2={0} y2={size * f} />
-            <line x1={size} y1={size * f} x2={size + leg} y2={size * f} />
-          </g>
-        ))}
-      </svg>
-      <div style={{ position: "absolute", inset: 0, background: color, border: `5px solid ${INK}`, boxShadow: `6px 6px 0 ${INK}`, display: "grid", placeItems: "center" }}>{children}</div>
-    </div>
-  );
+/** Carte électronique du wallet ouvert (56 × 34) : pistes, port USB, secure element encre. Coin haut gauche en (x, y). */
+const boardCanvas = () => {
+  const c = new Canvas().rect(0, 0, 56, 34, PAL.lime2).rect(0, 0, 56, 1, PAL.lime).rect(-3, 13, 3, 8, PAL.grey);
+  for (const [x0, y0, x1, y1] of [[4, 6, 30, 6], [30, 6, 30, 12], [4, 28, 50, 28], [50, 28, 50, 20], [10, 22, 10, 28], [22, 22, 22, 28]]) c.line(x0, y0, x1, y1, PAL.lime);
+  c.rect(4, 10, 13, 11, PAL.ink3).rect(5, 11, 4, 1, PAL.grey).set(15, 19, PAL.cyan).rect(4, 20, 13, 1, PAL.ink2);
+  for (const k of [12, 15, 18]) c.rect(2, k, 2, 1, PAL.grey).rect(17, k, 2, 1, PAL.grey);
+  return c.outline();
 };
 
-/** Barre caviardée d'un mot de la phrase de récupération. */
-const Bar: React.FC<{ w: number; color?: string }> = ({ w, color = PAPER }) => <span style={{ display: "inline-block", width: w, height: 24, background: color, verticalAlign: "middle" }} />;
+/** Couvercle du wallet (le boîtier fermé vu de dessus) : écran encre, deux boutons. */
+const lidCanvas = () =>
+  new Canvas().rect(0, 0, 56, 34, PAL.paper2).rect(0, 0, 56, 1, PAL.paper).rect(8, 8, 32, 18, PAL.ink2).rect(9, 9, 8, 1, PAL.ink3).rect(46, 10, 4, 4, PAL.grey).rect(46, 20, 4, 4, PAL.grey).outline();
 
+/** eSIM : petite carte lime, coin coupé, contacts encre. */
+const esimCanvas = () => new Canvas().rect(0, 1, 9, 6, PAL.lime).rect(1, 0, 8, 1, PAL.lime).rect(2, 2, 2, 3, PAL.ink3).rect(5, 2, 2, 3, PAL.ink3).rect(0, 6, 9, 1, PAL.lime2).outline();
+
+/** Antenne-relais en treillis (13 × 30), voyant en haut. */
+const towerCanvas = (blink: boolean) => {
+  const c = new Canvas().line(6, 2, 1, 29, PAL.grey).line(6, 2, 11, 29, PAL.grey);
+  for (const y of [9, 16, 23]) {
+    const half = Math.round((5 * (y - 2)) / 27);
+    c.line(6 - half, y, 6 + half, y, PAL.grey);
+  }
+  c.rect(3, 4, 1, 4, PAL.paper2).rect(9, 4, 1, 4, PAL.paper2).rect(6, 0, 1, 2, blink ? PAL.paper : PAL.grey);
+  return c.outline();
+};
+
+/** Panneau de code sans texte (36 × 26) : barres colorées comme du code, `n` lignes déjà tapées. */
+const CODE: [number, number, string][] = [[2, 12, PAL.lime], [4, 18, PAL.cyan], [6, 10, PAL.paper2], [6, 14, PAL.cyan], [4, 8, PAL.pink], [4, 16, PAL.paper2], [2, 6, PAL.lime]];
+const codeCanvas = (n: number) => {
+  const c = new Canvas().rect(0, 0, 36, 26, PAL.ink2).rect(0, 0, 36, 3, PAL.ink3).set(2, 1, PAL.pink).set(4, 1, PAL.orange).set(6, 1, PAL.lime);
+  CODE.slice(0, n).forEach(([x, w, col], i) => c.rect(x, 5 + i * 3, w, 1, col));
+  return c.outline();
+};
+
+/** Grand point d'interrogation (le « ? » de la police, pixels de 2 × 2 cellules), ombre dure rose foncé. */
+const QMARK = [".###.", "#...#", "....#", "...#.", "..#..", ".....", "..#.."];
+const qmarkCanvas = () => {
+  const c = new Canvas();
+  for (const [dx, col] of [[1, PAL.pink2], [0, PAL.pink]] as const) QMARK.forEach((row, j) => [...row].forEach((v, i) => v === "#" && c.rect(i * 2 + dx, j * 2 + dx, 2, 2, col)));
+  return c.outline();
+};
+
+/** Grille de 300 wallets (20 × 15) sur un panneau encre ; `drained` wallets vidés, dans un ordre mélangé. */
+const gridCanvas = (drained: number) => {
+  const c = new Canvas().rect(0, 0, 61, 46, PAL.ink2);
+  for (let i = 0; i < 300; i++) {
+    const x = 1 + (i % 20) * 3;
+    const y = 1 + Math.floor(i / 20) * 3;
+    const empty = (i * 97) % 300 < drained;
+    c.rect(x, y, 2, 2, empty ? PAL.ink3 : PAL.lime).set(x, y, empty ? PAL.ink3 : PAL.paper);
+  }
+  return c.outline();
+};
+
+/** Bloc de glace tramé (26 × 32) : le givre monte par le bas (`rows` lignes visibles), les pièces restent visibles dessous. */
+const iceCanvas = (rows: number) => {
+  const W = 26;
+  const H = 32;
+  const top = H - rows;
+  const c = new Canvas();
+  for (let y = top; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      // Tramage léger (1 pixel sur 4) : le logo des pièces reste lisible sous la glace.
+      const col = x === 0 || y === top ? PAL.paper : x === W - 1 || y === H - 1 ? PAL.cyan2 : x % 2 === 0 && (x + y) % 4 === 0 ? PAL.cyan : null;
+      if (col) c.set(x, y, col);
+    }
+  if (rows === H) for (const [x, y] of [[3, 3], [4, 4], [5, 5], [3, 6], [4, 7]]) c.set(x, y, PAL.paper);
+  // Contour encre à la main : outline() remplirait le tramage.
+  return c.rect(-1, top - 1, W + 2, 1, PAL.ink).rect(-1, H, W + 2, 1, PAL.ink).rect(-1, top, 1, rows, PAL.ink).rect(W, top, 1, rows, PAL.ink);
+};
+
+/* ------------------------------------------------------------------ Pièces partagées */
+
+/** Le bureau du propriétaire, assis, qui recopie sur une feuille ; le petit wallet posé sur le bureau. Mêmes positions en b2 et b9. */
+const DX = 54;
+const deviceCanvas = new Canvas().rect(0, 0, 2, 1, PAL.ink3).set(1, 0, PAL.lime).outline();
+const DeskSet: React.FC = () => (
+  <>
+    <Prop name="desk" x={DX} />
+    <Sprite canvas={deviceCanvas} x={DX + 3} y={GROUND - 9} w={2} h={1} />
+    <Prop name="chair" x={DX - 12} />
+    <Person look={OWNER} x={DX - 11} pose="sit" hold="doc" />
+  </>
+);
+
+/* ------------------------------------------------------------------ Plans */
+
+/**
+ * b1 — Le hook, sans le son : une boîte de wallet scellée sur un tapis roulant, l'autocollant fendu, une antenne qui sort du
+ * couvercle et clignote, de la lumière qui fuit par la jointure. Le titre donne l'enjeu (« up to $93 million drained »),
+ * la voix l'énigme (« someone got inside… »). Titre entier dès la frame 0, qui est aussi la frame de la boucle.
+ */
 const Hook: React.FC = () => {
   const { tale } = useTale();
   const b = useBeat();
-  const frame = useCurrentFrame();
-  const texting = b.at("texting");
-  const seed = b.at("seed");
   return (
     <>
-      <Title x={500} y={165} at={0} text={tale.hook} size={96} />
-      <Device x={250} y={780} w={360} h={240} at={2}>
-        <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>
-          <Icon name={frame < texting ? "lock" : "unlock"} size={110} color={frame < texting ? LIME : PINK} at={frame < texting ? 4 : texting} />
-        </div>
-      </Device>
-      <Tag x={250} y={960} at={b.at("offline")} color={CYAN} size={20}>built to stay offline</Tag>
-      <Appear at={b.at("instead")} from="scale" style={{ position: "absolute", left: 650, top: 640, width: 320, height: 320, borderRadius: "50%", background: PAPER_2, border: `6px solid ${INK}`, boxShadow: `10px 10px 0 ${PINK}` }}>
-        {null}
-      </Appear>
-      <Actor x={810} y={790} at={b.at("instead")} kind="hacker" size={1.1} />
-      <Arrow from={[460, 720]} to={[660, 760]} at={texting} dur={16} bend={-70} color={PINK} dashed />
-      <Appear at={texting} from="scale" style={{ position: "absolute", left: 430, top: 400, width: 420 }}>
-        <div style={{ background: PAPER, border: `5px solid ${INK}`, boxShadow: `8px 8px 0 ${PINK}`, transform: "rotate(-3deg)" }}>
-          <div style={{ background: INK, padding: "8px 14px", ...monoStyle(16, LIME) }}>new message · sms</div>
-          <div style={{ padding: "14px 18px", display: "grid", gap: 12 }}>
-            {[150, 210, 120].map((w, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, ...monoStyle(18, GREY), opacity: frame >= seed + i * 4 ? 1 : 0 }}>
-                {String(i + 1).padStart(2, "0")} <Bar w={w} color={INK} />
-              </div>
-            ))}
-          </div>
-        </div>
-      </Appear>
-      <Tag x={810} y={990} at={b.at("stranger")} color={PINK} size={22}>a stranger</Tag>
+      <Title text={tale.hook} y={16} at={-40} />
+      <Belt />
+      <Pulse x={BOX_X - 8} y={BELT_Y - 34} at={b.at("behind")} color={PAL.pink} max={10} />
+      <SealedBox x={BOX_X} spy />
+      <Sparkle x={BOX_X + 8} y={BELT_Y - 16} at={b.at("inside")} />
+      <Sparkle x={BOX_X + 6} y={BELT_Y - 18} at={b.at("opened")} phase={2} />
+      <Icon name="hourglass" x={BOX_X + 14} y={BELT_Y - 30} at={b.at("waiting")} />
     </>
   );
 };
 
-/** Asie du Sud-Est stylisée (péninsule + îles), en traits d'encre. */
-const MAP = [
-  "M 160 60 L 470 50 L 520 120 L 500 210 L 450 260 L 420 330 L 380 290 L 360 330 L 330 360 L 345 420 L 370 470 L 340 480 L 305 410 L 300 330 L 270 250 L 210 200 L 150 140 Z",
-  "M 270 430 L 310 440 L 400 540 L 380 560 L 300 500 Z",
-  "M 520 380 C 560 330 650 330 670 390 C 690 450 630 500 570 490 C 520 480 500 430 520 380 Z",
-  "M 420 565 L 600 575 L 595 595 L 420 585 Z",
-  "M 640 120 L 690 110 L 700 210 L 665 230 Z",
-  "M 690 250 L 740 240 L 750 310 L 700 320 Z",
-  "M 720 380 L 760 370 L 750 430 L 790 460 L 740 470 L 720 430 Z",
-];
-
-const Reseller: React.FC = () => {
+/** b2 — Les 24 mots : le propriétaire les recopie du wallet sur une carte ; le cadenas promet que personne ne les verra. */
+const Keys: React.FC = () => {
   const b = useBeat();
-  const nodes: { icon: "shield" | "building" | "person"; at: number; label: string; box: string }[] = [
-    { icon: "shield", at: b.at("ledger"), label: "Ledger", box: CYAN },
-    { icon: "building", at: b.at("cryptobilis") - 4, label: "CryptoBilis", box: PINK },
-    { icon: "person", at: b.at("reseller") + 6, label: "buyer", box: PAPER },
-  ];
+  const frame = useCurrentFrame();
+  const promises = b.at("promises");
   return (
-    <Board label="where the devices came from" tag="Supply chain">
-      {MAP.map((d, i) => (
-        <InkPath key={i} d={d} at={2 + i * 3} dur={22} width={5} fill={PAPER_2} />
-      ))}
-      <Pin x={500} y={300} at={b.at("cryptobilis")} label="CryptoBilis · reseller" />
-      <Tag x={760} y={560} at={b.at("southeast")} color={LIME} size={22} rot={-3}>Southeast Asia</Tag>
-      {nodes.map((n, i) => (
-        <React.Fragment key={n.label}>
-          <Icon name={n.icon} x={170 + i * 330} y={790} at={n.at} size={150} box={n.box} />
-          <Tag x={170 + i * 330} y={910} at={n.at + 3} color={PAPER} size={20}>{n.label}</Tag>
-        </React.Fragment>
-      ))}
-      <Arrow from={[265, 790]} to={[400, 790]} at={b.at("sold")} dur={14} />
-      <Tag x={332} y={720} at={b.at("devices")} color={LIME} size={18}>devices</Tag>
-      <Arrow from={[595, 790]} to={[730, 790]} at={b.at("reseller")} dur={14} />
-      <Tag x={662} y={720} at={b.at("reseller") + 4} color={LIME} size={18}>sold</Tag>
-    </Board>
+    <>
+      <Label x={45} y={16} at={b.at("keys")} text="24 words = your keys" color={PAL.lime} />
+      <Icon name="hwallet" x={20} y={56} />
+      <Arrow from={[25, 56]} to={[31, 56]} at={4} dur={6} dashed />
+      <WordCard x={45} y={56} n={Math.min(12, 2 + Math.floor(frame / 9))} />
+      <Pulse x={67} y={56} at={promises} max={12} />
+      <Icon name="lock" x={67} y={56} at={promises} />
+      <DeskSet />
+    </>
   );
 };
 
-const Teardown: React.FC = () => {
+/** b3 — Le 9 octobre : 300 wallets se vident par paquets, les pièces filent hors champ, le compteur monte à 93,2 M$. */
+const GX = 14;
+const GY = 46;
+const Drained: React.FC = () => {
   const b = useBeat();
   const frame = useCurrentFrame();
-  const lift = interpolate(frame, [b.at("case"), b.at("case") + 20], [0, 1], clampOpt);
+  const start = b.at("ninth");
+  const end = b.at("wallets");
+  const three = b.at("three", 2); // la 1re occurrence est dans « ninety-three »
+  const drained = frame < start ? 0 : Math.floor((Math.min(1, (frame - start) / Math.max(1, end - start)) * 300) / 12) * 12;
+  const coins: IconName[] = ["coin", "eth", "stable"];
   return (
-    <Board tone="ink" label="teardown · schematic" tag="Evidence" shadow={CYAN}>
-      {/* Carte électronique */}
-      <div style={{ position: "absolute", left: 120, top: 330, width: 760, height: 400, background: PAPER_2, border: `6px solid ${PAPER}`, borderRadius: 18 }} />
-      <InkPath d="M 330 470 L 330 400 L 560 400 M 400 530 L 620 530 L 620 640 M 270 600 L 200 600 L 200 680" at={4} dur={24} width={5} color={GREY} />
-      <div style={{ position: "absolute", left: 260, top: 450 }}>
-        <Chip size={140} color={CYAN} />
-      </div>
-      <Tag x={330} y={650} at={6} color={PAPER} size={16}>secure element</Tag>
-      {/* Boîtier qui se soulève */}
-      <div style={{ position: "absolute", left: 100, top: 310 - lift * 250, width: 800, height: 440 - lift * 300, background: PAPER, border: `6px solid ${INK}`, borderRadius: 22, boxShadow: `10px 10px 0 ${PINK}`, display: "grid", placeItems: "center" }}>
-        <span style={monoStyle(22, INK)}>case</span>
-      </div>
-      <Appear at={b.at("hidden")} from="drop" style={{ position: "absolute", left: 640, top: 440 }}>
-        <Chip size={130} color={PINK}>
-          <Icon name="eye" size={70} />
-        </Chip>
-      </Appear>
-      <Callout x={560} y={860} to={[690, 600]} at={b.at("extra")} text="unauthorized" color={PINK} />
-      <Tag x={705} y={410} at={b.at("chip")} color={LIME} size={20}>extra chip</Tag>
-      <InkPath d="M 785 545 L 805 545 L 805 600" at={b.at("esim")} dur={8} width={5} color={INK} />
-      <Appear at={b.at("esim")} from="scale" style={{ position: "absolute", left: 770, top: 600 }}>
-        <div style={{ width: 76, height: 56, background: LIME, border: `5px solid ${INK}`, borderTopRightRadius: 18, boxShadow: `5px 5px 0 ${INK}` }} />
-      </Appear>
-      <Tag x={810} y={700} at={b.at("esim") + 3} color={LIME} size={20}>its own eSIM</Tag>
-    </Board>
+    <>
+      {/* L'étiquette s'allonge quand la voix dit « three hundred » : une seule info en haut. */}
+      <Label x={45} y={16} at={b.at("october")} out={three} text="Oct 9" />
+      <Label x={45} y={16} at={three} text="Oct 9 · 300+ wallets" />
+      <Counter value="$93,200,000" y={30} at={b.at("up")} color={PAL.paper} label="up to · onchain estimate" />
+      <Sprite canvas={gridCanvas(drained)} x={GX} y={GY} w={61} h={46} anchor="topleft" drop={false} />
+      {Array.from({ length: 12 }).map((_, i) => (
+        <Fly key={i} name={coins[i % 3]} from={[GX + 6 + ((i * 23) % 50), GY + 6 + ((i * 17) % 34)]} to={[-12, GY - 4 + ((i * 11) % 30)]} at={start + i * 18} dur={18} arc={6} vanish />
+      ))}
+    </>
   );
 };
 
-const Exfil: React.FC = () => {
+/** b4 — Le logiciel n'a pas été piraté (code net, coche, tampon) ; alors comment a-t-on vu les mots ? Le « ? » sur la carte. */
+const NotBreached: React.FC = () => {
   const b = useBeat();
   const frame = useCurrentFrame();
-  const words = b.at("twenty");
+  const never = b.at("never");
+  const how = b.at("how");
+  const wobble = [0, 1, 0, -1][Math.floor(frame / 5) % 4];
+  return (
+    <>
+      <Sprite canvas={codeCanvas(Math.min(CODE.length, 1 + Math.floor(frame / 6)))} x={10} y={18} w={36} h={26} anchor="topleft" />
+      <Pulse x={60} y={31} at={never} max={12} />
+      <Icon name="check" x={60} y={31} at={never} />
+      <Stamp y={52} at={b.at("breached")} text="NOT BREACHED" color={PAL.lime} />
+      <WordCard x={30} y={88} n={12} at={b.at("so", 2)} />
+      <Sprite canvas={qmarkCanvas()} x={58 + (frame >= how + 4 ? wobble : 0)} y={86} w={11} h={15} at={how} anchor="center" />
+    </>
+  );
+};
+
+/** b5 — Le fil commun : les lignes des wallets vidés convergent vers une seule boutique, CryptoBilis, en Asie du Sud-Est. */
+const WALLETS_X = [13, 29, 45, 61, 77];
+const Thread: React.FC = () => {
+  const b = useBeat();
+  const sold = b.at("sold");
+  return (
+    <>
+      <Label x={45} y={16} at={b.at("southeast")} text="Southeast Asia" />
+      {WALLETS_X.map((x, i) => (
+        <Icon key={x} name="px-wallet" x={x} y={34} at={4 + i * 4} />
+      ))}
+      {/* Les fils s'arrêtent au-dessus de la boutique, écartés : leurs pointes ne se touchent pas. */}
+      {WALLETS_X.map((x, i) => (
+        <Arrow key={x} from={[x, 42]} to={[45 + Math.round((x - 45) / 2.5), 68]} at={b.at("thread") + i * 5} dur={12} />
+      ))}
+      <Pulse x={45} y={82} at={sold} max={16} />
+      <Tile icon="px-store" x={45} y={82} at={sold} />
+      <Label x={45} y={98} at={b.at("cryptobilis")} text="CryptoBilis" color={PAL.pink} />
+    </>
+  );
+};
+
+/** b6 — Ledger ouvre l'appareil : le couvercle se soulève par paliers ; à côté de la vraie carte, la passagère clandestine et son eSIM. */
+const BX = 17;
+const BY = 40;
+const Stowaway: React.FC = () => {
+  const b = useBeat();
+  const frame = useCurrentFrame();
+  const lift = b.at("inside");
+  const chip = b.at("stowaway");
+  const esim = b.at("esim");
+  const lidY = BY - (frame < lift ? 0 : Math.min(30, Math.floor((frame - lift) / 2) * 3));
+  return (
+    <>
+      <Sprite canvas={boardCanvas()} x={BX} y={BY} w={56} h={34} anchor="topleft" />
+      {frame >= esim ? <Sprite canvas={new Canvas().line(0, 0, 0, 4, PAL.pink2)} x={BX + 40} y={BY + 20} w={1} h={5} anchor="topleft" drop={false} /> : null}
+      <Pulse x={BX + 38} y={BY + 12} at={chip + 4} color={PAL.pink} max={14} />
+      <SpyChip x={BX + 38} y={BY + 12} at={chip} />
+      <Sprite canvas={esimCanvas()} x={BX + 40} y={BY + 28} w={9} h={7} at={esim} anchor="center" />
+      {lidY > 14 ? <Sprite canvas={lidCanvas()} x={BX} y={lidY} w={56} h={34} anchor="topleft" drop={false} /> : null}
+      <Stamp y={88} at={chip + 4} text="STOWAWAY" />
+      <Label x={45} y={104} at={esim} text="+ its own eSIM" color={PAL.lime} />
+    </>
+  );
+};
+
+/** b7 — Son travail : attendre la configuration, lire les 24 mots à l'écran (ils passent au rose), les envoyer à l'antenne en LTE. */
+const Job: React.FC = () => {
+  const b = useBeat();
+  const frame = useCurrentFrame();
+  const setup = b.at("setup");
   const read = b.at("read");
-  const sent = b.at("sent");
-  const beam = interpolate(frame, [read, read + 6, sent + 10, sent + 20], [0, 0.3, 0.3, 0], clampOpt);
+  const send = b.at("send");
+  const step = Math.max(1, (send - read) / 24);
+  const reading = frame < read ? -1 : Math.floor((frame - read) / step);
+  const slot = (i: number) => [13 + (i % 3) * 20, 27 + Math.floor(i / 3) * 4.5] as const;
+  const bezel = new Canvas().rect(0, 0, 64, 50, PAL.ink3).rect(1, 1, 62, 48, PAL.ink2).outline();
+  const dots = ".".repeat(Math.floor(frame / 8) % 4);
+  const TX = 62;
+  const TY = 112;
   return (
     <>
-      <Device x={500} y={310} w={840} h={500} at={0}>
-        <div style={{ position: "absolute", left: 0, right: 0, top: 14, textAlign: "center", ...monoStyle(17, LIME) }}>recovery phrase · write it down</div>
-        <div style={{ position: "absolute", left: 18, top: 70, right: 18, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", rowGap: 14, columnGap: 10 }}>
-          {Array.from({ length: 24 }).map((_, i) => {
-            const shown = frame >= words + i;
-            const hit = frame >= read + Math.round(i * 0.8);
-            return (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, ...monoStyle(17, hit ? PINK : GREY), opacity: shown ? 1 : 0 }}>
-                {String(i + 1).padStart(2, "0")}
-                <Bar w={96} color={hit ? PINK : PAPER} />
-              </div>
-            );
-          })}
-        </div>
-      </Device>
-      <svg style={{ position: "absolute", left: 0, top: 0, width: 1000, height: 1080, overflow: "visible" }}>
-        <polygon points="300,720 120,530 880,530" fill={PINK} opacity={beam} />
-      </svg>
-      <Appear at={b.at("chip")} from="up" style={{ position: "absolute", left: 215, top: 705 }}>
-        <Chip size={170} color={PINK}>
-          <Icon name="eye" size={100} />
-        </Chip>
-      </Appear>
-      <Tag x={300} y={940} at={b.at("chip") + 4} color={PAPER} size={20}>hidden chip</Tag>
-      <Tag x={300} y={640} at={read} color={PINK} size={20}>reads the screen</Tag>
-      <InkPath d="M 720 1000 L 820 660 L 920 1000 M 750 900 L 890 900 M 780 790 L 860 790 M 820 660 L 820 620" at={sent} dur={18} width={7} color={PAPER} />
-      <Icon name="globe" x={820} y={600} at={sent + 10} size={70} color={LIME} />
-      {[0, 1, 2].map((i) => (
-        <InkPath key={i} d={`M ${430 + i * 40} ${730 - i * 40} Q ${470 + i * 50} ${790} ${430 + i * 40} ${850 + i * 40}`} at={sent + i * 5} dur={10} width={7} color={LIME} />
+      <Sprite canvas={bezel} x={8} y={16} w={64} h={50} anchor="topleft" />
+      <PixelText text={frame < setup ? `setup${dots}` : "24 recovery words"} x={13} y={20} color={PAL.lime} align="left" />
+      {Array.from({ length: 24 }).map((_, i) => {
+        if (frame < setup + i * 2) return null;
+        const [x, y] = slot(i);
+        return <PixelText key={i} text={`${String(i + 1).padStart(2, "0")} ███`} x={x} y={y} color={reading >= i ? PAL.pink : PAL.paper2} align="left" shadow={false} slot={false} />;
+      })}
+      <SpyChip x={22} y={88} />
+      {reading >= 0 && reading < 24 ? <Arrow key={reading} from={[22, 80]} to={[slot(reading)[0] + 8, Math.round(slot(reading)[1] + 2)]} at={Math.round(read + reading * step)} dur={1} color={PAL.pink} dashed /> : null}
+      <Sprite canvas={towerCanvas(Math.floor(frame / 8) % 2 === 0)} x={TX} y={TY} w={13} h={30} at={send - 8} />
+      <Pulse x={TX} y={TY - 28} at={send + 10} color={PAL.paper} max={10} every={16} />
+      {[0, 1, 2, 3].map((i) => (
+        <Fly key={i} name="chat" from={[30, 86]} to={[TX - 2, TY - 28]} at={send + i * 8} dur={18} arc={10} vanish />
       ))}
-      <Arrow from={[580, 760]} to={[770, 640]} at={b.at("out")} dur={16} bend={-30} color={LIME} dashed />
-      <Tag x={820} y={1030} at={b.at("mobile")} color={LIME} size={22}>LTE · eSIM</Tag>
+      <Label x={42} y={104} at={b.at("lte")} text="LTE →" color={PAL.paper} />
     </>
   );
 };
 
-const Losses: React.FC = () => {
+/** b8 — Ce que la puce n'a pas touché : secure element, système, transactions ; une coche sur chacun, puis le tampon. */
+const UNTOUCHED: { icon: IconName; text: string; at: [string, number]; tick: string }[] = [
+  { icon: "vault", text: "secure element", at: ["secure", 1], tick: "or" },
+  { icon: "px-terminal", text: "operating system", at: ["operating", 1], tick: "and" },
+  { icon: "px-receipt", text: "transactions", at: ["never", 2], tick: "single" },
+];
+const Untouched: React.FC = () => {
   const b = useBeat();
-  const frame = useCurrentFrame();
-  const losses = b.at("losses");
-  const cols = 25;
   return (
-    <Board label="onchain researchers' estimate" tag="Losses">
-      <Tag x={140} y={60} at={b.at("up")} color={PINK} size={22}>up to</Tag>
-      <Counter x={500} y={150} at={b.at("ninety")} value="$93.2M" size={150} label="estimated losses" />
-      <div style={{ position: "absolute", left: 63, top: 290 }}>
-        {Array.from({ length: 300 }).map((_, i) => {
-          const show = Math.round(random(`in-${i}`) * 20);
-          const drain = losses + Math.round(random(`out-${i}`) * 110);
-          if (frame < show) return null;
-          const empty = frame >= drain;
-          return (
-            <div
-              key={i}
-              style={{
-                position: "absolute",
-                left: (i % cols) * 35,
-                top: Math.floor(i / cols) * 35,
-                width: 28,
-                height: 28,
-                background: empty ? PAPER_2 : LIME,
-                border: `3px solid ${empty ? GREY : INK}`,
-                boxSizing: "border-box",
-              }}
-            />
-          );
-        })}
-      </div>
-      <Tag x={500} y={500} at={b.at("three")} color={PAPER} size={28} rot={-3}>300+ wallets</Tag>
-      {[250, 500, 750].map((x, i) => (
-        <Arrow key={x} from={[x, 730]} to={[500 + (x - 500) * 0.2, 840]} at={losses + i * 4} dur={14} color={PINK} />
-      ))}
-      <Icon name="wallet" x={500} y={910} at={losses + 10} size={120} box={PINK} />
-      <Note x={810} y={900} at={b.at("estimate")} text="Ledger hasn't confirmed a total" w={280} size={28} rot={4} />
-    </Board>
+    <>
+      {UNTOUCHED.map((r, i) => {
+        const y = 30 + i * 24;
+        const at = b.at(r.at[0], r.at[1]);
+        return (
+          <React.Fragment key={r.text}>
+            <Tile icon={r.icon} x={16} y={y} at={at} />
+            <Show at={at + 2}>
+              <PixelText text={r.text} x={28} y={y - 1.5} align="left" />
+            </Show>
+            <Icon name="check" x={25} y={y - 8} at={b.at(r.tick)} />
+          </React.Fragment>
+        );
+      })}
+      <Stamp x={44} y={102} at={b.at("single") + 10} text="UNTOUCHED" color={PAL.lime} />
+    </>
   );
 };
 
+/** b9 — Le coffre est resté fermé : quelqu'un, l'antenne en tête, lit simplement la carte par-dessus l'épaule du propriétaire. */
+const Shoulder: React.FC = () => {
+  const b = useBeat();
+  const frame = useCurrentFrame();
+  const enter = b.at("vault");
+  const arrive = b.at("just");
+  const locked = b.at("locked");
+  const HX = 33;
+  return (
+    <>
+      <Pulse x={22} y={36} at={locked} max={16} />
+      <Tile icon="vault" x={22} y={36} at={enter} />
+      <Icon name="lock" x={30} y={44} at={locked} />
+      <Label x={22} y={55} at={locked} text="locked" color={PAL.lime} />
+      <WordCard x={62} y={58} n={12} />
+      <DeskSet />
+      <Person look="hacker" x={-8} to={HX} at={enter} dur={Math.max(20, arrive - enter)} face="right" />
+      {frame >= arrive && Math.floor(frame / 8) % 2 === 0 ? <Icon name="signal" x={HX} y={79} at={arrive} /> : null}
+      <Arrow from={[HX + 5, 87]} to={[52, 68]} at={b.at("read")} dur={8} color={PAL.pink} dashed />
+    </>
+  );
+};
+
+/** b10 — Tether gèle 10 M$ de USDT (le givre monte sur la pile) ; Ledger parle d'une attaque physique de la chaîne d'approvisionnement. */
 const Frozen: React.FC = () => {
   const b = useBeat();
-  const froze = b.at("froze");
-  const ledger = b.at("ledger");
-  const nodes: { icon: "shield" | "building" | "person"; label: string }[] = [
-    { icon: "shield", label: "Ledger" },
-    { icon: "building", label: "reseller" },
-    { icon: "person", label: "buyer" },
-  ];
+  const frame = useCurrentFrame();
+  const ice = b.at("froze") + 6;
+  const physical = b.at("physical");
+  const rows = frame < ice ? 0 : Math.min(32, (Math.floor((frame - ice) / 2) + 1) * 4);
   return (
     <>
-      <Tag x={230} y={70} at={0} color={LIME} size={22}>Tether</Tag>
-      {[0, 1, 2, 3, 4].map((i) => (
-        <div key={i} style={{ position: "absolute", left: 170, top: 380 - i * 48 }}>
-          <Appear at={2 + i * 3} from="drop">
-            <Coin symbol="₮" size={130} color={LIME} />
-          </Appear>
-        </div>
+      <Counter value="$10,000,000" y={24} at={b.at("ten")} color={PAL.paper} label="USDT frozen by Tether" />
+      {[0, 1, 2, 3].map((i) => (
+        <Icon key={i} name="stable" x={28} y={74 - i * 5} at={i * 3} />
       ))}
-      <Appear at={froze} from="fade" style={{ position: "absolute", left: 130, top: 120, width: 220, height: 420, background: "rgba(92,225,255,0.35)", border: `5px solid ${CYAN}` }}>
-        {null}
-      </Appear>
-      <Stamp x={240} y={330} at={froze} text="Frozen" size={60} color={INK} rot={-10} />
-      <Counter x={680} y={260} at={b.at("ten")} value="$10M" size={170} color={PAPER} label="in USDT" />
-      <Board x={40} y={570} w={920} h={460} at={ledger} label="what Ledger says" tag="Per Ledger" shadow={CYAN}>
-        {nodes.map((n, i) => (
-          <React.Fragment key={n.label}>
-            <Icon name={n.icon} x={140 + i * 320} y={140} at={ledger + 4 + i * 4} size={120} box={i === 0 ? CYAN : PAPER} />
-            <Tag x={140 + i * 320} y={235} at={ledger + 6 + i * 4} color={PAPER} size={18}>{n.label}</Tag>
-          </React.Fragment>
-        ))}
-        <Arrow from={[215, 140]} to={[385, 140]} at={b.at("calls")} dur={12} />
-        <Arrow from={[535, 140]} to={[705, 140]} at={b.at("calls") + 4} dur={12} />
-        <Icon name="cross" x={620} y={140} at={b.at("physical")} size={80} color={PINK} />
-        <Tag x={640} y={36} at={b.at("physical") + 3} color={PINK} size={18} rot={0}>physical tampering</Tag>
-        <Stamp x={460} y={325} at={b.at("software")} text="Software: not breached" size={46} color={PINK} rot={-4} />
-      </Board>
+      {rows > 0 ? <Sprite canvas={iceCanvas(rows)} x={28} y={82} w={26} h={32} drop={false} /> : null}
+      {[[15, 50], [41, 81]].map(([x, y], i) => (
+        <Icon key={i} name="snowflake" x={x} y={y} at={ice + 8 + i * 5} />
+      ))}
+      <Pulse x={62} y={64} at={physical} color={PAL.paper} max={14} />
+      <Tile icon="px-package" x={62} y={64} at={b.at("ledger")} />
+      <Icon name="warning" x={69} y={55} at={physical} />
+      <Label x={45} y={98} at={physical} text="physical supply-chain attack" max={56} />
     </>
   );
 };
 
-const Outro: React.FC = () => {
+/** b11 — Le conseil de Ledger : appareil neuf de CryptoBilis, ne pas le configurer ; sinon, tout passer sur un nouvel appareil, nouvelle phrase. */
+const Advice: React.FC = () => {
   const b = useBeat();
+  const move = b.at("move");
+  const coins: IconName[] = ["coin", "eth", "stable"];
   return (
     <>
-      <Appear at={0} from="drop" style={{ position: "absolute", left: 300, top: 320, width: 400, height: 300 }}>
-        <div style={{ position: "absolute", inset: 0, background: PAPER_2, border: `6px solid ${INK}`, boxShadow: `12px 12px 0 ${LIME}` }} />
-        <div style={{ position: "absolute", left: 170, top: 0, width: 60, bottom: 0, background: PINK, borderLeft: `5px solid ${INK}`, borderRight: `5px solid ${INK}` }} />
-        <div style={{ position: "absolute", left: 0, right: 0, top: 210, textAlign: "center" }}>
-          <span style={{ ...monoStyle(18, INK), background: PAPER, border: `3px solid ${INK}`, padding: "4px 10px" }}>sealed</span>
-        </div>
-      </Appear>
-      <Icon name="check" x={700} y={330} at={b.at("source")} size={120} box={LIME} />
-      <Tag x={500} y={700} at={b.at("source")} color={LIME} size={26}>official store</Tag>
-      <Appear at={b.at("end")} from="scale" style={{ position: "absolute", left: 175, top: 810 }}>
-        <Chip size={130} color={PINK}>
-          <Icon name="question" size={80} />
-        </Chip>
-      </Appear>
-      <Stamp x={620} y={875} at={b.at("like")} text="Check the seal" size={64} color={PINK} rot={-6} />
+      {/* 1re moitié : l'appareil jamais ouvert, à ne pas configurer. */}
+      <Tile icon="px-package" x={18} y={30} at={b.at("unused")} />
+      <Icon name="cross" x={26} y={22} at={b.at("don't")} />
+      <Label x={57} y={30} at={b.at("don't")} text="don't set it up" color={PAL.pink} />
+      {/* 2e moitié : l'ancien appareil (rose) → le nouveau (lime), avec sa nouvelle carte de mots. */}
+      <Tile icon="hwallet" x={16} y={84} at={b.at("already")} color={PAL.pink} />
+      <Arrow from={[28, 84]} to={[40, 84]} at={move} dur={6} color={PAL.ink} dashed />
+      <Tile icon="hwallet" x={52} y={84} at={move} color={PAL.lime} />
+      {coins.map((name, i) => (
+        <Fly key={name} name={name} from={[16, 70]} to={[52, 70]} at={b.at("assets") + i * 8} dur={16} arc={10} vanish />
+      ))}
+      <WordCard x={52} y={60} n={12} at={b.at("fresh")} />
+      <Label x={45} y={104} at={b.at("fresh")} text="new device · new phrase" color={PAL.lime} />
+    </>
+  );
+};
+
+/**
+ * b13 — Outro qui boucle : le tapis roulant défile, des boîtes identiques passent, la loupe les longe puis se cale sur celle qui
+ * a une antenne (« who? », « where? »). Le tapis s'arrête sur « supply » : la boîte est à sa place du hook. Après le dernier mot,
+ * le kit montre la frame 0 du hook : « …where in the supply chain » → « Someone got inside this hardware wallet… ».
+ */
+const Outro: React.FC = () => {
+  const b = useBeat();
+  const frame = useCurrentFrame();
+  const stop = b.at("supply");
+  const shiftAt = (f: number) => Math.floor(Math.max(0, stop - f) / 2);
+  const shift = shiftAt(frame);
+  const sweep = b.at("investigating");
+  const lock = b.at("who");
+  const gone = b.at("chain");
+  // La loupe longe les boîtes, puis suit l'antenne de la boîte espionne (une cellule à la fois).
+  const target = (f: number) => BOX_X + shiftAt(f) - 8;
+  const mx = frame < lock ? Math.round(10 + ((target(lock) - 10) * (frame - sweep)) / Math.max(1, lock - sweep)) : target(frame);
+  return (
+    <>
+      <Belt shift={shift} />
+      {[2, 1].map((k) => (
+        <SealedBox key={k} x={BOX_X + shift - 64 * k} />
+      ))}
+      <SealedBox x={BOX_X + shift} spy />
+      {frame >= sweep && frame < stop ? <Icon name="magnifier" x={mx} y={56} at={sweep} /> : null}
+      <Label x={28} y={36} at={lock} out={gone} text="who?" color={PAL.pink} />
+      <Label x={62} y={36} at={b.at("where")} out={gone} text="where?" color={PAL.lime} />
     </>
   );
 };
 
 export const Story: React.FC<StoryProps> = () => (
   <>
-    <Beat id="b1">
+    <Beat id="b1" bg="ink" light="glow" ambient="dust">
       <Hook />
     </Beat>
-    <Beat id="b2">
-      <Reseller />
+    <Beat id="b2" bg="ink" light="spot">
+      <Keys />
     </Beat>
-    <Beat id="b3">
-      <Teardown />
+    <Beat id="b3" bg="pink" floor={false} light="top" ambient="sparks">
+      <Drained />
     </Beat>
-    <Beat id="b4">
-      <Exfil />
+    <Beat id="b4" bg="cyan" floor={false} light="top">
+      <NotBreached />
     </Beat>
-    <Beat id="b5">
-      <Losses />
+    <Beat id="b5" bg="cyan" floor={false} light="glow">
+      <Thread />
     </Beat>
-    <Beat id="b6">
+    <Beat id="b6" bg="ink" floor={false} light="glow" ambient="sparks">
+      <Stowaway />
+    </Beat>
+    <Beat id="b7" bg="ink" floor={false} light="top">
+      <Job />
+    </Beat>
+    <Beat id="b8" bg="cyan" floor={false} light="glow">
+      <Untouched />
+    </Beat>
+    <Beat id="b9" bg="cyan" light="top" ambient="dust">
+      <Shoulder />
+    </Beat>
+    <Beat id="b10" bg="pink" floor={false} light="spot" ambient="sparks">
       <Frozen />
     </Beat>
-    {/* b7 = moment produit : dessiné par l'habillage (TaleVideo), rien ici. */}
-    {/* Dernier plan : il boucle sur le premier (« …end up like this: » → « This hardware wallet was built… »). */}
-    <Beat id="b8" loop>
+    <Beat id="b11" bg="cyan" floor={false} light="top">
+      <Advice />
+    </Beat>
+    {/* b12 = moment produit : dessiné par l'habillage (TaleVideo), rien ici. */}
+    {/* Dernier plan : il boucle sur le premier (« …where in the supply chain » → « Someone got inside this hardware wallet… »). */}
+    <Beat id="b13" loop>
       <Outro />
     </Beat>
   </>

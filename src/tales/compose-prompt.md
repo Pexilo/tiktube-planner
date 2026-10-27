@@ -20,6 +20,8 @@ les installations de modules, les médias et `@remotion/effects`. En cas de conf
    intriguer en muet (un mouvement, un objet étrange, une action en cours), et le titre complète la phrase dite au lieu de la répéter.
    Sur les plans clés (twist, chute), montre le chiffre ou le mot clé à l'écran (`Counter`, `Label`, `Stamp`) pour qui regarde sans le son.
    Reste fidèle aux faits du JSON : n'invente ni chiffre, ni citation, ni titre de presse.
+   Le son : pas de musique ; les bruitages narratifs du JSON (`beats[].sfx`) sont joués par l'habillage, et chaque composant du kit
+   joue son petit son d'animation tout seul (KIT.md, « Sons »). Cale les apparitions clés sur le mot du bruitage quand il y en a un.
 2. Lance `node scripts/tale-check.mjs {{slug}} --draft`. La dernière ligne de sortie est un JSON `{ ok, errors, stills, sheet }`.
 3. Corrige les erreurs, puis ouvre `sheet` et les `stills` avec Read et critique-les comme un directeur artistique.
    Charge le skill `design-superpowers:design-review` (outil Skill) et applique sa grille de qualité visuelle et de mouvement

@@ -8,3 +8,5 @@ export type { PropName, IconName } from "../pixel/props";
 export { Mound, Skyline, TONES, useBg } from "../pixel/backdrop";
 export type { Tone, Light, Ambient } from "../pixel/backdrop";
 export { PixelText } from "../pixel/font";
+export { Sound } from "./sfx";
+export type { AnimSfxName } from "../../../shared/tale-sfx.mjs";

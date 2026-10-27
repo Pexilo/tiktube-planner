@@ -4,6 +4,7 @@ import { TALE_VOICE_DELAY } from "../../../shared/tales.mjs";
 import { clamp, EASE_IN_OUT, EASE_OUT } from "../../components/fx";
 import { Backdrop, BgCtx, isLight, type Ambient, type Light, type Tone } from "../pixel/backdrop";
 import { LayoutCtx, newRegistry } from "../pixel/layout";
+import { Sound, SoundOff } from "./sfx";
 import type { Tale, TaleTimeline } from "../types";
 
 /*
@@ -139,6 +140,8 @@ export const Beat: React.FC<{ id: string; tail?: number; bg?: Tone; floor?: bool
       <BeatCtx.Provider value={info}>
         <BgCtx.Provider value={{ tone: look.tone, light: isLight(look.tone) }}>
           <LayoutCtx.Provider value={registry}>
+            {/* Coupe vers un nouveau plan : un souffle très discret (pas sur le premier plan, qui ouvre la vidéo). */}
+            {info.index > 0 ? <Sound name="a-cut" volume={0.6} /> : null}
             {look.bg ? (
               <Backdrop tone={look.tone} floor={look.floor} light={look.light} ambient={look.ambient} seed={loop ? firstId : id} offset={loop ? -len : 0} />
             ) : null}
@@ -166,11 +169,14 @@ const LoopBody: React.FC<{ hold: number; first: React.ReactNode; firstInfo: Retu
 }) => {
   const frame = useCurrentFrame();
   if (frame < hold) return <>{children}</>;
+  // Image figée : ses sons d'animation restent muets.
   return (
     <Freeze frame={0}>
-      <BeatCtx.Provider value={firstInfo}>
-        <LayoutCtx.Provider value={firstRegistry}>{first}</LayoutCtx.Provider>
-      </BeatCtx.Provider>
+      <SoundOff.Provider value={true}>
+        <BeatCtx.Provider value={firstInfo}>
+          <LayoutCtx.Provider value={firstRegistry}>{first}</LayoutCtx.Provider>
+        </BeatCtx.Provider>
+      </SoundOff.Provider>
     </Freeze>
   );
 };
