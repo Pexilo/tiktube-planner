@@ -867,7 +867,7 @@ function renderToday() {
 function itemRow(x) {
   if (x.plat === "yt") {
     const v = x.v;
-    const thumb = v.rendered ? `<img class="mini" src="/out/${v.id}.jpg${bust(v)}" onerror="this.src='${appOf(v.slug).icon}'">` : `<img class="mini" src="${appOf(v.slug).icon}">`;
+    const thumb = v.thumb ? `<img class="mini" src="/out/${v.id}.jpg${bust(v)}" onerror="this.src='${appOf(v.slug).icon}'">` : `<img class="mini" src="${appOf(v.slug).icon}">`;
     const link = v.youtubeId ? (v.published ? `https://youtu.be/${v.youtubeId}` : `https://studio.youtube.com/video/${v.youtubeId}/edit`) : null;
     return `<${link ? `a href="${link}" target="_blank"` : `div data-play="${v.rendered ? v.id : ""}" style="cursor:${v.rendered ? "pointer" : "default"}"`} class="row-item ${v.paused && !v.youtubeId ? "paused" : ""}">${thumb}${platIc("yt")}
       <div class="tt"><b>${esc(v.title)}</b><span>${esc(v.appName)} · ${kindLabel(v)} · ${v.lang.toUpperCase()}</span></div>
@@ -910,7 +910,7 @@ function renderCalendar() {
 function calRow(x) {
   if (x.plat === "yt") {
     const v = x.v, wide = isWide(v);
-    const th = v.rendered ? `<img class="th ${wide ? "h" : "v"}" src="/out/${v.id}.jpg${bust(v)}" onerror="this.style.visibility='hidden'">` : `<img class="th" src="${appOf(v.slug).icon}" style="width:44px;height:44px">`;
+    const th = v.thumb ? `<img class="th ${wide ? "h" : "v"}" src="/out/${v.id}.jpg${bust(v)}" onerror="this.style.visibility='hidden'">` : `<img class="th" src="${appOf(v.slug).icon}" style="width:44px;height:44px">`;
     const editable = !v.youtubeId;
     return `<div class="ev-row ${v.paused && !v.youtubeId ? "paused" : ""}"><span class="time">${hhmm(x.at)}</span>${platIc("yt")}${th}
       <div class="tt"><b>${esc(v.title)}</b><div class="s"><img class="appic" style="width:16px;height:16px;border-radius:4px" src="${appOf(v.slug).icon}">${esc(v.appName)} <span class="tag">${kindLabel(v)}</span><span class="tag">${v.lang.toUpperCase()}</span>${v.locked && editable ? `<span title="Date fixée à la main">${ic("lock", 'style="width:13px;height:13px"')}</span>` : ""}</div></div>
@@ -951,7 +951,7 @@ function filtered() {
 function vcard(v) {
   const app = appOf(v.slug), st = statusOf(v);
   const prog = S.render.current.id === v.id ? jobProgress(S.render.current) : S.upload.id === v.id ? S.upload.progress : 0;
-  const cover = v.rendered ? `<img class="cover" loading="lazy" src="/out/${v.id}.jpg${bust(v)}" onerror="this.remove()">`
+  const cover = v.thumb ? `<img class="cover" loading="lazy" src="/out/${v.id}.jpg${bust(v)}" onerror="this.remove()">`
     : `<div class="ph"><img src="${app.icon}">${kindLabel(v)} · ${Math.round(v.durationSec)} s</div>`;
   const date = v.published ? `${ic("check")}Publiée ${fmtDate(v.publishAt)}` : v.youtubeId ? `${ic("clock")}Sort ${fmtDate(v.publishAt)}` : v.publishAt ? `${ic("cal")}Créneau prévu ${fmtDate(v.publishAt)}` : `${ic("cal")}Pas encore planifiée`;
   return `<div class="vc ${v.paused ? "paused" : ""} ${isWide(v) ? "wide" : ""} ${sel.has(v.id) ? "sel" : ""}">
@@ -966,7 +966,7 @@ function vcard(v) {
       <div class="date">${date}</div>
       ${isErr(v) ? `<div class="errtxt">${esc((v.renderError || v.uploadError).slice(0, 140))}</div>` : ""}
       <div class="acts">
-        ${!v.rendered ? `<button class="btn sm" data-render="${v.id}">${ic("bolt")}Rendre</button>` : ""}
+        ${!v.rendered && !v.youtubeId ? `<button class="btn sm" data-render="${v.id}">${ic("bolt")}Rendre</button>` : ""}
         ${v.rendered && !v.youtubeId ? `<button class="btn sm yt" data-upload="${v.id}" ${S.youtube.connected ? "" : "disabled"}>${ic("up")}YouTube</button>` : ""}
         ${v.youtubeId ? `<a class="btn sm" target="_blank" href="${v.published ? `https://youtu.be/${v.youtubeId}` : `https://studio.youtube.com/video/${v.youtubeId}/edit`}">${ic("ext")}${v.published ? "Voir" : "Studio"}</a>` : ""}
         <span class="spacer"></span>
@@ -1423,7 +1423,7 @@ function taleProduction(t) {
   const ytId = t.youtubeId ?? v?.youtubeId;
   return `<div class="tale-grid" style="margin-top:6px">
     <div class="tale-media">
-      ${rendered ? `<video src="/out/${esc(t.id)}.mp4${v ? bust(v) : ""}" controls preload="metadata" playsinline></video>` : ""}
+      ${t.rendered || v?.rendered ? `<video src="/out/${esc(t.id)}.mp4${v ? bust(v) : ""}" controls preload="metadata" playsinline></video>` : ""}
       ${composedOnce ? `<a class="sheet" href="${sheet}" target="_blank"><img src="${sheet}" alt="Planche contact" onerror="this.parentNode.hidden=true"><span class="note">Planche contact · une image par phrase</span></a>` : ""}
       ${!rendered && !composedOnce ? `<div class="empty">${t.status === "error" ? "" : '<span class="spin" style="display:inline-block;margin-bottom:8px;color:var(--accent)"></span>'}<b>${t.status === "error" ? "Pas encore d'aperçu" : "En fabrication"}</b>${t.status === "error" ? "" : pending}</div>` : ""}
     </div>

@@ -1,6 +1,7 @@
 // File de rendu : bundle Remotion (mis en cache), rendu MP4, mastering audio (-14 LUFS), miniature.
 import { existsSync, readdirSync, renameSync, rmSync, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { bundle } from "@remotion/bundler";
@@ -220,3 +221,30 @@ async function work() {
 }
 
 export const isRendered = (id) => existsSync(outFile(id));
+
+/**
+ * J+1 après la sortie sur YouTube : le MP4 ne sert plus (gardé tant qu'un post TikTok non envoyé en a besoin),
+ * et le cache Remotion (anciens bundles du dossier temporaire, cache webpack) repart à zéro. La miniature reste.
+ */
+export function cleanupPublished(catalog, state, tiktokPosts) {
+  if (working || queue.length) return;
+  const dayAgo = Date.now() - 86400000;
+  const cleaned = [];
+  for (const v of catalog.videos) {
+    const st = state.videos[v.id];
+    if (!st?.youtubeId || !st.publishAt || new Date(st.publishAt).getTime() > dayAgo || !isRendered(v.id)) continue;
+    if (tiktokPosts.some((p) => p.status !== "sent" && (p.videoId === v.id || p.videoFile === outFile(v.id)))) continue;
+    for (const f of [outFile(v.id), join(OUT, `${v.id}.tmp.mp4`), join(OUT, `${v.id}.raw.mp4`), join(OUT, `${v.id}.remix.wav`)]) rmSync(f, { force: true });
+    st.cleanedAt = new Date().toISOString();
+    cleaned.push(v.title);
+  }
+  if (!cleaned.length) return;
+  const tmp = tmpdir();
+  for (const d of readdirSync(tmp)) {
+    const p = join(tmp, d);
+    if (/^remotion-(webpack-bundle-|v[d.]+-assets)/.test(d) && p !== bundleDir && !(bundleDir ?? "").startsWith(p)) rmSync(p, { recursive: true, force: true });
+  }
+  rmSync(join(ROOT, "node_modules/.cache/webpack"), { recursive: true, force: true });
+  save();
+  logEvent("info", `Nettoyage J+1 : ${cleaned.length} vidéo(s) publiée(s) retirée(s) du disque (${cleaned.join(", ")}) et cache Remotion vidé`);
+}

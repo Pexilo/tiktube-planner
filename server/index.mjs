@@ -6,7 +6,7 @@ import { loadCatalog, ROOT } from "../shared/catalog.mjs";
 import { openPath, revealPath, spawnNpx } from "../shared/platform.mjs";
 import { awaitingOk, getState, langOn, pubsOn, save, updateSettings, video, videoOn, OUT } from "./state.mjs";
 import { generateSchedule } from "./scheduler.mjs";
-import { cancelQueue, current, dropPausedFromQueue, enqueue, isRendered, queue, STAGES } from "./render.mjs";
+import { cancelQueue, cleanupPublished, current, dropPausedFromQueue, enqueue, isRendered, queue, STAGES } from "./render.mjs";
 import { avgSeconds, events, logEvent } from "./events.mjs";
 import multer from "multer";
 import { tmpdir } from "node:os";
@@ -56,6 +56,7 @@ function snapshot() {
       publishAt: st.publishAt ?? null,
       locked: !!st.locked,
       rendered,
+      thumb: rendered || !!st.cleanedAt, // la miniature reste après le nettoyage J+1
       renderedAt: st.renderedAt ?? null,
       renderError: st.renderError ?? null,
       youtubeId: st.youtubeId ?? null,
@@ -90,7 +91,7 @@ app.post("/api/render", (req, res) => {
   const c = activeCatalog();
   const active = new Set(c.videos.map((v) => v.id));
   let ids = (req.body.ids ?? []).filter((id) => active.has(id));
-  if (req.body.all) ids = c.videos.filter((v) => !isRendered(v.id)).map((v) => v.id);
+  if (req.body.all) ids = c.videos.filter((v) => !isRendered(v.id) && !getState().videos[v.id]?.youtubeId).map((v) => v.id); // déjà sur YouTube (fichier nettoyé J+1) : rien à refaire
   if (req.body.force) ids.forEach((id) => (video(id).rendered = false));
   enqueue(ids, c);
   res.json({ queued: ids.length });
@@ -373,6 +374,7 @@ async function autopilot() {
   if (toRender.length) enqueue(toRender, c);
   const ready = due.filter((v) => isRendered(v.id));
   if (ready.length && ytStatus().connected && !uploadState.id) await uploadMany(ready, c);
+  cleanupPublished(c, s, tt.posts());
 }
 setInterval(() => void autopilot().catch((e) => console.error("autopilote", e)), AUTOPILOT_EVERY);
 
