@@ -1,4 +1,4 @@
-import React from "react";
+import React, { createContext, useContext } from "react";
 import { useCurrentFrame } from "remotion";
 import { tokenize } from "../../components/text";
 import { Canvas, COLS, GROUND, P, PAL, PixelArt, Sprite, useDrop } from "./engine";
@@ -253,29 +253,46 @@ const TextGrid: React.FC<{ c: Canvas; w: number; h: number; x: number; y: number
   </div>
 );
 
+/** Miniature : le titre à l'écran de la story est masqué (la miniature pose le sien à la même place). */
+export const TitleOff = createContext(false);
+
+type TitleWord = { s: string; hl: boolean; w: number; i: number };
+const TITLE_K = 2;
+const TITLE_SPACE = 4 * TITLE_K;
+/** Hauteur d'une ligne de titre, en pixels de texte (6 px). */
+const TITLE_LINE = LINE * TITLE_K + 4;
+/** Mots du titre répartis en lignes de 84 cellules au plus. */
+function titleLines(text: string) {
+  const maxW = 84 * 2; // pixels de texte (6 px)
+  const words: TitleWord[] = tokenize(text).map((t, i) => ({ s: `${t.w}${t.suffix ?? ""}`, hl: t.hl, w: textWidth(`${t.w}${t.suffix ?? ""}`) * TITLE_K + (t.hl ? 4 : 0), i }));
+  const lines: TitleWord[][] = [[]];
+  let lw = 0;
+  for (const wd of words) {
+    if (lines.at(-1)!.length && lw + TITLE_SPACE + wd.w > maxW) {
+      lines.push([]);
+      lw = 0;
+    }
+    lw += (lines.at(-1)!.length ? TITLE_SPACE : 0) + wd.w;
+    lines.at(-1)!.push(wd);
+  }
+  return lines;
+}
+/** Hauteur d'un titre en cellules. */
+export const titleHeight = (text: string) => cells(titleLines(text).length * TITLE_LINE);
+
 /** Titre en haut de l'écran (lettres de 12 px) : mots qui tombent un par un, *mot* = bloc rose. `y` = ligne du haut. */
 export const Title: React.FC<{ text: string; y?: number; at?: number }> = ({ text, y = 16, at = 0 }) => {
   const frame = useCurrentFrame();
   const { light } = useBg();
-  const toks = tokenize(text);
-  const k = 2;
-  const space = 4 * k;
-  const maxW = 84 * 2; // pixels de texte (6 px)
-  type W = { s: string; hl: boolean; w: number; i: number };
-  const words: W[] = toks.map((t, i) => ({ s: `${t.w}${t.suffix ?? ""}`, hl: t.hl, w: textWidth(`${t.w}${t.suffix ?? ""}`) * k + (t.hl ? 4 : 0), i }));
-  const lines: W[][] = [[]];
-  let lw = 0;
-  for (const wd of words) {
-    if (lines.at(-1)!.length && lw + space + wd.w > maxW) {
-      lines.push([]);
-      lw = 0;
-    }
-    lw += (lines.at(-1)!.length ? space : 0) + wd.w;
-    lines.at(-1)!.push(wd);
-  }
-  const lineH = LINE * k + 4;
+  const off = useContext(TitleOff);
+  const k = TITLE_K;
+  const space = TITLE_SPACE;
+  const lines = titleLines(text);
+  const lineH = TITLE_LINE;
   const widest = Math.max(0, ...lines.map((ln) => ln.reduce((a, wd, j) => a + wd.w + (j ? space : 0), 0)));
+  // Masqué ou non, la place reste réservée : les autres textes du plan gardent la position qu'ils ont dans la vidéo.
   const dy = useTextSlot({ x0: COLS / 2 - cells(widest) / 2, y0: y, x1: COLS / 2 + cells(widest) / 2, y1: y + cells(lines.length * lineH) });
+  if (off) return null;
   return (
     <>
       {lines.map((ln, li) => {

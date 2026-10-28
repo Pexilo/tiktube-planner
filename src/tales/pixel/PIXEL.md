@@ -87,3 +87,10 @@ Notes tirées de Sprite Fusion (générateur pixel art pour jeux), adaptées à 
 - Sprite Fusion (API payante) génère des sprites « dans le même style », en 8 directions, et les anime à partir d'un sprite.
 - Pixel Snapper (open source) remet sur la grille et verrouille sur une palette une image pixel art floue ou décalée :
   utile seulement si on importe un jour des images externes.
+
+## Miniature
+
+- Une par story, rendue après la vidéo (`src/tales/TaleThumb.tsx`, composition `<id>-thumb`, 1080 × 1920) : un plan figé de la
+  story (le hook par défaut, autre phrase au choix dans le dashboard) sous un en-tête encre avec le titre, en lettres de 12 px.
+- Mêmes règles que la vidéo : grille, palette, police bitmap ; le premier mot chiffré du titre passe en bloc rose.
+- Le titre n'a ni emoji ni hashtag (la police n'en a pas, et les plateformes n'en veulent pas dans le titre).

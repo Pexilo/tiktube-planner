@@ -18,6 +18,8 @@ const run = promisify(execFile);
 export const queue = []; // ids en attente
 /** Ids à remixer seulement (stories : bruitages changés) : audio rendu à nouveau, image existante copiée telle quelle. */
 const audioOnly = new Set();
+/** Ids dont seule la miniature est à refaire (stories : autre image choisie, titre nettoyé) : la vidéo ne bouge pas. */
+const thumbOnly = new Set();
 export const STAGES = ["Voix off", "Musique", "Préparation", "Rendu des images", "Mastering audio", "Miniature"];
 export const current = { id: null, progress: 0, stage: "", stageIndex: -1, startedAt: null, stageStartedAt: null };
 const stage = (i) => Object.assign(current, { stage: STAGES[i], stageIndex: i, stageStartedAt: Date.now() });
@@ -31,6 +33,8 @@ let catalogRef = null;
 export const outFile = (id) => join(OUT, `${id}.mp4`);
 /** Appelés après chaque rendu réussi, avec la vidéo du catalogue (ex. stories : statut + brouillon TikTok). */
 export const onRendered = [];
+/** Appelés après une miniature refaite seule (stories : renvoyée sur YouTube si la vidéo y est déjà). */
+export const onThumb = [];
 
 /**
  * Mastering -14 LUFS en 2 passes, mode linéaire : un simple gain, qui préserve les nuances
@@ -77,11 +81,17 @@ async function getBundle() {
   return serveUrl;
 }
 
-export function enqueue(ids, catalog, { audioOnly: onlyAudio = false } = {}) {
+export function enqueue(ids, catalog, { audioOnly: onlyAudio = false, thumbOnly: onlyThumb = false } = {}) {
   catalogRef = catalog;
   for (const id of ids) {
+    // Un rendu complet demandé l'emporte ; une miniature seule ne remplace pas un rendu déjà en file.
+    if (onlyThumb) {
+      if (!queue.includes(id)) thumbOnly.add(id);
+      continue;
+    }
+    thumbOnly.delete(id);
     if (onlyAudio) audioOnly.add(id);
-    else audioOnly.delete(id); // un rendu complet demandé l'emporte
+    else audioOnly.delete(id);
   }
   const before = queue.length;
   for (const id of ids) if (!queue.includes(id) && current.id !== id) queue.push(id);
@@ -98,6 +108,7 @@ export function dropPausedFromQueue() {
 
 export function cancelQueue() {
   audioOnly.clear();
+  thumbOnly.clear();
   if (queue.length) logEvent("info", `File de rendu vidée (${queue.length} vidéo(s) retirée(s))`);
   queue.length = 0;
 }
@@ -158,6 +169,16 @@ async function work() {
       // Stories crypto : pas de musique, des bruitages (bibliothèque commune, créée une fois).
       if (v.kind === "tale" && (await ensureTaleSfx())) serveUrl = null;
       const url = await getBundle();
+      // La miniature ne lit pas le MP4 : elle se refait même après le nettoyage J+1.
+      if (thumbOnly.delete(id) && v.kind === "tale") {
+        stage(5);
+        await renderTaleThumb(url, id, st);
+        logEvent("render", `Miniature refaite : ${v.title}`, id);
+        for (const f of onThumb) Promise.resolve().then(() => f(v)).catch((e) => console.error("après miniature", e));
+        save();
+        Object.assign(current, { id: null, progress: 0, stage: "", stageIndex: -1 });
+        continue;
+      }
       stage(3);
       const composition = await selectComposition({ serveUrl: url, id });
       if (audioOnly.delete(id) && v.kind === "tale" && existsSync(outFile(id))) {
@@ -197,12 +218,14 @@ async function work() {
       if (v.kind === "long") {
         const thumbComp = await selectComposition({ serveUrl: url, id: `${v.slug}-thumb-${v.lang}` });
         await renderStill({ composition: thumbComp, serveUrl: url, output: thumbFile(id), imageFormat: "jpeg", jpegQuality: 92 });
+      } else if (v.kind === "tale") {
+        await renderTaleThumb(url, id, st);
       } else if (v.format === "long") {
         // Keynote 16:9 : miniature = une image de la 1re scène de détail
         await run("ffmpeg", ["-v", "error", "-y", "-ss", "8.5", "-i", outFile(id), "-frames:v", "1", "-vf", "scale=1280:720", "-q:v", "3", thumbFile(id)]);
       } else {
         // Aperçu pour le dashboard : une image du milieu du short
-        await run("ffmpeg", ["-v", "error", "-y", "-ss", v.kind === "tale" ? (v.durationSec / 2).toFixed(2) : "7", "-i", outFile(id), "-frames:v", "1", "-vf", "scale=360:-2", thumbFile(id)]);
+        await run("ffmpeg", ["-v", "error", "-y", "-ss", "7", "-i", outFile(id), "-frames:v", "1", "-vf", "scale=360:-2", thumbFile(id)]);
       }
       Object.assign(st, { rendered: true, renderedAt: new Date().toISOString(), renderError: null });
       const secs = (Date.now() - current.startedAt) / 1000;
@@ -218,6 +241,16 @@ async function work() {
     Object.assign(current, { id: null, progress: 0, stage: "", stageIndex: -1 });
   }
   working = false;
+}
+
+/**
+ * Miniature dédiée d'une story (composition `<id>-thumb`, 1080 × 1920) : un plan figé et le titre, en JPEG sous les 2 Mo
+ * de YouTube. Montrée sur la carte de la story et envoyée avec la vidéo (thumbnails.set).
+ */
+async function renderTaleThumb(url, id, st) {
+  const composition = await selectComposition({ serveUrl: url, id: `${id}-thumb` });
+  await renderStill({ composition, serveUrl: url, output: thumbFile(id), imageFormat: "jpeg", jpegQuality: 92 });
+  st.thumbAt = new Date().toISOString();
 }
 
 export const isRendered = (id) => existsSync(outFile(id));

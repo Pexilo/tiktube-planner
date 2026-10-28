@@ -9,15 +9,15 @@ import { randomBytes } from "node:crypto";
 import { loadApps, loadTale, loadTales, ROOT, TALE_STORIES, TALES_DIR } from "../shared/catalog.mjs";
 import { execClaude, IS_WIN } from "../shared/platform.mjs";
 import { voiceFor } from "../shared/elevenlabs.mjs";
-import { TALE_APP, taleId, taleTimeline } from "../shared/tales.mjs";
+import { cleanTitle, TALE_APP, taleId, taleTimeline } from "../shared/tales.mjs";
 import { cleanSfx, MAX_SFX_PER_BEAT, STORY_SFX } from "../shared/tale-sfx.mjs";
 import { ensureTaleSfx } from "../scripts/gen-tale-sfx.mjs";
 import { dur, elevenSegment, pickVoice, systemSegment, wordTimings } from "../scripts/gen-voice.mjs";
 import { DATA, getState, OUT, save, video } from "./state.mjs";
-import { current as renderCurrent, enqueue, isRendered, onRendered, outFile, queue as renderQueue, thumbFile } from "./render.mjs";
+import { current as renderCurrent, enqueue, isRendered, onRendered, onThumb, outFile, queue as renderQueue, thumbFile } from "./render.mjs";
 import { scheduleTales } from "./scheduler.mjs";
 import { logEvent } from "./events.mjs";
-import { buildMetadata, tiktokCaption } from "./youtube.mjs";
+import { buildMetadata, refreshUploaded, tiktokCaption } from "./youtube.mjs";
 import * as tt from "./tiktok.mjs";
 
 const IDEAS_FILE = join(DATA, "tales", "ideas.json");
@@ -261,7 +261,7 @@ ${subject}
 
 Check the facts with WebSearch / WebFetch when the sources above are not enough, and keep only what the sources support.
 
-${skillsBlock(["storytelling-hooks (THE method for this script, and read its patterns.md: the six levers, the three hook layers, the bookend; run its generation workflow and pre-publish checklist)", "titles-and-thumbnails (the yt title: win the click without clickbait)", "social-media-skills:youtube-publishing-and-metadata (the yt description and hashtags for Shorts)"])}
+${skillsBlock(["storytelling-hooks (THE method for this script, and read its patterns.md: the six levers, the three hook layers, the bookend; run its generation workflow and pre-publish checklist)", "titles-and-thumbnails (the yt title, also printed on the thumbnail: win the click without clickbait)", "social-media-skills:youtube-publishing-and-metadata (the yt description and hashtags for Shorts)"])}
 INTAKE (for storytelling-hooks, do not ask): niche = crypto / blockchain stories; audience = crypto-curious viewers who hold or follow crypto and want true stories they have not heard (qualify for them, not for everyone); platforms = TikTok and YouTube Shorts, autoplay muted; goal = follows for the next story; tone = investigative, punchy, a little ironic.
 
 RULES
@@ -277,7 +277,8 @@ ${featureList()}
 - "slug": short kebab-case id (2 to 4 words, a-z 0-9 -), e.g. "pizza-day".
 - "facts": the verified facts the video relies on, one per item, with numbers. "sources": every source used, with dates.
 - ${sfxRules()}
-- "yt": title (max 70 chars, intriguing, one emoji max, ends with " #shorts"), description (2 sentences), hashtags (5, without #, lowercase, include "cryptostories").
+- "yt": title, description (2 sentences), hashtags (5, without #, lowercase, include "cryptostories").
+- TITLE ("yt.title", storytelling-hooks levers + titles-and-thumbnails): radically short, straight to the point, 3 to 7 words and ${TITLE_MAX} characters max. One intrigue tied to what this video actually reveals: a concrete number, name or stake plus an open loop the video closes. Never a summary, never a promise the video does not keep. Plain words only: NO emoji, NO hashtag (no "#shorts", YouTube detects Shorts by format), no all caps, no quotes. It is printed big on the thumbnail above the hook's first frame, so it must work with the sound off and complete the on-screen hook instead of repeating it. Write 5 candidates in your head, keep the one that makes a crypto viewer need the answer. Good: "Bitget lost $388M. No key was stolen.", "8,000 bitcoin under a landfill", "Someone opened his Ledger first".
 ${problems ? `\nYOUR PREVIOUS ANSWER WAS REJECTED, FIX THIS:\n${problems}\n` : ""}
 REFERENCE SCRIPT (format and quality to match; a different and shorter story, yours must follow the length rules above):
 ${ref}
@@ -285,6 +286,9 @@ ${ref}
 Answer ONLY with the JSON of the new story, same shape as the reference, without "id", "lang", "status", "voice", "timeline", "compose":
 {"slug":"…","type":"recent"|"offbeat","eventDate":"YYYY-MM-DD","hook":"…","summary":"…","sources":[…],"facts":[…],"beats":[{"id":"b1","role":"hook","text":"…","visual":"…","sfx":[{"cue":"boom","word":"…"}]}],"product":{"featureId":"…","beat":"bN"},"yt":{"title":"…","description":"…","hashtags":[…]}}`;
 }
+
+/** Longueur maximale d'un titre de story (YouTube, TikTok, Instagram et miniature). */
+const TITLE_MAX = 45;
 
 const slugify = (s) =>
   String(s ?? "")
@@ -328,7 +332,7 @@ function toTale(j, idea) {
     facts: (Array.isArray(j.facts) ? j.facts : []).map(String),
     beats,
     product: { featureId: FEATURES.includes(j.product?.featureId) ? j.product.featureId : idea?.wggAngle?.featureId ?? "pnl", beat: productIdx >= 0 ? beats[productIdx].id : "" },
-    yt: { title: String(j.yt?.title ?? j.hook ?? slug).slice(0, 100), description: String(j.yt?.description ?? ""), hashtags: (Array.isArray(j.yt?.hashtags) ? j.yt.hashtags : ["crypto", "cryptostories"]).map((h) => String(h).replace(/^#/, "")) },
+    yt: { title: cleanTitle(j.yt?.title ?? plain(j.hook ?? slug)).slice(0, 100), description: String(j.yt?.description ?? ""), hashtags: (Array.isArray(j.yt?.hashtags) ? j.yt.hashtags : ["crypto", "cryptostories"]).map((h) => String(h).replace(/^#/, "")) },
     compose: { notes: [] },
     error: null,
     ...(idea ? { ideaId: idea.id } : {}),
@@ -360,6 +364,8 @@ function scriptProblems(t) {
   const plain = (x) => String(x ?? "").toLowerCase().replace(/[*]/g, "").replace(/[^\p{L}\p{N} ]/gu, " ").replace(/\s+/g, " ").trim();
   if (t.hook && t.beats[0] && plain(t.beats[0].text).includes(plain(t.hook))) out.push("The on-screen hook repeats the spoken first line: make it the other half of the curiosity gap (stakes or emotion).");
   if (!t.sources.length) out.push("Sources are required.");
+  const title = cleanTitle(t.yt?.title);
+  if (title.length > TITLE_MAX || words(title) > 7) out.push(`yt.title "${title}" is too long: 3 to 7 words, ${TITLE_MAX} characters max.`);
   if (!t.beats.some((b) => b.sfx?.length)) out.push("Sound design: add 5 to 9 narrative sound cues (beat \"sfx\") tied to what is said.");
   return out;
 }
@@ -771,13 +777,69 @@ export function deleteTale(slug) {
 
 function taleSummary(t) {
   const st = getState().videos[t.id] ?? {};
-  return { ...t, rendered: isRendered(t.id), publishAt: st.publishAt ?? null, youtubeId: st.youtubeId ?? null, hold: !!st.hold, released: !!st.released, busy: busyWith(t.slug) };
+  const thumb = st.thumbAt && existsSync(thumbFile(t.id)) ? { at: st.thumbAt, setAt: st.thumbSet ?? null, error: st.thumbError ?? null } : null;
+  return { ...t, rendered: isRendered(t.id), publishAt: st.publishAt ?? null, youtubeId: st.youtubeId ?? null, hold: !!st.hold, released: !!st.released, thumb, busy: busyWith(t.slug) };
+}
+
+/** Story envoyée sur YouTube mais pas encore sortie : on peut encore y changer titre et miniature. */
+const upcomingOnYouTube = (st) => !!st?.youtubeId && !!st.publishAt && new Date(st.publishAt).getTime() > Date.now() + 5 * 60000;
+
+// Miniature refaite seule : si la story attend déjà sa sortie sur YouTube, titre et miniature y sont mis à jour.
+onThumb.push(async (v) => {
+  if (v.kind !== "tale" || !upcomingOnYouTube(getState().videos[v.id])) return;
+  try {
+    await refreshUploaded(v, activeCatalog().apps.find((a) => a.slug === v.slug));
+    const err = video(v.id).thumbError;
+    logEvent(err ? "error" : "upload", err ? `YouTube : miniature refusée pour ${v.title} (${err})` : `YouTube : titre et miniature mis à jour, ${v.title}`, v.id);
+  } catch (e) {
+    video(v.id).thumbError = String(e.message).slice(0, 300);
+    save();
+    logEvent("error", `YouTube : mise à jour de ${v.title} échouée, ${String(e.message).slice(0, 160)}`, v.id);
+  }
+});
+
+/**
+ * Au démarrage, stories d'avant les titres courts : titre débarrassé des emojis et de #shorts (script et brouillon TikTok pas
+ * encore envoyé), et miniature dédiée rendue pour chaque story déjà rendue qui n'en a pas.
+ */
+function migrateTales() {
+  const c = activeCatalog();
+  const thumbs = [];
+  for (const t of loadTales()) {
+    const title = cleanTitle(t.yt?.title);
+    if (t.yt && title && title !== t.yt.title) {
+      patchTale(t.slug, (x) => (x.yt.title = title));
+      for (const p of tt.posts().filter((p) => p.videoId === t.id && !["sent", "sending"].includes(p.status) && p.title !== cleanTitle(p.title))) tt.updatePost(p.id, { title: cleanTitle(p.title) });
+      log(`Titre nettoyé : ${title}`);
+    }
+    const st = getState().videos[t.id];
+    if ((isRendered(t.id) || st?.cleanedAt) && !st?.thumbAt && c.videos.some((v) => v.id === t.id)) thumbs.push(t.id);
+  }
+  if (thumbs.length) enqueue(thumbs, c, { thumbOnly: true });
+}
+
+/** Choisit l'image de la miniature (un beat de la story) et la refait seule, sans toucher à la vidéo. */
+function setThumbBeat(slug, beat) {
+  const t = loadTale(slug);
+  if (!t) throw new Error("Story introuvable");
+  const b = t.beats.find((x) => x.id === beat);
+  if (!b) throw new Error("Phrase introuvable");
+  if (b.role === "product") throw new Error("Le moment produit n'est pas un plan de la story : choisis une autre phrase.");
+  const next = patchTale(slug, (x) => (x.thumb = { ...x.thumb, beat }));
+  const c = activeCatalog();
+  if (c.videos.some((v) => v.id === t.id) && (isRendered(t.id) || getState().videos[t.id]?.cleanedAt)) enqueue([t.id], c, { thumbOnly: true });
+  return next;
 }
 
 const sortTales = (a, b) => (b.createdAt ?? b.eventDate ?? "").localeCompare(a.createdAt ?? a.eventDate ?? "");
 
 export function setupTaleRoutes(app, opts) {
   activeCatalog = opts.activeCatalog;
+  try {
+    migrateTales();
+  } catch (e) {
+    console.error("[tales] migration", e);
+  }
   const fail = (res, e, code = 500) => res.status(code).json({ error: String(e?.message ?? e) });
 
   app.get("/api/tales", (_req, res) => {
@@ -828,7 +890,7 @@ export function setupTaleRoutes(app, opts) {
       if (new Set(t.beats.map((x) => x.id)).size !== t.beats.length) return fail(res, "beats : ids en double", 400);
     }
     if (b.product !== undefined) t.product = { featureId: String(b.product.featureId ?? t.product.featureId), beat: String(b.product.beat ?? t.product.beat) };
-    if (b.yt !== undefined) t.yt = { title: String(b.yt.title ?? t.yt.title).slice(0, 100), description: String(b.yt.description ?? t.yt.description), hashtags: (Array.isArray(b.yt.hashtags) ? b.yt.hashtags : t.yt.hashtags).map((h) => String(h).replace(/^#/, "")) };
+    if (b.yt !== undefined) t.yt = { title: cleanTitle(b.yt.title ?? t.yt.title).slice(0, 100), description: String(b.yt.description ?? t.yt.description), hashtags: (Array.isArray(b.yt.hashtags) ? b.yt.hashtags : t.yt.hashtags).map((h) => String(h).replace(/^#/, "")) };
     if (!FEATURES.includes(t.product.featureId)) return fail(res, `Feature inconnue (${FEATURES.join(", ")})`, 400);
     if (!t.beats.some((x) => x.id === t.product.beat)) return fail(res, "product.beat ne correspond à aucun beat", 400);
     for (const x of t.beats) if (x.role === "product" && x.id !== t.product.beat) x.role = "build";
@@ -882,6 +944,20 @@ export function setupTaleRoutes(app, opts) {
     res.json({ ok: true });
   });
 
+  // Image de la miniature : un beat de la story (le hook par défaut). Refaite seule, renvoyée sur YouTube si besoin.
+  app.post("/api/tales/:slug/thumb", (req, res) => {
+    const t = loadTale(req.params.slug);
+    if (!t) return fail(res, "Story introuvable", 404);
+    if (renderCurrent.id === t.id || renderQueue.includes(t.id)) return fail(res, "Rendu en cours, attends la nouvelle version", 409);
+    const st = getState().videos[t.id];
+    if (st?.youtubeId && !upcomingOnYouTube(st)) return fail(res, "Déjà sortie sur YouTube : la miniature ne se change plus d'ici.", 400);
+    try {
+      res.json(taleSummary(setThumbBeat(t.slug, String(req.body?.beat ?? ""))));
+    } catch (e) {
+      fail(res, e, 400);
+    }
+  });
+
   // Vidéo rendue regardée et jugée bonne : l'autopilote peut l'envoyer sur YouTube à son créneau.
   app.post("/api/tales/:slug/release", (req, res) => {
     const t = loadTale(req.params.slug);
@@ -917,7 +993,7 @@ export function setupTaleRoutes(app, opts) {
     if (!t) return fail(res, "Story introuvable", 404);
     const st = video(t.id);
     if (!st.youtubeId) return fail(res, "Pas envoyée sur YouTube", 400);
-    for (const k of ["youtubeId", "uploadedAt", "uploadError", "thumbError"]) delete st[k];
+    for (const k of ["youtubeId", "uploadedAt", "uploadError", "thumbError", "thumbSet"]) delete st[k];
     st.hold = true;
     // Créneau encore à venir : on le garde, sinon la story reprend le prochain créneau libre.
     if (st.publishAt && new Date(st.publishAt).getTime() > Date.now() + 30 * 60000) st.locked = true;

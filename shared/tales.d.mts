@@ -1,4 +1,4 @@
-import type { TaleBeat, TaleTimeline } from "../src/tales/types";
+import type { Tale, TaleBeat, TaleTimeline } from "../src/tales/types";
 export const TALE_APP: string;
 export const TALE_PAD: number;
 export const TALE_TAIL: number;
@@ -6,3 +6,5 @@ export const TALE_VOICE_DELAY: number;
 export function taleId(slug: string, lang?: string): string;
 export function estimateDur(text: string): number;
 export function taleTimeline(beats: Pick<TaleBeat, "id" | "text">[], segments?: { dur: number }[] | null): TaleTimeline;
+export function cleanTitle(s: string | null | undefined): string;
+export function taleThumbFrame(tale: Pick<Tale, "beats" | "thumb" | "timeline" | "voice">, timeline?: TaleTimeline): number;

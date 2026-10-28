@@ -10,6 +10,9 @@ import { DATA, isTaleId, LANGS, pickAccount, registerPublisher } from "./state.m
 import { logEvent } from "./events.mjs";
 import { notify } from "../shared/platform.mjs";
 import { postLang, postOn, posts as ttPosts } from "./tiktok.mjs";
+import { loadTales } from "../shared/catalog.mjs";
+import { cleanTitle, taleThumbFrame } from "../shared/tales.mjs";
+import { FPS } from "../shared/timeline.mjs";
 
 const CONFIG = join(DATA, "instagram-config.json");
 const STORE = join(DATA, "instagram.json");
@@ -139,10 +142,10 @@ export const quota = (lang) => api(`/${igState.users[lang].user_id}/content_publ
 
 /* ------------------------------------------------------------------ publication d'un Reel */
 
-/** Légende Instagram : titre + description, 2 200 caractères et 30 hashtags max. */
+/** Légende Instagram : titre + description, 2 200 caractères et 30 hashtags max. Titre des stories sans emoji ni hashtag. */
 export function igCaption(p) {
   let n = 0;
-  const text = [p.title, p.description].filter(Boolean).join("\n\n").replace(/#[\p{L}\p{N}_]+/gu, (h) => (++n <= 30 ? h : ""));
+  const text = [isTalePost(p) ? cleanTitle(p.title) : p.title, p.description].filter(Boolean).join("\n\n").replace(/#[\p{L}\p{N}_]+/gu, (h) => (++n <= 30 ? h : ""));
   return text.replace(/[ \t]+\n/g, "\n").trim().slice(0, 2200);
 }
 
@@ -155,7 +158,11 @@ async function publishReel(p) {
   const me = (lang && igState.users[lang]) || (lang && (await refreshUser(lang))[lang]);
   if (!me) throw new Error(lang ? (igState.lastError ?? "Instagram non connecté") : `Aucun compte Instagram ${postLang(p).toUpperCase()} connecté`);
   // 1. Conteneur Reel en envoi « resumable » : le fichier part depuis le disque, pas besoin d'URL publique.
-  const box = await api(`/${me.user_id}/media`, { lang, method: "POST", params: { media_type: "REELS", upload_type: "resumable", caption: igCaption(p), share_to_feed: "true" } });
+  // Couverture : cover_url exige une image sur un serveur public (la plateforme est locale), donc thumb_offset : l'image
+  // de la vidéo qui sert de visuel à la miniature de la story (sans le titre posé dessus).
+  const tale = isTalePost(p) ? loadTales().find((t) => t.id === p.videoId) : null;
+  const cover = tale?.timeline ? { thumb_offset: String(Math.round((taleThumbFrame(tale) / FPS) * 1000)) } : {};
+  const box = await api(`/${me.user_id}/media`, { lang, method: "POST", params: { media_type: "REELS", upload_type: "resumable", caption: igCaption(p), share_to_feed: "true", ...cover } });
   const size = statSync(file).size;
   const up = await fetch(box.uri, { method: "POST", headers: { Authorization: `OAuth ${await accessToken(lang)}`, offset: "0", file_size: String(size) }, body: readFileSync(file) });
   const uj = await up.json().catch(() => ({}));

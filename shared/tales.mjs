@@ -32,3 +32,29 @@ export function taleTimeline(beats, segments = null) {
   });
   return { beats: out, totalFrames: from };
 }
+
+/**
+ * Titre de story publiable : sans emoji ni hashtag (#shorts compris, YouTube reconnaît les Shorts au format), espaces
+ * resserrés. Appliqué à l'écriture du script et à la construction des titres YouTube, TikTok et Instagram.
+ */
+export const cleanTitle = (s) =>
+  String(s ?? "")
+    .replace(/#[\p{L}\p{N}_]+/gu, " ")
+    .replace(/[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}\u{1F3FB}-\u{1F3FF}\u{FE0E}\u{FE0F}\u{200D}\u{20E3}\u{E0020}-\u{E007F}]/gu, "")
+    .replace(/\s+/g, " ")
+    .replace(/\s+([.,!?:;])/g, "$1")
+    .replace(/[\s|·•–—-]+$/u, "")
+    .trim();
+
+/** Part du beat où l'image de la miniature est prise : les éléments du plan sont tous entrés. */
+const THUMB_AT = 0.6;
+
+/**
+ * Frame de la vidéo qui sert de visuel à la miniature (et de couverture Instagram) : dans le beat `tale.thumb.beat`,
+ * le hook par défaut (son premier plan est pensé pour accrocher sans le son).
+ */
+export function taleThumbFrame(tale, timeline = tale.timeline ?? taleTimeline(tale.beats, tale.voice?.segments)) {
+  const i = Math.max(0, tale.beats.findIndex((b) => b.id === tale.thumb?.beat));
+  const b = timeline.beats[i];
+  return Math.min(timeline.totalFrames - 1, b.from + Math.round(b.dur * THUMB_AT));
+}

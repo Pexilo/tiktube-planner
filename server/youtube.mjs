@@ -9,6 +9,7 @@ import { DATA, getState, LANGS, pickAccount, registerPublisher, save, video, vid
 import { outFile, thumbFile } from "./render.mjs";
 import { logEvent } from "./events.mjs";
 import { signature } from "../shared/profile.mjs";
+import { cleanTitle } from "../shared/tales.mjs";
 
 export const PORT = Number(process.env.PORT ?? 4321);
 const REDIRECT = `http://localhost:${PORT}/oauth/callback`;
@@ -240,8 +241,8 @@ function buildKeynoteMetadata(v, app) {
 /** Stories crypto : l'histoire et ses sources d'abord, une seule ligne discrète vers l'app, puis les hashtags. Aucun lien. */
 function buildTaleMetadata(v, app) {
   const tale = loadTale(v.taleSlug);
-  const base = tale.yt.title.replace(/\s*#shorts\s*/i, "").trim();
-  const title = `${base} #shorts`.slice(0, 100);
+  // Titre court, sans emoji ni hashtag : YouTube reconnaît les Shorts au format, les hashtags restent dans la description.
+  const title = cleanTitle(tale.yt.title).slice(0, 100);
   const tags = [...new Set(tale.yt.hashtags.map((h) => h.replace(/^#/, "")))];
   const hashtags = ["Shorts", ...tags].slice(0, 8).map((h) => `#${h.replace(/[^\p{L}\p{N}]/gu, "")}`);
   const noLinks = (s) => String(s ?? "").replace(/\s*\(?\b(?:https?:\/\/|www\.)\S+/gi, "").trim();
@@ -355,9 +356,14 @@ export async function uploadOne(v, app, { now = false } = {}) {
   if (now) logEvent("upload", `Publiée sur YouTube : ${meta.title}`, v.id);
   else logEvent("upload", `Programmée sur YouTube : ${meta.title} → ${new Date(publishAt).toLocaleString("fr-BE", { timeZone: "Europe/Brussels", weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}`, v.id);
 
-  if (v.format === "long" && existsSync(thumbFile(v.id))) {
+  // Miniature : vidéos 16:9 et stories (miniature dédiée, cf. render.mjs). Limite YouTube : 2 Mo.
+  if ((v.format === "long" || v.kind === "tale") && existsSync(thumbFile(v.id))) {
     try {
+      if (statSync(thumbFile(v.id)).size > 2 * 1024 * 1024) throw new Error("Miniature de plus de 2 Mo");
       await yt.thumbnails.set({ videoId: id, media: { mimeType: "image/jpeg", body: createReadStream(thumbFile(v.id)) } });
+      st.thumbSet = new Date().toISOString();
+      st.thumbError = null;
+      save();
     } catch (e) {
       // Les miniatures personnalisées exigent une chaîne vérifiée (numéro de téléphone).
       st.thumbError = e.message;
@@ -388,6 +394,33 @@ export async function reschedule(v, publishAt) {
   });
   st.publishAt = publishAt;
   st.locked = true;
+  save();
+}
+
+/**
+ * Story déjà envoyée mais pas encore sortie : titre et description reconstruits (titre nettoyé) et miniature renvoyée,
+ * sans toucher à la vidéo ni à sa date. Une miniature refusée (chaîne non vérifiée…) reste dans `thumbError`.
+ */
+export async function refreshUploaded(v, app) {
+  const st = video(v.id);
+  const account = st.ytAccount ?? (hasToken("en") ? "en" : accountFor(v.lang));
+  const c = client(account);
+  if (!c || !account || !hasToken(account)) throw new Error(`Chaîne YouTube ${String(account ?? v.lang).toUpperCase()} non connectée`);
+  if (!st.youtubeId) throw new Error("Pas envoyée sur YouTube");
+  const yt = google.youtube({ version: "v3", auth: c });
+  const meta = buildMetadata(v, app);
+  // part=snippet remplace tout le bloc : titre, description, tags, catégorie et langue renvoyés ensemble.
+  await yt.videos.update({
+    part: ["snippet"],
+    requestBody: { id: st.youtubeId, snippet: { title: meta.title, description: meta.description, tags: meta.tags, categoryId: meta.categoryId, defaultLanguage: v.lang, defaultAudioLanguage: v.lang } },
+  });
+  if (!existsSync(thumbFile(v.id))) return;
+  try {
+    await yt.thumbnails.set({ videoId: st.youtubeId, media: { mimeType: "image/jpeg", body: createReadStream(thumbFile(v.id)) } });
+    Object.assign(st, { thumbSet: new Date().toISOString(), thumbError: null });
+  } catch (e) {
+    st.thumbError = e.message;
+  }
   save();
 }
 

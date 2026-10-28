@@ -341,6 +341,10 @@
   .tale-media .sheet { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 4px; }
   .tale-media .sheet img { width: 100%; border-radius: 12px; border: 1px solid var(--line); display: block; cursor: zoom-in; background: var(--surface2); }
   .tale-media .empty { flex: 1; border: 1.5px dashed var(--line2); border-radius: 12px; }
+  .tale-media .thumbbox { width: 220px; display: flex; flex-direction: column; gap: 6px; }
+  .tale-media .thumbbox img { width: 100%; aspect-ratio: 9/16; border-radius: 12px; border: 1px solid var(--line); display: block; background: #000; cursor: zoom-in; }
+  .tale-media .thumbbox .ph { aspect-ratio: 9/16; border: 1.5px dashed var(--line2); border-radius: 12px; display: grid; place-items: center; text-align: center; padding: 12px; }
+  .tale-media .thumbbox select { width: 100%; padding: 4px 8px; font-size: 12.5px; }
   pre.log { margin: 8px 0 0; background: var(--surface2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font: 11.5px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; max-height: 240px; overflow: auto; white-space: pre-wrap; word-break: break-word; color: var(--muted); }
   .script-ro .b { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13px; }
   .script-ro .b:first-child { border-top: 0; }
@@ -371,7 +375,7 @@
     .mode { margin: 0 8px 0 0; }
     .ideas { grid-template-columns: 1fr; }
     .tale { padding: 14px; }
-    .tale-media video { width: 100%; max-width: 280px; }
+    .tale-media video, .tale-media .thumbbox { width: 100%; max-width: 280px; }
     .script-ro .b { grid-template-columns: 1fr; gap: 2px; }
     #dock { left: 16px; right: 16px; width: auto; }
   }
@@ -1569,6 +1573,7 @@ function scriptEditor(t) {
   const rewriting = busy.has(`rewrite:${t.slug}`) || tl().job?.slug === t.slug;
   const feats = { ...WGG_FEATURES }; if (t.product?.featureId && !feats[t.product.featureId]) feats[t.product.featureId] = t.product.featureId;
   const title = t.yt?.title ?? "";
+  const tmax = TITLE_MAX;
   return `${rewriting ? `<div class="alert" style="margin-top:6px"><span class="spin"></span><div><b>Claude réécrit le script.</b> La nouvelle version remplacera celle-ci (l'actuelle reste dans « Versions précédentes »).</div></div>` : ""}
     ${t.compose?.stale ? `<div class="alert" style="margin-top:6px">${ic("redo")}<div>Cette story avait déjà été produite : après validation, Claude recomposera ses visuels d'après le nouveau script.</div></div>` : ""}
     ${t.rewriteError ? `<div class="alert red" style="margin-top:6px">${ic("alert")}<div><b>Réécriture échouée.</b> ${esc(t.rewriteError)}</div></div>` : ""}
@@ -1579,7 +1584,8 @@ function scriptEditor(t) {
       <button class="btn sm ghost" data-beatadd="${esc(t.slug)}" style="margin-top:8px">${ic("plus")}Ajouter une phrase</button>
     </div>
     <div class="tale-side">
-      <div><span class="lbl-up">Titre YouTube</span><input data-tf="yttitle" maxlength="100" value="${esc(title)}"><div class="count ${title.length > 100 ? "over" : ""}" style="margin-top:2px">${title.length}/100</div></div>
+      <div><span class="lbl-up">Titre · YouTube, TikTok, Instagram et miniature</span><input data-tf="yttitle" maxlength="100" value="${esc(title)}"><div class="count ${title.length > tmax ? "over" : ""}" style="margin-top:2px">${title.length}/${tmax}</div>
+        <div class="note" style="margin-top:2px">Court et direct, sans emoji ni hashtag (retirés à l'enregistrement). Les hashtags vont dans la description.</div></div>
       <div><span class="lbl-up">Moment produit</span><select data-tf="feature">${Object.entries(feats).map(([k, l]) => `<option value="${esc(k)}" ${k === t.product?.featureId ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>
         <div class="note" style="margin-top:4px">Le seul passage produit (~5 s), sur la phrase « Produit ».</div></div>
       <div><span class="lbl-up">Résumé</span><div class="note">${esc(t.summary)}</div></div>
@@ -1589,6 +1595,25 @@ function scriptEditor(t) {
       <div class="note" style="margin-top:-6px">Ensuite tout est automatique : voix, bruitages, visuels écrits par Claude, rendu et programmation.</div>
       ${scriptRewrite(t, rewriting)}
     </div></div>`;
+}
+/** Longueur conseillée d'un titre de story (même limite que le prompt du script, server/tales.mjs). */
+const TITLE_MAX = 45;
+/** Miniature dédiée de la story : à relire avant de valider, envoyée sur YouTube avec la vidéo. Image choisie parmi les phrases. */
+function taleThumb(t, ytId, rendered) {
+  const th = t.thumb, src = th ? `/out/${encodeURIComponent(t.id)}.jpg?t=${encodeURIComponent(th.at)}` : "";
+  const working = S.render.current.id === t.id || S.render.queue.includes(t.id);
+  const locked = ytId && !(t.publishAt && new Date(t.publishAt) > Date.now() + 5 * 60000);
+  const pick = t.thumb?.beat ?? t.beats[0]?.id;
+  const status = th?.error ? `<div class="note" style="color:var(--c-err)">Refusée par YouTube : ${esc(th.error)}</div>`
+    : th?.setAt ? `<div class="note trow">${platIc("yt")}Envoyée sur YouTube</div>`
+    : th ? `<div class="note">${ytId ? "Pas encore envoyée sur YouTube." : "Partira sur YouTube avec la vidéo."} TikTok : couverture à choisir dans l'app. Instagram : cette image de la vidéo, sans le titre.</div>` : "";
+  return `<div class="thumbbox">
+      ${th ? `<a href="${src}" target="_blank"><img src="${src}" alt="Miniature" onerror="this.parentNode.hidden=true"></a>`
+        : `<div class="ph note">${working ? '<span class="spin" style="display:inline-block;color:var(--accent)"></span>' : ""}Miniature ${rendered || working ? "en préparation…" : "après le rendu"}</div>`}
+      <span class="lbl-up" style="margin:0">Miniature</span>
+      ${rendered && !locked ? `<select data-talethumb="${esc(t.slug)}" title="Plan figé sous le titre" ${working ? "disabled" : ""}>${t.beats.filter((b) => b.role !== "product").map((b) => `<option value="${esc(b.id)}" ${b.id === pick ? "selected" : ""}>Image : ${t.beats.indexOf(b) + 1}. ${esc(b.text.slice(0, 40))}${b.text.length > 40 ? "…" : ""}</option>`).join("")}</select>` : ""}
+      ${status}
+    </div>`;
 }
 function taleProduction(t) {
   const v = vOf(t), rendered = isRenderedTale(t), sched = isSched(t), j = tl().job;
@@ -1600,6 +1625,7 @@ function taleProduction(t) {
   const ytId = t.youtubeId ?? v?.youtubeId;
   return `<div class="tale-grid" style="margin-top:6px">
     <div class="tale-media">
+      ${rendered || t.thumb ? taleThumb(t, ytId, rendered) : ""}
       ${t.rendered || v?.rendered ? `<video src="/out/${esc(t.id)}.mp4${v ? bust(v) : ""}" controls preload="metadata" playsinline></video>` : ""}
       ${composedOnce ? `<a class="sheet" href="${sheet}" target="_blank"><img src="${sheet}" alt="Planche contact" onerror="this.parentNode.hidden=true"><span class="note">Planche contact · une image par phrase</span></a>` : ""}
       ${!rendered && !composedOnce ? `<div class="empty">${t.status === "error" ? "" : '<span class="spin" style="display:inline-block;margin-bottom:8px;color:var(--accent)"></span>'}<b>${t.status === "error" ? "Pas encore d'aperçu" : "En fabrication"}</b>${t.status === "error" ? "" : pending}</div>` : ""}
@@ -1713,6 +1739,7 @@ taleList.addEventListener("change", async (e) => {
   else if (t.dataset.bf) await patchTale(tale.slug, { beats: collectBeats(card) });
   else if (t.dataset.tf === "yttitle") await patchTale(tale.slug, { yt: { ...tale.yt, title: t.value } });
   else if (t.dataset.tf === "feature") await patchTale(tale.slug, { product: { ...tale.product, featureId: t.value } });
+  else if (t.dataset.talethumb) await taleAct(api(`/api/tales/${encodeURIComponent(tale.slug)}/thumb`, { beat: t.value }));
   else return;
   if (t.tagName === "SELECT") t.blur();
   refresh();
@@ -1722,7 +1749,7 @@ taleList.addEventListener("input", (e) => {
   if (t.dataset.tnote) noteDraft[t.dataset.tnote] = t.value;
   if (t.dataset.trnote) noteDraft[`rw:${t.dataset.trnote}`] = t.value;
   if (t.dataset.sfxnote) noteDraft[`sfx:${t.dataset.sfxnote}`] = t.value;
-  if (t.dataset.tf === "yttitle") { const c = t.nextElementSibling; c.textContent = `${t.value.length}/100`; c.classList.toggle("over", t.value.length > 100); }
+  if (t.dataset.tf === "yttitle") { const c = t.nextElementSibling; c.textContent = `${t.value.length}/${TITLE_MAX}`; c.classList.toggle("over", t.value.length > TITLE_MAX); }
 });
 // « toggle » ne remonte pas : écouté en capture, pour garder l'éditeur de bruitages ouvert entre deux rafraîchissements.
 taleList.addEventListener("toggle", (e) => { const s = e.target.dataset?.sfxopen; if (s) e.target.open ? openSfx.add(s) : openSfx.delete(s); }, true);

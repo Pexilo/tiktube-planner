@@ -7,6 +7,7 @@ import { Thumbnail } from "./compositions/Thumbnail";
 import { KeynoteVideo } from "./keynote/Keynote";
 import { taleTimeline } from "../shared/tales.mjs";
 import { makeTaleVideo } from "./tales/TaleVideo";
+import { makeTaleThumb } from "./tales/TaleThumb";
 import type { StoryProps, Tale } from "./tales/types";
 // Toutes les apps de content/apps/*.json sont chargées automatiquement (ajouter un fichier = nouvelles vidéos).
 const appFiles = require.context("../content/apps", false, /\.json$/);
@@ -31,11 +32,10 @@ const TALES = TALE_APP
       .filter((k) => k.startsWith("./"))
       .map((k) => taleFiles(k) as Tale)
       .filter((t) => storyFiles.keys().includes(`./${t.slug}.tsx`))
-      .map((tale) => ({
-        tale,
-        frames: (tale.timeline ?? taleTimeline(tale.beats, tale.voice?.segments)).totalFrames,
-        component: makeTaleVideo((storyFiles(`./${tale.slug}.tsx`) as { Story: React.FC<StoryProps> }).Story),
-      }))
+      .map((tale) => {
+        const { Story } = storyFiles(`./${tale.slug}.tsx`) as { Story: React.FC<StoryProps> };
+        return { tale, frames: (tale.timeline ?? taleTimeline(tale.beats, tale.voice?.segments)).totalFrames, component: makeTaleVideo(Story), thumb: makeTaleThumb(Story) };
+      })
   : [];
 
 export const Root: React.FC = () => (
@@ -105,8 +105,12 @@ export const Root: React.FC = () => (
     ))}
     {TALE_APP && TALES.length ? (
       <Folder name="tales">
-        {TALES.map(({ tale, frames, component }) => (
-          <Composition key={tale.id} id={tale.id} component={component} durationInFrames={frames} fps={FPS} {...FORMATS.short} defaultProps={{ tale, app: TALE_APP }} />
+        {TALES.map(({ tale, frames, component, thumb }) => (
+          <React.Fragment key={tale.id}>
+            <Composition id={tale.id} component={component} durationInFrames={frames} fps={FPS} {...FORMATS.short} defaultProps={{ tale, app: TALE_APP }} />
+            {/* Miniature dédiée (YouTube, dashboard) : rendue après la vidéo, cf. server/render.mjs. */}
+            <Still id={`${tale.id}-thumb`} component={thumb} {...FORMATS.short} defaultProps={{ tale, app: TALE_APP }} />
+          </React.Fragment>
         ))}
       </Folder>
     ) : null}
