@@ -244,7 +244,8 @@ function buildTaleMetadata(v, app) {
   // Titre court, sans emoji ni hashtag : YouTube reconnaît les Shorts au format, les hashtags restent dans la description.
   const title = cleanTitle(tale.yt.title).slice(0, 100);
   const tags = [...new Set(tale.yt.hashtags.map((h) => h.replace(/^#/, "")))];
-  const hashtags = ["Shorts", ...tags].slice(0, 8).map((h) => `#${h.replace(/[^\p{L}\p{N}]/gu, "")}`);
+  // 5 hashtags au plus, sans #Shorts : YouTube reconnaît les Shorts au format.
+  const hashtags = tags.filter((h) => h.toLowerCase() !== "shorts").slice(0, 5).map((h) => `#${h.replace(/[^\p{L}\p{N}]/gu, "")}`);
   const noLinks = (s) => String(s ?? "").replace(/\s*\(?\b(?:https?:\/\/|www\.)\S+/gi, "").trim();
   const lines = [noLinks(tale.yt.description), "", noLinks(tale.summary), ""];
   if (tale.sources?.length) {
