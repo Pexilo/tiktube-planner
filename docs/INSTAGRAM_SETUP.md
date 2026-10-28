@@ -50,6 +50,13 @@ Les étapes **webhooks**, **connexion professionnelle Instagram** et **contrôle
 
 Limite Meta : 100 publications par 24 h via l'API (par compte).
 
+## cloudflared (obligatoire)
+
+Avec la connexion Instagram, l'API n'accepte pas l'envoi direct du fichier : elle télécharge la vidéo depuis une URL publique. Au moment de publier, la plateforme sert la vidéo à une adresse aléatoire via un tunnel Cloudflare rapide (sans compte), refermé dès qu'Instagram a fini de la traiter. Installe-le une fois :
+
+- Windows : `winget install Cloudflare.cloudflared`
+- macOS : `brew install cloudflared`
+
 ## Un compte Instagram FR et un compte EN
 
 Chaque Reel part sur le compte de la langue de son post. Une langue sans compte ne publie rien ; un seul compte pour les deux langues ? Active **« Le compte … publie aussi le … »** dans Réglages → Instagram.

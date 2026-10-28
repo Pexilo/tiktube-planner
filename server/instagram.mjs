@@ -4,11 +4,14 @@
 //
 // Config : data/instagram-config.json { appId, accounts: { fr: { accessToken }, en: { accessToken } } }
 // Un compte par langue (même app Meta) ; une langue sans compte ne publie rien, sauf compte partagé (voir docs/INSTAGRAM_SETUP.md).
-import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { spawn } from "node:child_process";
+import { randomBytes } from "node:crypto";
+import { createReadStream, existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { createServer } from "node:http";
 import { join } from "node:path";
 import { DATA, isTaleId, LANGS, pickAccount, registerPublisher } from "./state.mjs";
 import { logEvent } from "./events.mjs";
-import { notify } from "../shared/platform.mjs";
+import { has, IS_WIN, notify } from "../shared/platform.mjs";
 import { postLang, postOn, posts as ttPosts } from "./tiktok.mjs";
 import { loadTales } from "../shared/catalog.mjs";
 import { cleanTitle, taleThumbFrame } from "../shared/tales.mjs";
@@ -151,29 +154,91 @@ export function igCaption(p) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/* ------------------------------------------------------------------ URL publique temporaire */
+
+/** Binaire cloudflared : PATH, sinon son dossier d'installation (le PATH du serveur peut dater d'avant l'install). */
+function cloudflared() {
+  if (has("cloudflared")) return "cloudflared";
+  const known = IS_WIN ? ["C:\\Program Files (x86)\\cloudflared\\cloudflared.exe", "C:\\Program Files\\cloudflared\\cloudflared.exe"] : ["/opt/homebrew/bin/cloudflared", "/usr/local/bin/cloudflared"];
+  const bin = known.find(existsSync);
+  if (!bin) throw new Error(`cloudflared introuvable : installe-le (${IS_WIN ? "winget install Cloudflare.cloudflared" : "brew install cloudflared"})`);
+  return bin;
+}
+
+/**
+ * Instagram (connexion Instagram Login) n'accepte qu'une video_url publique : le fichier est servi à une adresse
+ * aléatoire derrière un tunnel Cloudflare rapide (sans compte), ouvert le temps qu'Instagram le télécharge.
+ */
+export async function exposeFile(file) {
+  const path = `/${randomBytes(16).toString("hex")}.mp4`;
+  const size = statSync(file).size;
+  const server = createServer((req, res) => {
+    if (req.url !== path || !["GET", "HEAD"].includes(req.method)) return res.writeHead(404).end();
+    const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? "");
+    const start = m?.[1] ? Number(m[1]) : m?.[2] ? size - Number(m[2]) : 0;
+    const end = m?.[1] && m[2] ? Math.min(Number(m[2]), size - 1) : size - 1;
+    res.writeHead(m ? 206 : 200, { "Content-Type": "video/mp4", "Content-Length": end - start + 1, "Accept-Ranges": "bytes", ...(m ? { "Content-Range": `bytes ${start}-${end}/${size}` } : {}) });
+    if (req.method === "HEAD") return res.end();
+    createReadStream(file, { start, end }).pipe(res);
+  });
+  await new Promise((r) => server.listen(0, "127.0.0.1", r));
+  const tunnel = spawn(cloudflared(), ["tunnel", "--no-autoupdate", "--url", `http://127.0.0.1:${server.address().port}`], { stdio: ["ignore", "ignore", "pipe"], windowsHide: true });
+  const close = () => {
+    tunnel.kill();
+    server.close();
+  };
+  try {
+    const host = await new Promise((resolve, reject) => {
+      let log = "";
+      const t = setTimeout(() => reject(new Error("Tunnel Cloudflare : pas d'adresse après 60 s")), 60000);
+      tunnel.on("error", (e) => (clearTimeout(t), reject(new Error(`Tunnel Cloudflare : ${e.message}`))));
+      tunnel.on("exit", (code) => (clearTimeout(t), reject(new Error(`Tunnel Cloudflare arrêté (code ${code}) ${log.slice(-200)}`))));
+      tunnel.stderr.on("data", (d) => {
+        log += d;
+        const m = /https:\/\/[a-z0-9-]+\.trycloudflare\.com/.exec(log);
+        if (m) clearTimeout(t), resolve(m[0]);
+      });
+    });
+    // L'adresse met quelques secondes à répondre : on attend qu'elle serve le fichier avant de la donner à Instagram.
+    const url = host + path;
+    for (let i = 0; ; i++) {
+      const r = await fetch(url, { method: "HEAD" }).catch(() => null);
+      if (r?.ok) break;
+      if (i > 30) throw new Error("Tunnel Cloudflare : l'adresse publique ne répond pas");
+      await sleep(2000);
+    }
+    return { url, close };
+  } catch (e) {
+    close();
+    throw e;
+  }
+}
+
 async function publishReel(p) {
   const file = p.videoFile;
   if (!file || !existsSync(file)) throw new Error("Vidéo introuvable (rends-la d'abord)");
   const lang = accountFor(postLang(p));
   const me = (lang && igState.users[lang]) || (lang && (await refreshUser(lang))[lang]);
   if (!me) throw new Error(lang ? (igState.lastError ?? "Instagram non connecté") : `Aucun compte Instagram ${postLang(p).toUpperCase()} connecté`);
-  // 1. Conteneur Reel en envoi « resumable » : le fichier part depuis le disque, pas besoin d'URL publique.
-  // Couverture : cover_url exige une image sur un serveur public (la plateforme est locale), donc thumb_offset : l'image
+  // 1. Conteneur Reel : Instagram télécharge la vidéo depuis l'URL publique temporaire.
+  // Couverture : cover_url exigerait aussi une image publique, donc thumb_offset : l'image
   // de la vidéo qui sert de visuel à la miniature de la story (sans le titre posé dessus).
   const tale = isTalePost(p) ? loadTales().find((t) => t.id === p.videoId) : null;
   const cover = tale?.timeline ? { thumb_offset: String(Math.round((taleThumbFrame(tale) / FPS) * 1000)) } : {};
-  const box = await api(`/${me.user_id}/media`, { lang, method: "POST", params: { media_type: "REELS", upload_type: "resumable", caption: igCaption(p), share_to_feed: "true", ...cover } });
-  const size = statSync(file).size;
-  const up = await fetch(box.uri, { method: "POST", headers: { Authorization: `OAuth ${await accessToken(lang)}`, offset: "0", file_size: String(size) }, body: readFileSync(file) });
-  const uj = await up.json().catch(() => ({}));
-  if (!up.ok || uj.success === false) throw new Error(`Envoi de la vidéo : HTTP ${up.status} ${uj.debug_info?.message ?? uj.error?.message ?? ""}`.trim());
-  // 2. Instagram traite la vidéo (quelques secondes à quelques minutes).
-  for (let i = 0; ; i++) {
-    const s = await api(`/${box.id}`, { lang, params: { fields: "status_code,status" } });
-    if (s.status_code === "FINISHED") break;
-    if (s.status_code === "ERROR" || s.status_code === "EXPIRED") throw new Error(`Traitement Instagram : ${s.status ?? s.status_code}`);
-    if (i > 120) throw new Error("Traitement Instagram trop long (10 min)");
-    await sleep(5000);
+  const shared = await exposeFile(file);
+  let box;
+  try {
+    box = await api(`/${me.user_id}/media`, { lang, method: "POST", params: { media_type: "REELS", video_url: shared.url, caption: igCaption(p), share_to_feed: "true", ...cover } });
+    // 2. Instagram télécharge puis traite la vidéo (quelques secondes à quelques minutes) : le tunnel reste ouvert jusque-là.
+    for (let i = 0; ; i++) {
+      const s = await api(`/${box.id}`, { lang, params: { fields: "status_code,status" } });
+      if (s.status_code === "FINISHED") break;
+      if (s.status_code === "ERROR" || s.status_code === "EXPIRED") throw new Error(`Traitement Instagram : ${s.status ?? s.status_code}`);
+      if (i > 120) throw new Error("Traitement Instagram trop long (10 min)");
+      await sleep(5000);
+    }
+  } finally {
+    shared.close();
   }
   // 3. Publication.
   const pub = await api(`/${me.user_id}/media_publish`, { lang, method: "POST", params: { creation_id: box.id } });
@@ -193,8 +258,8 @@ export async function publish(p) {
     notify("Studio · Instagram", `Reel publié : « ${p.title.slice(0, 60)} »`);
   } catch (e) {
     const msg = String(e.message ?? e).slice(0, 300);
-    // Coupure réseau passagère : nouvel essai dans 15 min (5 tentatives max) plutôt qu'une erreur.
-    if (/ETIMEDOUT|ECONNRESET|EPIPE|ENOTFOUND|EAI_AGAIN|socket|fetch failed|timeout/i.test(msg) && (it.attempts ?? 0) < 5) {
+    // Coupure réseau ou tunnel passager : nouvel essai dans 15 min (5 tentatives max) plutôt qu'une erreur.
+    if (/ETIMEDOUT|ECONNRESET|EPIPE|ENOTFOUND|EAI_AGAIN|socket|fetch failed|timeout|Tunnel Cloudflare/i.test(msg) && (it.attempts ?? 0) < 5) {
       Object.assign(it, { status: "waiting", attempts: (it.attempts ?? 0) + 1, retryAt: new Date(Date.now() + 15 * 60000).toISOString(), error: `Coupure réseau (${msg.slice(0, 60)})` });
       logEvent("info", `Instagram : « ${p.title} » — coupure réseau, nouvel essai dans 15 min`, p.id);
     } else {
