@@ -13,13 +13,14 @@ export const TALE_SFX_DIR = "audio/tale-sfx";
 /**
  * Mode d'un son narratif, qui fixe son calage sur le mot :
  * - hit : démarre sur le mot (impact, stinger, objet) ;
- * - swell : se termine sur le mot (montée, souffle inversé : le mot « tombe » au sommet) ;
+ * - swell : se termine sur le mot (montée, souffle inversé : le mot « tombe » au sommet ; le fichier est coupé à son pic) ;
+ * `influence` (facultatif) : fidélité d'ElevenLabs au prompt (0 à 1, 0,5 par défaut).
  * - bed : nappe qui démarre sur le mot et tient jusqu'à la fin de la phrase (bouclée, s'efface sous la voix).
  */
 export const STORY_SFX = {
   boom: { mode: "hit", dur: 3, gain: 0.55, use: "big reveal or shocking number (deep sub impact)", prompt: "deep cinematic sub boom impact with a long dark reverb tail, documentary trailer hit, no music" },
   hit: { mode: "hit", dur: 2, gain: 0.45, use: "a sharp turn or a dark detail (tense stinger)", prompt: "short tense cinematic stinger hit, dark metallic impact, documentary, no music" },
-  riser: { mode: "swell", dur: 3, gain: 0.1, use: "builds suspense INTO the word (the twist, the reveal)", prompt: "suspense riser, rising tension noise swell that ends abruptly at its peak, cinematic, no music" },
+  riser: { mode: "swell", dur: 3, gain: 0.2, influence: 0.6, use: "builds suspense INTO the word (the twist, the reveal)", prompt: "trailer tension build-up: rising string-like noise whoosh accelerating into a sudden stop at full intensity, reverse reverb suck-in, documentary, no music, no melody" },
   reverse: { mode: "swell", dur: 1.5, gain: 0.4, use: "a short suck-in right before a key word", prompt: "short reverse cymbal swell sucking in, cinematic transition, no music" },
   whoosh: { mode: "hit", dur: 1.5, gain: 0.4, use: "a jump in time or place", prompt: "deep cinematic whoosh pass-by, airy transition sound, no music" },
   glitch: { mode: "hit", dur: 1.2, gain: 0.4, use: "a hack, a bug, an exploit, data, a crash", prompt: "digital glitch error burst, data corruption stutter, short electronic glitch" },
@@ -30,7 +31,7 @@ export const STORY_SFX = {
   typing: { mode: "bed", dur: 4, gain: 0.3, loop: true, use: "someone coding, hacking, writing a message", prompt: "fast mechanical keyboard typing in a quiet dark room" },
   siren: { mode: "bed", dur: 5, gain: 0.22, loop: true, use: "police, an arrest, an investigation closing in", prompt: "distant police siren wailing in a city at night, far away" },
   cash: { mode: "hit", dur: 1.5, gain: 0.4, use: "money in: a payout, a fortune, a price", prompt: "cash register cha-ching with coins clinking" },
-  fall: { mode: "hit", dur: 2, gain: 0.1, use: "money out: a crash, a loss, a failure", prompt: "descending pitch fall, deflating failure tone, cinematic, no music" },
+  fall: { mode: "hit", dur: 2, gain: 0.2, influence: 0.7, use: "money out: a crash, a loss, a failure", prompt: "short descending pitch-drop sweep, like a market crash, falling from high to low and dying out, airy and dark, documentary sound design, no music" },
   shimmer: { mode: "hit", dur: 2, gain: 0.35, use: "a discovery, a hidden treasure, a lucky break", prompt: "magical airy shimmer reveal, soft sparkle swell, no music" },
   slam: { mode: "hit", dur: 2, gain: 0.45, use: "prison, a seizure, a door closing for good", prompt: "heavy metal prison door slam with echo" },
   gavel: { mode: "hit", dur: 1.5, gain: 0.45, use: "a court ruling, a judge, a verdict", prompt: "single wooden gavel strike in a courtroom with room reverb" },

@@ -329,9 +329,28 @@ function writeWav(file, x, peakDb = -3) {
 
 /* ------------------------------------------------------------------ ElevenLabs */
 
-/** mp3 ElevenLabs → WAV mono 44,1 kHz à la durée du catalogue, crête à -1 dBFS (fondu de sortie sauf pour les nappes bouclées). */
-function toWav(mp3, out, { dur, loop }) {
-  const shape = `aresample=${SR},apad,atrim=0:${dur}${loop ? "" : `,afade=t=out:st=${Math.max(0, dur - 0.2)}:d=0.2`}`;
+/** Une montée est générée avec cette marge (s) en plus, puis coupée à son pic. */
+const SWELL_EXTRA = 1;
+
+/** Instant (s) où une montée atteint son pic : premier passage à 1,5 dB de son niveau maximal (fenêtres de 50 ms). */
+function swellPeak(mp3) {
+  const p = spawnSync("ffmpeg", ["-hide_banner", "-i", mp3, "-af", `aresample=${SR},asetnsamples=${SR / 20},astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.Overall.RMS_level`, "-f", "null", "-"], { encoding: "utf8" });
+  const rms = [...(p.stderr ?? "").matchAll(/RMS_level=(-?[\d.]+|-inf)/g)].map((m) => Number(m[1]) || -120);
+  const max = Math.max(...rms);
+  return (rms.findIndex((v) => v >= max - 1.5) + 1) / 20;
+}
+
+/**
+ * mp3 ElevenLabs → WAV mono 44,1 kHz à la durée du catalogue, crête à -1 dBFS. Une montée garde ses `dur` dernières secondes
+ * avant son pic (le mot tombe au sommet, pas après un plateau) ; les autres sons gardent leur début, avec un fondu de sortie
+ * (sauf les nappes bouclées).
+ */
+function toWav(mp3, out, { dur, loop, mode }) {
+  const end = mode === "swell" ? swellPeak(mp3) : dur;
+  const start = Math.max(0, end - dur);
+  const shape = mode === "swell"
+    ? `aresample=${SR},atrim=${start}:${end},asetpts=PTS-STARTPTS,afade=t=in:d=0.3,areverse,afade=t=in:d=0.015,apad,atrim=0:${dur},areverse`
+    : `aresample=${SR},apad,atrim=0:${dur}${loop ? "" : `,afade=t=out:st=${Math.max(0, dur - 0.2)}:d=0.2`}`;
   const probe = spawnSync("ffmpeg", ["-hide_banner", "-i", mp3, "-af", `${shape},volumedetect`, "-f", "null", "-"], { encoding: "utf8" });
   const peak = Number(/max_volume: (-?[\d.]+) dB/.exec(probe.stderr ?? "")?.[1] ?? -1);
   execFileSync("ffmpeg", ["-hide_banner", "-v", "error", "-y", "-i", mp3, "-af", `${shape},volume=${(-1 - peak).toFixed(2)}dB`, "-ac", "1", "-c:a", "pcm_s16le", out], { stdio: "inherit" });
@@ -365,7 +384,7 @@ export async function ensureTaleSfx({ force = false, only = null, log = console.
   for (const [name, s] of Object.entries(STORY_SFX)) {
     if (!want(name)) continue;
     const out = join(ROOT, "public", sfxFile(name));
-    const el = cfg && { source: "elevenlabs", model: cfg.model, prompt: s.prompt, dur: s.dur, loop: !!s.loop };
+    const el = cfg && { source: "elevenlabs", model: cfg.model, prompt: s.prompt, dur: s.dur, loop: !!s.loop, ...(s.influence ? { influence: s.influence } : {}) };
     const synth = { source: "synth", version: SYNTH_VERSION, dur: s.dur };
     const prev = readMeta(out);
     // Un son ElevenLabs déjà fait reste, même si la clé disparaît ; un son synthétisé à jour reste si ElevenLabs a échoué plus tôt.
@@ -377,7 +396,8 @@ export async function ensureTaleSfx({ force = false, only = null, log = console.
       log(`♪ ElevenLabs SFX : ${name} (${s.dur} s)`);
       const tmp = `${out}.el.mp3`;
       try {
-        writeFileSync(tmp, await soundEffect(cfg.model, s.prompt, { dur: s.dur, loop: !!s.loop }));
+        const genDur = s.mode === "swell" ? s.dur + SWELL_EXTRA : s.dur;
+        writeFileSync(tmp, await soundEffect(cfg.model, s.prompt, { dur: genDur, loop: !!s.loop, influence: s.influence }));
         toWav(tmp, out, s);
         recipe = el;
       } catch (e) {
