@@ -68,6 +68,12 @@
   .side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
   .conn { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 10px; background: var(--surface2); font-size: 12.5px; font-weight: 600; }
   .conn img { width: 22px; height: 22px; border-radius: 50%; }
+  /* Avatar du compte + pastille du réseau (YouTube, TikTok et Instagram ont souvent la même photo) */
+  .av { position: relative; flex: none; width: 22px; height: 22px; }
+  .av img { display: block; }
+  .av .plat { position: absolute; right: -5px; bottom: -4px; width: 14px; height: 14px; border-radius: 4px; box-shadow: 0 0 0 2px var(--surface2); }
+  .av .plat svg { width: 8px; height: 8px; }
+  .conn .tag { margin-left: auto; flex: none; } .conn .tag + .st { margin-left: 0; }
   .conn .st { margin-left: auto; width: 8px; height: 8px; border-radius: 50%; background: var(--c-pub); }
   .conn .st.off { background: var(--c-todo); }
   .conn .lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
@@ -166,7 +172,9 @@
   .mini { width: 34px; height: 34px; border-radius: 9px; object-fit: cover; background: var(--surface2); flex: none; }
   .plat { width: 20px; height: 20px; border-radius: 6px; display: grid; place-items: center; flex: none; color: #fff; }
   .plat svg { width: 12px; height: 12px; }
-  .plat.yt { background: var(--yt); } .plat.tt { background: #111116; box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); }
+  .plat.yt { background: var(--yt); } .plat.yt svg { width: 15px; height: 15px; } .av .plat.yt svg { width: 11px; height: 11px; } .plat.tt { background: #111116; box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); }
+  .plat.ig { background: linear-gradient(45deg, #f58529, #dd2a7b 55%, #8134af); }
+  .igline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; }
   .approw { display: grid; grid-template-columns: 22px 104px minmax(0, 1fr) 46px; gap: 10px; align-items: center; padding: 6px 0; font-size: 13px; }
   .approw span:last-child { text-align: right; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
   .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 12px; }
@@ -366,7 +374,7 @@
 <body>
 <div class="app">
   <aside>
-    <div class="brand"><span class="logo"><svg class="i" viewBox="0 0 24 24" style="fill:#fff;stroke:none"><path d="M8 5.5v13l10.5-6.5z"/></svg></span><div>Studio<small>YouTube · TikTok</small></div></div>
+    <div class="brand"><span class="logo"><svg class="i" viewBox="0 0 24 24" style="fill:#fff;stroke:none"><path d="M8 5.5v13l10.5-6.5z"/></svg></span><div>Studio<small>YouTube · TikTok · Instagram</small></div></div>
     <div class="seg mode" id="modeSeg"><button data-v="pubs">Pubs</button><button data-v="stories">Stories</button></div>
     <nav class="nav" id="nav"></nav>
     <div class="side-foot">
@@ -552,6 +560,7 @@
         </div>
         <div class="card pad"><div class="card-h"><h3>YouTube</h3></div><div id="ytBox"></div></div>
         <div class="card pad"><div class="card-h"><h3>TikTok</h3></div><div id="ttBox"></div></div>
+        <div class="card pad"><div class="card-h"><h3>Instagram</h3></div><div id="igBox"></div></div>
       </div>
     </section>
   </main>
@@ -575,6 +584,7 @@ const P = {
   cal: '<rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
   grid: '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
   tiktok: '<path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5"/><path d="M14 3c.4 2.6 2.2 4.4 5 4.6"/>',
+  instagram: '<rect x="4" y="4" width="16" height="16" rx="4.5"/><circle cx="12" cy="12" r="3.6"/><circle cx="17" cy="7" r=".5"/>',
   gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
   play: '<path d="M8 5.5v13l10.5-6.5z" style="fill:currentColor;stroke:none"/>',
   playc: '<path d="M8 5.5v13l10.5-6.5z"/>',
@@ -594,7 +604,7 @@ const P = {
   redo: '<path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>',
   sliders: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
   send: '<path d="M21 3 10 14M21 3l-7 18-4-7-7-4z"/>',
-  yt: '<path d="M9.5 8.5v7l6-3.5z" style="fill:#fff;stroke:none"/>',
+  yt: '<rect x="1.5" y="5" width="21" height="14" rx="4.2" style="fill:#fff;stroke:none"/><path d="M9.8 8.6v6.8l5.9-3.4z" style="fill:var(--yt);stroke:none"/>',
   sparkle: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/>',
   bulb: '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>',
   film: '<rect x="3.5" y="4" width="17" height="16" rx="2.5"/><path d="M8 4v16M16 4v16M3.5 9H8M3.5 15H8M16 9h4.5M16 15h4.5"/>',
@@ -603,7 +613,11 @@ const P = {
   search: '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>',
 };
 const ic = (n, extra = "") => `<svg class="i" viewBox="0 0 24 24" ${extra}>${P[n]}</svg>`;
-const platIc = (p) => p === "yt" ? `<span class="plat yt" title="YouTube"><svg class="i" viewBox="0 0 24 24">${P.yt}</svg></span>` : `<span class="plat tt" title="TikTok"><svg class="i" viewBox="0 0 24 24" style="stroke:#fff;stroke-width:2.4">${P.tiktok}</svg></span>`;
+/** Langue des comptes connectés (YouTube, TikTok, Instagram), affichée à côté de leur nom. */
+const ACCOUNT_LANG = "EN";
+/** Photo du compte avec le logo du réseau en pastille ; logo seul si pas de photo (ou si elle ne charge pas). */
+const avatar = (src, p) => src ? `<span class="av"><img src="${esc(src)}" referrerpolicy="no-referrer" onerror="this.parentNode.replaceWith(document.createRange().createContextualFragment(platIc('${p}')))">${platIc(p)}</span>` : platIc(p);
+const platIc = (p) => p === "ig" ? `<span class="plat ig" title="Instagram"><svg class="i" viewBox="0 0 24 24" style="stroke:#fff;stroke-width:2.2">${P.instagram}</svg></span>` : p === "yt" ?`<span class="plat yt" title="YouTube"><svg class="i" viewBox="0 0 24 24">${P.yt}</svg></span>` : `<span class="plat tt" title="TikTok"><svg class="i" viewBox="0 0 24 24" style="stroke:#fff;stroke-width:2.4">${P.tiktok}</svg></span>`;
 
 /* ------------------------------------------------------------------ Dates */
 const LOCALE = "fr-BE";
@@ -738,10 +752,13 @@ function renderNav() {
     ? { calendar: week, ideas: TL?.ideas.length || "", stories: (TL?.tales ?? []).filter((t) => t.status === "script" || t.status === "error").length || "" }
     : { calendar: week, library: S.videos.length, tiktok: drafts || "" };
   setHTML($("#nav"), tabsOf().map(([k, l, i]) => `<a data-go="${k}" class="${tab === k ? "on" : ""}">${ic(i)}${l}${counts[k] ? `<span class="n">${counts[k]}</span>` : ""}</a>`).join(""));
-  const y = S.youtube, t = TT?.status;
+  const y = S.youtube, t = TT?.status, g = TT?.instagram;
+  const gu = g?.status.user;
+  const lang = (on) => (on ? `<span class="tag" title="Compte en anglais">${ACCOUNT_LANG}</span>` : "");
   setHTML($("#sideConn"), `
-    <a class="conn" href="${y.connected ? `https://studio.youtube.com` : y.hasSecret ? "/api/youtube/auth" : "#settings"}" ${y.connected ? 'target="_blank"' : ""}>${y.channel?.thumb ? `<img src="${y.channel.thumb}" referrerpolicy="no-referrer" onerror="this.replaceWith(document.createRange().createContextualFragment(platIc('yt')))">` : platIc("yt")}<span class="lbl">${esc(y.connected ? y.channel?.title ?? "YouTube" : "Connecter YouTube")}</span><span class="st ${y.connected ? "" : "off"}"></span></a>
-    <a class="conn" href="${t?.connected ? "#tiktok" : t?.configured ? "/api/tiktok/auth" : "#settings"}" style="margin-top:6px">${t?.user?.avatar_url ? `<img src="${t.user.avatar_url}" onerror="this.replaceWith(document.createRange().createContextualFragment(platIc('tt')))">` : platIc("tt")}<span class="lbl">${esc(t?.connected ? t.user?.display_name ?? "TikTok" : "Connecter TikTok")}</span><span class="st ${t?.connected ? "" : "off"}"></span></a>`);
+    <a class="conn" href="${y.connected ? `https://studio.youtube.com` : y.hasSecret ? "/api/youtube/auth" : "#settings"}" ${y.connected ? 'target="_blank"' : ""} title="YouTube">${avatar(y.channel?.thumb, "yt")}<span class="lbl">${esc(y.connected ? y.channel?.title ?? "YouTube" : "Connecter YouTube")}</span>${lang(y.connected)}<span class="st ${y.connected ? "" : "off"}"></span></a>
+    <a class="conn" href="${t?.connected ? "#tiktok" : t?.configured ? "/api/tiktok/auth" : "#settings"}" style="margin-top:6px" title="TikTok">${avatar(t?.user?.avatar_url, "tt")}<span class="lbl">${esc(t?.connected ? t.user?.display_name ?? "TikTok" : "Connecter TikTok")}</span>${lang(t?.connected)}<span class="st ${t?.connected ? "" : "off"}"></span></a>
+    ${g ? `<a class="conn" href="${gu ? `https://www.instagram.com/${encodeURIComponent(gu.username)}/` : "#settings"}" ${gu ? 'target="_blank"' : ""} style="margin-top:6px" title="${gu ? (g.settings.enabled ? "Instagram : Reels publiés automatiquement" : "Instagram : publication auto désactivée") : "Instagram"}">${avatar(gu?.profile_picture_url, "ig")}<span class="lbl">${esc(gu ? `@${gu.username}` : "Connecter Instagram")}</span>${lang(gu)}<span class="st ${gu && g.settings.enabled ? "" : "off"}"></span></a>` : ""}`);
 }
 
 /* ------------------------------------------------------------------ Thème */
@@ -1049,19 +1066,66 @@ function renderSettings() {
   $("#taleTtToggle").classList.toggle("on", !!S.settings.taleAutoTikTok);
   const y = S.youtube;
   setHTML($("#ytBox"), y.hasSecret
-    ? (y.connected ? `<div class="conn" style="margin-bottom:10px">${y.channel?.thumb ? `<img src="${y.channel.thumb}" referrerpolicy="no-referrer" onerror="this.replaceWith(document.createRange().createContextualFragment(platIc('yt')))">` : platIc("yt")}<span class="lbl">${esc(y.channel?.title ?? "Chaîne connectée")}</span><span class="note" style="margin-left:auto">${Number(y.channel?.subs ?? 0).toLocaleString(LOCALE)} abonnés</span></div>
+    ? (y.connected ? `<div class="conn" style="margin-bottom:10px">${avatar(y.channel?.thumb, "yt")}<span class="lbl">${esc(y.channel?.title ?? "Chaîne connectée")}</span><span class="note" style="margin-left:auto">${Number(y.channel?.subs ?? 0).toLocaleString(LOCALE)} abonnés</span></div>
         <p class="note">Envois aujourd'hui : ${S.upload.today}/${S.settings.maxUploadsPerDay}.</p><a class="btn sm" href="/api/youtube/auth">Reconnecter / changer de chaîne</a>`
       : `<p class="note">client_secret.json trouvé.</p><a class="btn yt" href="/api/youtube/auth">Connecter ma chaîne YouTube</a>`)
     : `<p class="note">1. Crée un projet Google Cloud et active <b>YouTube Data API v3</b>.<br>2. Crée un identifiant OAuth « Application de bureau ».<br>3. Télécharge le JSON en <code>client_secret.json</code> à la racine du projet.<br>4. Reviens ici et clique « Connecter ».</p>`);
   const t = TT?.status;
-  if (t) setHTML($("#ttBox"), `${t.connected ? `<div class="conn" style="margin-bottom:10px">${t.user?.avatar_url ? `<img src="${t.user.avatar_url}" onerror="this.replaceWith(document.createRange().createContextualFragment(platIc('tt')))">` : platIc("tt")}<span class="lbl">${esc(t.user?.display_name ?? "Compte connecté")}</span><span class="st"></span></div>` : ""}
+  if (t) setHTML($("#ttBox"), `${t.connected ? `<div class="conn" style="margin-bottom:10px">${avatar(t.user?.avatar_url, "tt")}<span class="lbl">${esc(t.user?.display_name ?? "Compte connecté")}</span><span class="st"></span></div>` : ""}
     <div class="field"><label>App TikTok</label>${chip(t.configured ? ["pub", "Configurée"] : ["todo", "À configurer"])}</div>
     <div class="field"><label>Compte</label>${chip(t.connected ? ["pub", "Connecté"] : ["todo", "Non connecté"])}</div>
     <div class="field"><label>Hébergement des images</label>${chip(t.hosting ? ["pub", t.hostingDomain ?? "Configuré"] : ["todo", "À configurer"])}</div>
     ${TT.settings ? `<div class="field"><label>Créneaux FR</label><input data-tts="frTimes" value="${esc(TT.settings.frTimes.join(", "))}" style="width:150px" title="Heures séparées par des virgules"></div>
     <div class="field"><label>Créneaux EN</label><input data-tts="enTimes" value="${esc(TT.settings.enTimes.join(", "))}" style="width:150px" title="Heures séparées par des virgules"></div>` : ""}
     ${t.configured ? `<a class="btn sm" href="/api/tiktok/auth" style="margin-top:8px">${t.connected ? "Reconnecter" : "Connecter mon TikTok"}</a>` : `<p class="note">Remplis <code>data/tiktok-config.json</code> (guide : <code>docs/TIKTOK_SETUP.md</code>).</p>`}`);
+  const g = TT?.instagram;
+  if (g) {
+    const s = g.status, on = (v) => (g.settings.scope === v ? "on" : ""), lang = (l) => (g.settings.langs.includes(l) ? "on" : "");
+    setHTML($("#igBox"), `${s.user ? `<div class="conn" style="margin-bottom:10px">${avatar(s.user.profile_picture_url, "ig")}<span class="lbl">@${esc(s.user.username)}</span><span class="st"></span></div>` : ""}
+      <div class="field"><label>Compte</label>${chip(s.connected ? ["pub", "Connecté"] : s.configured ? ["err", "Token refusé"] : ["todo", "À configurer"])}</div>
+      ${s.lastError ? `<p class="note" style="color:var(--c-err)">${esc(s.lastError)}</p>` : ""}
+      <div class="field"><label>Publier les Reels (auto)</label><div class="toggle ${g.settings.enabled ? "on" : ""}" data-igtoggle></div></div>
+      <div class="field"><label>Quels posts</label><div class="seg" data-igscope><button data-v="tales" class="${on("tales")}">Stories</button><button data-v="all" class="${on("all")}">Tout</button></div></div>
+      <div class="field"><label>Langues</label><div class="seg" data-iglangs><button data-v="fr" class="${lang("fr")}">FR</button><button data-v="en" class="${lang("en")}">EN</button></div></div>
+      <p class="note">Chaque post vidéo TikTok concerné est publié en Reel à la même heure, directement (pas de brouillon). La plateforme doit tourner à ce moment-là. Seuls les posts prévus après l'activation partent. Les carrousels photo restent sur TikTok.</p>
+      ${s.configured ? `<button class="btn sm" data-igrefresh style="margin-top:8px">Vérifier la connexion</button>` : `<p class="note">Colle ton token dans <code>data/instagram-config.json</code> (guide : <code>docs/INSTAGRAM_SETUP.md</code>).</p>`}`);
+  }
 }
+
+/** Ligne Instagram d'un post vidéo TikTok : publié, en attente, erreur… */
+function igLine(p) {
+  const g = TT.instagram;
+  if (p.type !== "video" || !g?.status.configured) return "";
+  const it = g.items[p.id], btn = (label) => `<button class="btn sm ghost" data-igpub="${p.id}">${label}</button>`;
+  const line =
+    it?.status === "published" ? `${chip(["pub", "Reel publié"])}${it.permalink ? `<a href="${esc(it.permalink)}" target="_blank" rel="noopener" style="text-decoration:underline">Voir</a>` : ""}`
+    : it?.status === "publishing" ? `<span class="spin"></span>Publication en cours…`
+    : it?.status === "waiting" ? `${chip(["work", "En attente"])}<span class="note">${esc(it.error ?? "")} Nouvel essai ${rel(it.retryAt)}.</span>`
+    : it?.status === "error" ? `${chip(["err", "Erreur"])}${btn("Réessayer")}<button class="btn sm ghost" data-igskip="${p.id}">Ignorer</button>`
+    : it?.status === "skipped" ? `${chip(["todo", "Ignoré"])}${btn("Publier quand même")}`
+    : g.pending.includes(p.id) ? `${chip(["sched", "Reel à la même heure"])}`
+    : g.status.connected ? btn("Publier sur Instagram") : "";
+  if (!line) return "";
+  return `<div class="igline">${platIc("ig")}${line}</div>${it?.status === "error" ? `<div class="note" style="color:var(--c-err)">Instagram : ${esc(it.error)}</div>` : ""}`;
+}
+document.body.addEventListener("click", async (e) => {
+  const t = e.target.closest("[data-igtoggle],[data-igscope] button,[data-iglangs] button,[data-igrefresh],[data-igpub],[data-igskip]"); if (!t) return;
+  const g = TT.instagram.settings;
+  if (t.matches("[data-igtoggle]")) {
+    if (!g.enabled && !confirm("Publier automatiquement les Reels sur Instagram ? Chaque post vidéo TikTok concerné sera publié publiquement à son heure, sans validation dans l'app.")) return;
+    await api("/api/instagram/settings", { enabled: !g.enabled }, "PATCH");
+  }
+  if (t.closest("[data-igscope]")) await api("/api/instagram/settings", { scope: t.dataset.v }, "PATCH");
+  if (t.closest("[data-iglangs]")) await api("/api/instagram/settings", { langs: g.langs.includes(t.dataset.v) ? g.langs.filter((l) => l !== t.dataset.v) : [...g.langs, t.dataset.v] }, "PATCH");
+  if (t.dataset.igrefresh !== undefined) { t.innerHTML = `<span class="spin"></span>Vérification…`; await api("/api/instagram/refresh", {}); }
+  if (t.dataset.igpub) {
+    if (!confirm("Publier ce Reel sur Instagram maintenant ? Il sera public tout de suite.")) return;
+    const r = await api(`/api/instagram/posts/${t.dataset.igpub}/publish`, {});
+    if (r.error) alert(r.error);
+  }
+  if (t.dataset.igskip) await api(`/api/instagram/posts/${t.dataset.igskip}/skip`, {});
+  refreshTikTok();
+});
 
 /* ------------------------------------------------------------------ Dock (progression hors page Aujourd'hui) */
 function renderDock() {
@@ -1082,7 +1146,7 @@ const CONF = { high: ["pub", "Association sûre"], medium: ["work", "À jeter un
 function renderTikTokStatus() {
   const st = TT.status;
   setHTML($("#ttStatus"), st.connected
-    ? `<div class="conn">${st.user?.avatar_url ? `<img src="${st.user.avatar_url}" onerror="this.replaceWith(document.createRange().createContextualFragment(platIc('tt')))">` : platIc("tt")}<span class="lbl">${esc(st.user?.display_name ?? "Compte connecté")}</span><span class="st ${st.hosting ? "" : "off"}" title="${st.hosting ? "Hébergement des images OK" : "Hébergement des images non configuré"}"></span></div>`
+    ? `<div class="conn">${avatar(st.user?.avatar_url, "tt")}<span class="lbl">${esc(st.user?.display_name ?? "Compte connecté")}</span><span class="st ${st.hosting ? "" : "off"}" title="${st.hosting ? "Hébergement des images OK" : "Hébergement des images non configuré"}"></span></div>`
     : st.configured ? `<a class="btn primary" href="/api/tiktok/auth">Connecter mon TikTok</a>` : `<a class="btn" href="#settings">Configurer TikTok</a>`);
   setHTML($("#ttAlert"), st.lastError ? `<div class="alert red">${ic("alert")}<div>${esc(st.lastError)}</div></div>` : "");
   const s = $("#ttVideoSel");
@@ -1115,6 +1179,7 @@ function ttCard(p) {
     ${p.waiting ? `<div class="note" style="color:var(--c-work)">${esc(p.waiting)} Nouvel essai ${rel(p.retryAt)}.</div>` : ""}
     ${p.error ? `<div class="note" style="color:var(--c-err)">${esc(p.error)}</div>` : ""}
     ${p.sentAt ? `<div class="note">Envoyé ${fmtDate(p.sentAt)} : termine la publication dans l'app TikTok.</div>` : ""}
+    ${igLine(p)}
   </div>`;
 }
 

@@ -1,0 +1,5 @@
+{
+  "_comment": "Copie réelle : data/instagram-config.json (ignorée par git). Guide : docs/INSTAGRAM_SETUP.md.",
+  "appId": "ID_APP_INSTAGRAM",
+  "accessToken": "TOKEN_GENERE_DANS_META"
+}

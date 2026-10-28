@@ -13,6 +13,7 @@ import { avgSeconds, events, logEvent } from "./events.mjs";
 import multer from "multer";
 import { homedir, tmpdir } from "node:os";
 import * as tt from "./tiktok.mjs";
+import * as ig from "./instagram.mjs";
 import { smartImport } from "./smartimport.mjs";
 import * as watch from "./watchfolder.mjs";
 import { setupRoutes } from "./setup.mjs";
@@ -284,6 +285,7 @@ app.get("/api/tiktok", (_req, res) => {
     settings: tt.ttSettings(),
     watch: { ...watch.watchState, dir: watch.watchDir() },
     posts: tt.posts(),
+    instagram: { status: ig.status(), settings: ig.igSettings(), items: ig.items(), pending: ig.pending().map((p) => p.id) },
     videos: c.videos
       .filter((v) => v.format !== "long" && langOn(v.lang) && isRendered(v.id))
       .map((v) => ({ id: v.id, title: v.title, appName: v.appName, lang: v.lang })),
@@ -391,6 +393,23 @@ app.post("/api/tiktok/from-video", (req, res) => {
 });
 setInterval(() => void tt.tick().catch((e) => console.error("tiktok", e)), 60 * 1000);
 
+// ---------------------------------------------------------------- Instagram (Reels publiés à l'heure du post TikTok)
+app.patch("/api/instagram/settings", (req, res) => res.json(ig.updateIgSettings(req.body)));
+app.post("/api/instagram/refresh", async (_req, res) => res.json({ user: await ig.refreshUser(), status: ig.status() }));
+app.post("/api/instagram/posts/:id/publish", async (req, res) => {
+  const p = tt.posts().find((x) => x.id === req.params.id);
+  if (!p || p.type !== "video") return res.status(404).json({ error: "Post vidéo introuvable" });
+  if (!tt.postOn(p)) return res.status(400).json({ error: "Langue ou pubs en pause : réactive-les pour publier ce post." });
+  if (ig.igState.publishing) return res.status(409).json({ error: "Une publication Instagram est déjà en cours, réessaie dans un instant." });
+  res.json({ ok: true });
+  await ig.publish(p).catch((e) => console.error("instagram", e.message));
+});
+app.post("/api/instagram/posts/:id/skip", (req, res) => {
+  ig.skip(req.params.id);
+  res.json({ ok: true });
+});
+setInterval(() => void ig.tick().catch((e) => console.error("instagram", e)), 60 * 1000);
+
 // ---------------------------------------------------------------- Remotion Studio
 let studio = null;
 app.post("/api/studio", (_req, res) => {
@@ -441,7 +460,8 @@ async function autopilot() {
   if (toRender.length) enqueue(toRender, c);
   const ready = due.filter((v) => isRendered(v.id));
   if (ready.length && ytStatus().connected && !uploadState.id) await uploadMany(ready, c);
-  cleanupPublished(c, s, tt.posts());
+  // Reels pas encore publiés sur Instagram : comptés comme non envoyés pour garder leur vidéo sur le disque.
+  cleanupPublished(c, s, [...tt.posts(), ...ig.pending().map((p) => ({ ...p, status: "instagram" }))]);
 }
 setInterval(() => void autopilot().catch((e) => console.error("autopilote", e)), AUTOPILOT_EVERY);
 
@@ -455,6 +475,7 @@ const server = app.listen(PORT, () => {
   if (!process.env.NO_OPEN) openPath(loadProfile().setupDone ? url : `${url}/setup.html`);
   void refreshChannel();
   if (tt.status().connected) void tt.refreshUser();
+  if (ig.status().configured) void ig.refreshUser();
   setTimeout(() => void autopilot().catch(() => {}), 5000);
 });
 // Une seule instance : si le port est déjà pris, une autre plateforme tourne → on quitte.
