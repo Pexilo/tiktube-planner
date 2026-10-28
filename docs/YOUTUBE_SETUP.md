@@ -69,7 +69,8 @@ de sa langue. Dans **Réglages → YouTube** (ou l'étape YouTube du guide d'ins
 2. Pareil avec **Connecter le compte EN**.
 3. Ajoute chaque adresse Gmail dans **Google Auth Platform → Audience → Utilisateurs test**.
 
-Une seule chaîne ? Connecte-la sur une langue : elle publie aussi l'autre. Les jetons sont dans
+Une langue sans chaîne ne publie rien. Une seule chaîne pour les deux langues ? Connecte-la sur une langue, puis
+active **« La chaîne … publie aussi le … »** dans Réglages → YouTube. Les jetons sont dans
 `data/youtube-token-fr.json` et `data/youtube-token-en.json` (l'ancien `youtube-token.json` devient la chaîne EN).
 Une vidéo déjà envoyée reste liée à la chaîne qui l'a reçue (changement de date compris). Le quota (6 envois/jour)
 est celui du projet Google Cloud : il est partagé entre les deux chaînes.

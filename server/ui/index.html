@@ -616,7 +616,7 @@ const P = {
   search: '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>',
 };
 const ic = (n, extra = "") => `<svg class="i" viewBox="0 0 24 24" ${extra}>${P[n]}</svg>`;
-/* Comptes par langue : un compte FR et un compte EN par réseau ; une langue sans compte publie sur celui de l'autre. */
+/* Comptes par langue : un compte FR et un compte EN par réseau ; une langue sans compte ne publie rien, sauf compte partagé. */
 const LANGS = ["fr", "en"];
 const NETS = {
   yt: { name: "YouTube", key: "youtube", accounts: () => S.youtube.accounts, ready: () => S.youtube.hasSecret, ok: (a) => !!a?.connected, live: () => true,
@@ -634,16 +634,30 @@ const usedTag = (a) => `<span class="tag">${a.usedFor.map((l) => l.toUpperCase()
 function accountRows(p) {
   const n = NETS[p], accs = n.accounts();
   if (!accs) return "";
-  return LANGS.map((l) => {
+  const rows = LANGS.map((l) => {
     const a = accs[l], other = LANGS.find((x) => x !== l), has = n.ok(a);
-    const who = has ? `${avatar(n.img(a), p)}<span class="lbl">${esc(n.title(a))}</span>` : `<span class="note">${n.ok(accs[other]) ? `Publie sur le compte ${other.toUpperCase()}` : "Aucun compte"}</span>`;
+    const who = has ? `${avatar(n.img(a), p)}<span class="lbl">${esc(n.title(a))}</span>` : `<span class="note">${accs[other]?.usedFor?.includes(l) ? `Publie sur le compte ${other.toUpperCase()}` : `Aucun compte : rien ne part en ${l.toUpperCase()}`}</span>`;
     return `<div class="field"><label>Compte ${l.toUpperCase()}</label><div class="acc-r">${who}<a class="btn sm" href="${n.connect(l)}">${has ? "Changer" : "Connecter"}</a>${has ? `<button class="btn sm icon ghost" data-accforget="${n.key}" data-lang="${l}" title="Retirer ce compte">${ic("trash")}</button>` : ""}</div></div>`;
-  }).join("") + `<p class="note">Chaque vidéo part sur le compte de sa langue ; une langue sans compte publie sur celui de l'autre. ${n.hint}</p>`;
+  });
+  // Un seul compte pour les deux langues : il peut aussi publier la langue qui n'a pas de compte (désactivé par défaut).
+  const solo = LANGS.find((l) => n.ok(accs[l]) && !n.ok(accs[LANGS.find((x) => x !== l)]));
+  if (solo) {
+    const o = LANGS.find((x) => x !== solo), on = !!S.settings.accountShare?.[n.key]?.[solo];
+    rows.push(`<div class="field"><label>Le compte ${solo.toUpperCase()} publie aussi le ${o.toUpperCase()}</label><div class="toggle ${on ? "on" : ""}" data-accshare="${n.key}" data-lang="${solo}"></div></div>`);
+  }
+  return rows.join("") + `<p class="note">Chaque vidéo part sur le compte de sa langue. Une langue sans compte ne publie rien, sauf si tu actives le partage du compte de l'autre langue. ${n.hint}</p>`;
 }
+document.body.addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-accshare]"); if (!b) return;
+  const share = S.settings.accountShare ?? {}, net = b.dataset.accshare, l = b.dataset.lang, on = !share[net]?.[l];
+  if (on && !confirm(`Publier aussi les vidéos ${l === "fr" ? "EN" : "FR"} sur ton compte ${Object.values(NETS).find((x) => x.key === net).name} ${l.toUpperCase()} ?`)) return;
+  await api("/api/settings", { accountShare: { ...share, [net]: { ...share[net], [l]: on } } }, "PATCH");
+  refresh(); refreshTikTok();
+});
 document.body.addEventListener("click", async (e) => {
   const b = e.target.closest("[data-accforget]"); if (!b) return;
   const n = Object.values(NETS).find((x) => x.key === b.dataset.accforget), l = b.dataset.lang.toUpperCase(), o = l === "FR" ? "EN" : "FR";
-  if (!confirm(`Retirer le compte ${n.name} ${l} ? Les vidéos ${l} partiront sur le compte ${o} s'il existe. Les vidéos déjà envoyées ne bougent pas.`)) return;
+  if (!confirm(`Retirer le compte ${n.name} ${l} ? Plus rien ne partira en ${l} (sauf si le compte ${o} est partagé). Les vidéos déjà envoyées ne bougent pas.`)) return;
   await api(`/api/accounts/${n.key}/${b.dataset.lang}/forget`, {});
   refresh(); refreshTikTok();
 });

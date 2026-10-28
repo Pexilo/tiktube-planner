@@ -18,12 +18,12 @@ const REDIRECT = `http://localhost:${PORT}/tiktok/callback/`;
 const CONFIG = join(DATA, "tiktok-config.json");
 // Un compte par langue : data/tiktok-token-fr.json et data/tiktok-token-en.json (même app TikTok).
 const tokenFile = (lang) => join(DATA, `tiktok-token-${lang}.json`);
-// Ancien jeton unique : devient le compte EN, qui sert aussi au FR tant qu'il n'a pas le sien.
+// Ancien jeton unique : devient le compte EN.
 const LEGACY = join(DATA, "tiktok-token.json");
 if (existsSync(LEGACY) && !existsSync(tokenFile("en"))) renameSync(LEGACY, tokenFile("en"));
 const hasToken = (lang) => existsSync(tokenFile(lang));
-/** Compte qui reçoit les posts de cette langue (le sien, sinon celui de l'autre langue). */
-export const accountFor = (lang) => pickAccount(hasToken, lang);
+/** Compte qui reçoit les posts de cette langue (le sien, ou celui de l'autre langue s'il est partagé), sinon null. */
+export const accountFor = (lang) => pickAccount("tiktok", hasToken, lang);
 const STORE = join(DATA, "tiktok.json");
 export const MEDIA = join(DATA, "tiktok-media");
 mkdirSync(MEDIA, { recursive: true });
@@ -299,7 +299,7 @@ export async function sendPost(post) {
   saveStore();
   try {
     const account = accountFor(postLang(post));
-    if (!account) throw new Error("TikTok non connecté");
+    if (!account) throw new Error(`Aucun compte TikTok ${postLang(post).toUpperCase()} connecté`);
     let publishId;
     if (post.type === "photo") {
       if (!post.images?.length) throw new Error("Aucune image dans ce carrousel");
@@ -361,7 +361,8 @@ export async function tick() {
   syncTalePosts();
   if (!status().connected || tiktokState.sending) return;
   const at = (p) => (p.retryAt && p.retryAt > p.publishAt ? p.retryAt : p.publishAt);
-  const due = store.posts.filter((p) => p.status === "scheduled" && postOn(p) && p.publishAt && new Date(at(p)) <= new Date()).sort((a, b) => a.publishAt.localeCompare(b.publishAt));
+  // Pas de compte pour la langue du post : il reste programmé et part dès qu'un compte est connecté.
+  const due = store.posts.filter((p) => p.status === "scheduled" && postOn(p) && accountFor(postLang(p)) && p.publishAt && new Date(at(p)) <= new Date()).sort((a, b) => a.publishAt.localeCompare(b.publishAt));
   for (const p of due.slice(0, 3)) {
     await sendPost(p); // TikTok : 6 requêtes / minute max
     if (p.waiting) break; // boîte pleine : inutile d'essayer les suivants maintenant

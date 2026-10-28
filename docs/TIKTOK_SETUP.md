@@ -103,5 +103,6 @@ de sa langue.
    **Réglages → TikTok → Connecter le compte FR**.
 3. Change de compte sur tiktok.com, puis **Connecter le compte EN**.
 
-Un seul compte ? Connecte-le sur une langue : il reçoit aussi l'autre. Les jetons sont dans
+Une langue sans compte ne publie rien. Un seul compte pour les deux langues ? Connecte-le sur une langue, puis
+active **« Le compte … publie aussi le … »** dans Réglages → TikTok. Les jetons sont dans
 `data/tiktok-token-fr.json` et `data/tiktok-token-en.json` (l'ancien `tiktok-token.json` devient le compte EN).

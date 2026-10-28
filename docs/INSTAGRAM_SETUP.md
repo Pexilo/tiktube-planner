@@ -52,11 +52,11 @@ Limite Meta : 100 publications par 24 h via l'API (par compte).
 
 ## Un compte Instagram FR et un compte EN
 
-Chaque Reel part sur le compte de la langue de son post ; une langue sans compte publie sur celui de l'autre.
+Chaque Reel part sur le compte de la langue de son post. Une langue sans compte ne publie rien ; un seul compte pour les deux langues ? Active **« Le compte … publie aussi le … »** dans Réglages → Instagram.
 
 1. Passe les deux comptes en **Créateur** (étape 1).
 2. Invite-les tous les deux comme **Testeur Instagram** dans la même app Meta, et accepte chaque invitation (étape 3).
 3. Génère un token pour chacun : **Ajouter un compte** une 2e fois (étape 4), connecte l'autre compte Instagram.
 4. Dans le guide d'installation, colle chaque token avec sa langue (FR ou EN).
 
-Les comptes connectés apparaissent dans la barre latérale avec leur langue, et dans **Réglages → Instagram** (Retirer un compte : ses Reels repartent sur l'autre).
+Les comptes connectés apparaissent dans la barre latérale avec leur langue, et dans **Réglages → Instagram** (Retirer un compte : plus rien ne part dans sa langue, sauf compte partagé).

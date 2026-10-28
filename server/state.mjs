@@ -31,6 +31,7 @@ const DEFAULTS = {
     talesPerDay: 1,
     taleAutoTikTok: true, // brouillon TikTok créé dès qu'une story est rendue
     storagePath: "", // vidéos rendues + temporaires (Remotion, Chrome, ffmpeg) ; vide = dossier du projet
+    accountShare: {}, // { youtube: { en: true } } = la chaîne EN publie aussi les vidéos FR (pas de chaîne FR)
   },
   /** id → { publishAt, locked, rendered, renderedAt, youtubeId, uploadedAt, error } */
   videos: {},
@@ -77,11 +78,16 @@ export function updateSettings(patch) {
 export const langOn = (lang) => lang !== "fr" || state.settings.frEnabled !== false;
 
 /**
- * Un compte par langue et par réseau (YouTube, TikTok, Instagram). Une langue sans compte à elle
- * utilise celui de l'autre langue : un seul compte suffit pour tout publier.
+ * Un compte par langue et par réseau (YouTube, TikTok, Instagram). Une langue sans compte ne publie rien,
+ * sauf si le compte de l'autre langue est partagé (réglage accountShare : un seul compte pour les deux langues).
  */
 export const LANGS = ["fr", "en"];
-export const pickAccount = (has, lang) => (has(lang) ? lang : (LANGS.find(has) ?? null));
+export const accountShared = (net, lang) => !!state.settings.accountShare?.[net]?.[lang];
+export function pickAccount(net, has, lang) {
+  if (has(lang)) return lang;
+  const other = LANGS.find((l) => l !== lang);
+  return has(other) && accountShared(net, other) ? other : null;
+}
 
 /** Vidéo (ou post TikTok) d'une story crypto : jamais concernée par la pause des pubs. */
 export const isTaleId = (id) => /^tale-/.test(id ?? "");

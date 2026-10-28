@@ -3,7 +3,7 @@
 // L'API ne programme pas : c'est la plateforme qui publie à l'heure prévue, elle doit donc tourner.
 //
 // Config : data/instagram-config.json { appId, accounts: { fr: { accessToken }, en: { accessToken } } }
-// Un compte par langue (même app Meta) ; une langue sans compte publie sur celui de l'autre (voir docs/INSTAGRAM_SETUP.md).
+// Un compte par langue (même app Meta) ; une langue sans compte ne publie rien, sauf compte partagé (voir docs/INSTAGRAM_SETUP.md).
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { DATA, isTaleId, LANGS, pickAccount } from "./state.mjs";
@@ -41,7 +41,7 @@ const writeConfig = (c) => writeFileSync(CONFIG, JSON.stringify(c, null, 2), { m
 export function config() {
   if (!existsSync(CONFIG)) return null;
   const c = JSON.parse(readFileSync(CONFIG, "utf8"));
-  // Ancien format (un seul token) : devient le compte EN, qui sert aussi au FR tant qu'il n'a pas le sien.
+  // Ancien format (un seul token) : devient le compte EN.
   if (c.accessToken && !c.accounts) {
     c.accounts = /^COLLE_ICI|^TOKEN_GENERE/.test(c.accessToken) ? {} : { en: { accessToken: c.accessToken, ...(c.refreshedAt ? { refreshedAt: c.refreshedAt } : {}) } };
     delete c.accessToken;
@@ -52,8 +52,8 @@ export function config() {
 }
 
 const hasToken = (lang) => !!config()?.accounts?.[lang]?.accessToken;
-/** Compte qui publie les Reels de cette langue (le sien, sinon celui de l'autre langue). */
-export const accountFor = (lang) => pickAccount(hasToken, lang);
+/** Compte qui publie les Reels de cette langue (le sien, ou celui de l'autre langue s'il est partagé), sinon null. */
+export const accountFor = (lang) => pickAccount("instagram", hasToken, lang);
 
 export function status() {
   const u = igState.users;
@@ -152,7 +152,7 @@ async function publishReel(p) {
   if (!file || !existsSync(file)) throw new Error("Vidéo introuvable (rends-la d'abord)");
   const lang = accountFor(postLang(p));
   const me = (lang && igState.users[lang]) || (lang && (await refreshUser(lang))[lang]);
-  if (!me) throw new Error(igState.lastError ?? "Instagram non connecté");
+  if (!me) throw new Error(lang ? (igState.lastError ?? "Instagram non connecté") : `Aucun compte Instagram ${postLang(p).toUpperCase()} connecté`);
   // 1. Conteneur Reel en envoi « resumable » : le fichier part depuis le disque, pas besoin d'URL publique.
   const box = await api(`/${me.user_id}/media`, { lang, method: "POST", params: { media_type: "REELS", upload_type: "resumable", caption: igCaption(p), share_to_feed: "true" } });
   const size = statSync(file).size;
@@ -207,7 +207,7 @@ const isTalePost = (p) => isTaleId(p.videoId) || p.source === "tales";
 /** Le post TikTok est-il concerné par Instagram (réglages : stories ou tout, langues) ? */
 export function eligible(p) {
   const s = igSettings();
-  return p.type === "video" && (s.scope === "all" || isTalePost(p)) && s.langs.includes(postLang(p)) && postOn(p);
+  return p.type === "video" && (s.scope === "all" || isTalePost(p)) && s.langs.includes(postLang(p)) && !!accountFor(postLang(p)) && postOn(p);
 }
 
 /** Posts qu'Instagram doit encore publier : leur vidéo ne doit pas être nettoyée du disque. */

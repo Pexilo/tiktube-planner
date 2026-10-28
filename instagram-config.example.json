@@ -1,5 +1,5 @@
 {
-  "_comment": "Copie réelle : data/instagram-config.json (ignorée par git), remplie par le guide d'installation. Un compte par langue ; une langue sans compte publie sur celui de l'autre. Guide : docs/INSTAGRAM_SETUP.md.",
+  "_comment": "Copie réelle : data/instagram-config.json (ignorée par git), remplie par le guide d'installation. Un compte par langue ; une langue sans compte ne publie rien (sauf partage activé dans Réglages → Instagram). Guide : docs/INSTAGRAM_SETUP.md.",
   "appId": "ID_APP_INSTAGRAM",
   "accounts": {
     "fr": { "accessToken": "TOKEN_DU_COMPTE_FR" },

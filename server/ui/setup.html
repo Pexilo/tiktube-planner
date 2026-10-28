@@ -116,7 +116,7 @@ const ext = (url, label) => `<a href="${url}" target="_blank" rel="noopener">${l
 const T = {
   fr: {
     tagline: "Guide d'installation", dash: "Dashboard →", next: "Continuer →", prev: "← Retour", skip: "Passer cette étape →", optional: "option",
-    acc: { h: "Un compte par langue", fallback: (o) => `publie sur le compte ${o}`, none: "aucun compte", connect: (l) => `Connecter le compte ${l}`, change: "Changer", forget: "Retirer", forgetQ: (l) => `Retirer le compte ${l} ? Ses vidéos partiront sur l'autre compte s'il existe.` },
+    acc: { h: "Un compte par langue", fallback: (o) => `publie sur le compte ${o}`, none: "aucun compte : rien ne part dans cette langue", connect: (l) => `Connecter le compte ${l}`, change: "Changer", forget: "Retirer", forgetQ: (l) => `Retirer le compte ${l} ? Plus rien ne partira dans cette langue, sauf si l'autre compte est partagé.` },
     steps: ["Bienvenue", "Ton profil", "Tes apps", "YouTube", "TikTok", "Photos TikTok", "Dossier TikTok", "Instagram", "Voix off", "C'est prêt", "Soutenir le dév"],
     s0: { h: "Bienvenue 👋", lead: "En quelques étapes, tu vas connecter ta chaîne YouTube, ton compte TikTok et ton Instagram. Tout reste sur ton ordinateur : tes clés sont enregistrées dans le dossier <code>data/</code>, jamais envoyées ailleurs.",
       checks: "Vérification de ton ordinateur", node: "Node.js", ffmpeg: "ffmpeg (encodage vidéo)", python: "Python + numpy/scipy (musique)", ocr: "OCR du système (lecture des slides TikTok)", claude: "Claude Code CLI (légendes automatiques)", say: "Voix du système (Shorts narrés)",
@@ -143,7 +143,7 @@ const T = {
       ],
       drop: "Glisse ici le fichier <b>client_secret….json</b> (ou clique)", secretOk: "Identifiant Google enregistré ✓", connect: "Connecter ma chaîne YouTube", connected: "Chaîne connectée",
       warn: "En mode « Test », Google demande de te reconnecter tous les 7 jours. Pour éviter ça : Google Auth Platform → <b>Audience</b> → <b>Publier l'application</b> (pas besoin de validation pour ton propre usage). Si tes vidéos restent bloquées en privé, remplis le formulaire d'audit de l'API YouTube.",
-      multi: "Une chaîne FR et une chaîne EN ? Connecte-les une par une avec le même identifiant Google : « Connecter le compte FR », choisis la chaîne FR ; puis pareil pour l'EN. Si les deux chaînes sont sur le même compte Google (chaînes de marque), Google te demande laquelle utiliser. Ajoute chaque adresse Gmail dans <b>Utilisateurs test</b>. Une seule chaîne ? Connecte-la sur une langue : elle publie aussi l'autre." },
+      multi: "Une chaîne FR et une chaîne EN ? Connecte-les une par une avec le même identifiant Google : « Connecter le compte FR », choisis la chaîne FR ; puis pareil pour l'EN. Si les deux chaînes sont sur le même compte Google (chaînes de marque), Google te demande laquelle utiliser. Ajoute chaque adresse Gmail dans <b>Utilisateurs test</b>. Une seule chaîne pour les deux langues ? Connecte-la sur une langue, puis active « publie aussi » dans le dashboard → <b>Réglages → YouTube</b>. Sinon, une langue sans chaîne ne publie rien." },
     s4: { h: "TikTok (Sandbox)", lead: "Les posts arrivent en <b>brouillon dans ta boîte TikTok</b> à l'heure prévue : tu ajoutes un son et tu publies. Le mode Sandbox fonctionne tout de suite pour ton propre compte, sans validation de TikTok.",
       list: (r) => [
         `Ouvre ${ext("https://developers.tiktok.com/apps/", "TikTok for Developers")} → connecte-toi → <b>Connect an app</b>.`,
@@ -156,7 +156,7 @@ const T = {
       ],
       key: "Client key", secret: "Client secret", save: "Enregistrer", connect: "Connecter mon TikTok", connected: "Compte connecté", saved: "Clés enregistrées ✓",
       tip: "Plus tard, tu pourras soumettre l'app en « Production » (formulaire + vidéo de démo) : remplace alors les clés par celles de Production et reconnecte-toi.",
-      multi: "Un compte TikTok FR et un compte EN ? Ajoute les deux dans <b>Sandbox settings → Target users</b>. TikTok connecte le compte ouvert dans ton navigateur : ouvre le compte FR sur tiktok.com et clique « Connecter le compte FR » ; puis change de compte sur tiktok.com et clique « Connecter le compte EN ». Un seul compte ? Connecte-le sur une langue : il reçoit aussi l'autre." },
+      multi: "Un compte TikTok FR et un compte EN ? Ajoute les deux dans <b>Sandbox settings → Target users</b>. TikTok connecte le compte ouvert dans ton navigateur : ouvre le compte FR sur tiktok.com et clique « Connecter le compte FR » ; puis change de compte sur tiktok.com et clique « Connecter le compte EN ». Un seul compte pour les deux langues ? Connecte-le sur une langue, puis active « publie aussi » dans le dashboard → <b>Réglages → TikTok</b>. Sinon, une langue sans compte ne publie rien." },
     s5: { h: "Photos TikTok (carrousels)", lead: "Pour les carrousels, TikTok va chercher les images sur <b>un site à toi</b> (vérifié). La plateforme les y dépose par FTP/SFTP. Pas besoin pour les vidéos — tu peux passer cette étape.",
       form: "Accès FTP / SFTP de ton hébergement", proto: "Protocole", host: "Serveur", port: "Port", user: "Utilisateur", pass: "Mot de passe", dir: "Dossier distant", url: "URL publique",
       phDir: "/public_html/tiktok (ou / si le compte FTP arrive déjà dedans)", phUrl: "https://monsite.com/tiktok",
@@ -184,7 +184,7 @@ const T = {
         "<b>Rôles de l'app → Rôles → Ajouter des personnes → Testeur Instagram</b> → ton nom d'utilisateur. Puis sur instagram.com : <b>Paramètres → Apps et sites web → Invitations de testeur → Accepter</b>.",
         "Retour sur la configuration de l'API → <b>Générez des tokens d'accès → Ajouter un compte</b> → connecte ton Instagram, puis colle le token ci-dessous.",
       ],
-      multi: "Un compte Instagram FR et un compte EN ? Passe les deux en Créateur, invite-les tous les deux comme <b>Testeur Instagram</b> (étape 5), puis génère un token pour chacun (étape 6 : « Ajouter un compte » une 2e fois) et colle-le en choisissant sa langue. Un seul compte ? Il publie les deux langues.",
+      multi: "Un compte Instagram FR et un compte EN ? Passe les deux en Créateur, invite-les tous les deux comme <b>Testeur Instagram</b> (étape 5), puis génère un token pour chacun (étape 6 : « Ajouter un compte » une 2e fois) et colle-le en choisissant sa langue. Un seul compte pour les deux langues ? Active « publie aussi » dans le dashboard → <b>Réglages → Instagram</b>. Sinon, une langue sans compte ne publie rien.",
       lang: "Langue du compte",
       token: "Token d'accès", appId: "ID d'app Instagram", appIdPh: "facultatif", save: "Vérifier et enregistrer", saving: "Vérification…", connected: "Compte connecté", saved: (u) => `Token vérifié et enregistré ✓ Compte @${u}`,
       tip: "Les étapes <b>webhooks</b>, <b>connexion professionnelle</b> et <b>contrôle app</b> de la page Meta ne servent pas ici : l'app peut rester en mode développement pour publier sur ton propre compte. Le token dure 60 jours, la plateforme le renouvelle chaque semaine. Ensuite, active la publication dans le dashboard → <b>Réglages → Instagram</b>." },
@@ -219,7 +219,7 @@ const T = {
   },
   en: {
     tagline: "Setup guide", dash: "Dashboard →", next: "Continue →", prev: "← Back", skip: "Skip this step →", optional: "optional",
-    acc: { h: "One account per language", fallback: (o) => `posts to the ${o} account`, none: "no account", connect: (l) => `Connect the ${l} account`, change: "Change", forget: "Remove", forgetQ: (l) => `Remove the ${l} account? Its videos will go to the other account if there is one.` },
+    acc: { h: "One account per language", fallback: (o) => `posts to the ${o} account`, none: "no account: nothing goes out in this language", connect: (l) => `Connect the ${l} account`, change: "Change", forget: "Remove", forgetQ: (l) => `Remove the ${l} account? Nothing will go out in this language, unless the other account is shared.` },
     steps: ["Welcome", "Your profile", "Your apps", "YouTube", "TikTok", "TikTok photos", "TikTok folder", "Instagram", "Voice-over", "All set", "Support the dev"],
     s0: { h: "Welcome 👋", lead: "In a few steps you'll connect your YouTube channel, TikTok account and Instagram. Everything stays on your computer: keys are saved in the <code>data/</code> folder and never sent anywhere else.",
       checks: "Checking your computer", node: "Node.js", ffmpeg: "ffmpeg (video encoding)", python: "Python + numpy/scipy (music)", ocr: "System OCR (reads TikTok slides)", claude: "Claude Code CLI (automatic captions)", say: "System voices (narrated Shorts)",
@@ -246,7 +246,7 @@ const T = {
       ],
       drop: "Drop the <b>client_secret….json</b> file here (or click)", secretOk: "Google credential saved ✓", connect: "Connect my YouTube channel", connected: "Channel connected",
       warn: "In “Testing” mode Google asks you to reconnect every 7 days. To avoid it: Google Auth Platform → <b>Audience</b> → <b>Publish app</b> (no verification needed for personal use). If your videos stay locked as private, fill in the YouTube API audit form.",
-      multi: "A FR channel and an EN channel? Connect them one at a time with the same Google credential: “Connect the FR account”, pick the FR channel; then the same for EN. If both channels sit on the same Google account (brand channels), Google asks which one to use. Add each Gmail address under <b>Test users</b>. Only one channel? Connect it on one language: it posts the other one too." },
+      multi: "A FR channel and an EN channel? Connect them one at a time with the same Google credential: “Connect the FR account”, pick the FR channel; then the same for EN. If both channels sit on the same Google account (brand channels), Google asks which one to use. Add each Gmail address under <b>Test users</b>. One channel for both languages? Connect it on one language, then turn on “also posts” in the dashboard → <b>Settings → YouTube</b>. Otherwise a language with no channel posts nothing." },
     s4: { h: "TikTok (Sandbox)", lead: "Posts land as <b>drafts in your TikTok inbox</b> at the planned time: add a sound and publish. Sandbox mode works right away for your own account, no TikTok review needed.",
       list: (r) => [
         `Open ${ext("https://developers.tiktok.com/apps/", "TikTok for Developers")} → log in → <b>Connect an app</b>.`,
@@ -259,7 +259,7 @@ const T = {
       ],
       key: "Client key", secret: "Client secret", save: "Save", connect: "Connect my TikTok", connected: "Account connected", saved: "Keys saved ✓",
       tip: "Later you can submit the app for “Production” (form + demo video): then swap in the Production keys and reconnect.",
-      multi: "A FR TikTok account and an EN one? Add both under <b>Sandbox settings → Target users</b>. TikTok connects the account open in your browser: open the FR account on tiktok.com and click “Connect the FR account”; then switch accounts on tiktok.com and click “Connect the EN account”. Only one account? Connect it on one language: it gets the other one too." },
+      multi: "A FR TikTok account and an EN one? Add both under <b>Sandbox settings → Target users</b>. TikTok connects the account open in your browser: open the FR account on tiktok.com and click “Connect the FR account”; then switch accounts on tiktok.com and click “Connect the EN account”. One account for both languages? Connect it on one language, then turn on “also posts” in the dashboard → <b>Settings → TikTok</b>. Otherwise a language with no account posts nothing." },
     s5: { h: "TikTok photos (carousels)", lead: "For carousels, TikTok pulls the images from <b>a website you own</b> (verified). The platform uploads them there over FTP/SFTP. Not needed for videos — you can skip this step.",
       form: "Your hosting's FTP / SFTP access", proto: "Protocol", host: "Server", port: "Port", user: "User", pass: "Password", dir: "Remote folder", url: "Public URL",
       phDir: "/public_html/tiktok (or / if the FTP account already lands there)", phUrl: "https://mysite.com/tiktok",
@@ -287,7 +287,7 @@ const T = {
         "<b>App roles → Roles → Add people → Instagram Tester</b> → your username. Then on instagram.com: <b>Settings → Apps and websites → Tester invites → Accept</b>.",
         "Back on the API setup → <b>Generate access tokens → Add account</b> → connect your Instagram, then paste the token below.",
       ],
-      multi: "A FR Instagram account and an EN one? Switch both to Creator, invite both as <b>Instagram Tester</b> (step 5), then generate a token for each (step 6: “Add account” a second time) and paste it with its language. Only one account? It posts both languages.",
+      multi: "A FR Instagram account and an EN one? Switch both to Creator, invite both as <b>Instagram Tester</b> (step 5), then generate a token for each (step 6: “Add account” a second time) and paste it with its language. One account for both languages? Turn on “also posts” in the dashboard → <b>Settings → Instagram</b>. Otherwise a language with no account posts nothing.",
       lang: "Account language",
       token: "Access token", appId: "Instagram app ID", appIdPh: "optional", save: "Check and save", saving: "Checking…", connected: "Account connected", saved: (u) => `Token checked and saved ✓ Account @${u}`,
       tip: "The <b>webhooks</b>, <b>business login</b> and <b>app review</b> steps on the Meta page aren't needed here: the app can stay in development mode to publish on your own account. The token lasts 60 days and the platform renews it every week. Then turn publishing on in the dashboard → <b>Settings → Instagram</b>." },
@@ -368,7 +368,7 @@ function langAccounts(net, accs, ok, label, connect) {
   const a = t().acc;
   return `<div style="margin-top:16px"><h3>${a.h}</h3>${LANGS.map((l) => {
     const x = accs?.[l] ?? {}, o = LANGS.find((y) => y !== l), has = ok(x);
-    const sub = has ? label(x) : ok(accs?.[o] ?? {}) ? a.fallback(o.toUpperCase()) : a.none;
+    const sub = has ? label(x) : accs?.[o]?.usedFor?.includes(l) ? a.fallback(o.toUpperCase()) : a.none;
     return `<div class="row" style="margin-top:8px"><b style="width:28px">${l.toUpperCase()}</b>${stat(has, esc(sub), esc(sub))}<span style="flex:1"></span>${connect ? `<a class="btn sm ${has ? "" : "primary"}" href="${connect(l)}">${has ? a.change : a.connect(l.toUpperCase())}</a>` : ""}${has ? `<button class="btn sm" data-forget="${net}" data-lang="${l}">${a.forget}</button>` : ""}</div>`;
   }).join("")}</div>`;
 }

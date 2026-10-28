@@ -14,12 +14,12 @@ export const PORT = Number(process.env.PORT ?? 4321);
 const REDIRECT = `http://localhost:${PORT}/oauth/callback`;
 // Une chaîne par langue : data/youtube-token-fr.json et data/youtube-token-en.json.
 const tokenFile = (lang) => join(DATA, `youtube-token-${lang}.json`);
-// Ancien jeton unique (une seule chaîne) : devient la chaîne EN, qui sert aussi au FR tant qu'il n'a pas la sienne.
+// Ancien jeton unique (une seule chaîne) : devient la chaîne EN.
 const LEGACY = join(DATA, "youtube-token.json");
 if (existsSync(LEGACY) && !existsSync(tokenFile("en"))) renameSync(LEGACY, tokenFile("en"));
 const hasToken = (lang) => existsSync(tokenFile(lang));
-/** Chaîne qui publie les vidéos de cette langue (la sienne, sinon celle de l'autre langue). */
-export const accountFor = (lang) => pickAccount(hasToken, lang);
+/** Chaîne qui publie les vidéos de cette langue (la sienne, ou celle de l'autre langue si elle est partagée), sinon null. */
+export const accountFor = (lang) => pickAccount("youtube", hasToken, lang);
 // force-ssl : changer la date d'une vidéo déjà programmée (videos.update) ; upload seul ne le permet pas.
 const SCOPES = ["https://www.googleapis.com/auth/youtube.upload", "https://www.googleapis.com/auth/youtube.readonly", "https://www.googleapis.com/auth/youtube.force-ssl"];
 
@@ -304,7 +304,7 @@ export const uploadsToday = () => getState().uploadsLog.filter((u) => u.at.slice
 export async function uploadOne(v, app, { now = false } = {}) {
   const account = accountFor(v.lang);
   const c = client(account);
-  if (!c || !account) throw new Error("YouTube non connecté");
+  if (!c || !account) throw new Error(`Aucune chaîne YouTube ${v.lang.toUpperCase()} connectée`);
   const st = video(v.id);
   if (st.youtubeId) return st.youtubeId;
   if (!existsSync(outFile(v.id))) throw new Error("Vidéo pas encore rendue");
@@ -398,6 +398,7 @@ export async function uploadMany(list, catalog) {
   uploadState.total = list.length;
   for (const v of list) {
     if (!videoOn(v)) continue; // langue ou pubs mises en pause pendant le lot
+    if (!accountFor(v.lang)) continue; // pas de chaîne pour cette langue : la vidéo attend qu'on en connecte une
     if (uploadsToday() >= max) {
       uploadState.lastError = `Quota du jour atteint (${max} uploads). La suite partira demain.`;
       logEvent("info", uploadState.lastError);
