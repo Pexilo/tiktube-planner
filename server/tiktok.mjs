@@ -27,6 +27,12 @@ const API = "https://open.tiktokapis.com";
 let store = existsSync(STORE) ? JSON.parse(readFileSync(STORE, "utf8")) : { posts: [] };
 const saveStore = () => writeFileSync(STORE, JSON.stringify(store, null, 2));
 export const posts = () => store.posts;
+/** Dossier de stockage déplacé : les posts qui pointaient vers l'ancien out/ suivent les fichiers. */
+export function retargetVideoFiles(from, to) {
+  let n = 0;
+  for (const p of store.posts) if (p.videoFile?.startsWith(from)) (p.videoFile = to + p.videoFile.slice(from.length)), n++;
+  if (n) saveStore();
+}
 
 /* ------------------------------------------------------------------ réglages + programmation automatique */
 

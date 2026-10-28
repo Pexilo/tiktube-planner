@@ -1,16 +1,17 @@
 // Studio YouTube local — lance avec `npm start` puis ouvre http://localhost:4321
 import express from "express";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "node:fs";
+import { cp, readdir, rename, rm } from "node:fs/promises";
+import { isAbsolute, join, resolve } from "node:path";
 import { loadCatalog, ROOT } from "../shared/catalog.mjs";
 import { openPath, revealPath, spawnNpx } from "../shared/platform.mjs";
-import { awaitingOk, getState, langOn, pubsOn, save, updateSettings, video, videoOn, OUT } from "./state.mjs";
+import { awaitingOk, getState, langOn, pubsOn, save, setStorage, updateSettings, video, videoOn, OUT } from "./state.mjs";
+import { outDirFor, tempDirFor } from "../shared/storage.mjs";
 import { generateSchedule } from "./scheduler.mjs";
-import { cancelQueue, cleanupPublished, current, dropPausedFromQueue, enqueue, isRendered, queue, STAGES } from "./render.mjs";
+import { cancelQueue, cleanupPublished, current, dropPausedFromQueue, enqueue, isRendered, queue, renderBusy, STAGES } from "./render.mjs";
 import { avgSeconds, events, logEvent } from "./events.mjs";
 import multer from "multer";
-import { tmpdir } from "node:os";
-import { unlinkSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import * as tt from "./tiktok.mjs";
 import { smartImport } from "./smartimport.mjs";
 import * as watch from "./watchfolder.mjs";
@@ -21,7 +22,12 @@ import { setupTaleRoutes } from "./tales.mjs";
 
 const app = express();
 app.use(express.json());
-app.use("/out", express.static(OUT));
+// OUT suit le dossier de stockage des Réglages : le service statique est recréé quand il change.
+let outStatic = { dir: null, mw: null };
+app.use("/out", (req, res, next) => {
+  if (outStatic.dir !== OUT) outStatic = { dir: OUT, mw: express.static(OUT) };
+  outStatic.mw(req, res, next);
+});
 app.use("/public", express.static(join(ROOT, "public")));
 app.use(express.static(join(ROOT, "server/ui")));
 
@@ -123,6 +129,7 @@ app.patch("/api/videos/:id", (req, res) => {
 });
 
 app.patch("/api/settings", (req, res) => {
+  delete req.body.storagePath; // changé uniquement via /api/settings/storage (déplacement des fichiers)
   updateSettings(req.body);
   if (req.body.frEnabled !== undefined) {
     dropPausedFromQueue();
@@ -136,6 +143,48 @@ app.patch("/api/settings", (req, res) => {
     } else logEvent("info", "Pubs en pause : rien n'est envoyé sur YouTube ni TikTok (les stories continuent)");
   }
   res.json(getState().settings);
+});
+
+// Dossier de stockage : vidéos rendues + temporaires. Les vidéos déjà rendues sont déplacées vers le nouveau dossier.
+app.get("/api/settings/storage", (_req, res) => {
+  const p = getState().settings.storagePath;
+  res.json({ path: p, out: OUT, tmp: tempDirFor(p), projectOut: outDirFor(""), busy: renderBusy() });
+});
+app.post("/api/settings/storage", async (req, res) => {
+  const raw = String(req.body.path ?? "").trim().replace(/^~(?=$|[\\/])/, homedir());
+  if (raw && !isAbsolute(raw)) return res.status(400).json({ error: "Donne un chemin complet (ex. D:\\Studio ou /Volumes/SSD/Studio)." });
+  const next = !raw || resolve(raw) === resolve(ROOT) ? "" : resolve(raw);
+  if (renderBusy()) return res.status(409).json({ error: "Un rendu est en cours : attends la fin (ou vide la file) avant de changer de dossier." });
+  const from = OUT;
+  const to = outDirFor(next);
+  try {
+    mkdirSync(to, { recursive: true });
+    mkdirSync(tempDirFor(next), { recursive: true });
+    const probe = join(to, ".write-test");
+    writeFileSync(probe, "");
+    unlinkSync(probe);
+  } catch (e) {
+    return res.status(400).json({ error: `Dossier inutilisable : ${e.message}` });
+  }
+  let moved = 0;
+  if (resolve(from) !== resolve(to)) {
+    for (const name of await readdir(from)) {
+      const a = join(from, name), b = join(to, name);
+      // Aperçus de stories : refaits à la demande, et _public/ contient des jonctions vers public/ qu'on ne copie pas.
+      if (name === "tales-preview" || existsSync(b)) continue; // déjà là (retour vers un ancien dossier) : on ne l'écrase pas
+      // Autre disque : rename échoue (EXDEV), on copie puis on supprime.
+      await rename(a, b).catch(async () => {
+        await cp(a, b, { recursive: true });
+        await rm(a, { recursive: true, force: true });
+      });
+      moved++;
+    }
+    tt.retargetVideoFiles(from, to);
+  }
+  updateSettings({ storagePath: next });
+  setStorage(next);
+  logEvent("info", `Dossier de stockage : ${next || "dossier du projet"}${moved ? ` (${moved} fichier(s) déplacé(s))` : ""}`);
+  res.json({ ok: true, moved, path: next, out: OUT, tmp: tempDirFor(next) });
 });
 
 app.get("/api/videos/:id/metadata", (req, res) => {

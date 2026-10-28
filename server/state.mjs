@@ -2,11 +2,10 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ROOT } from "../shared/catalog.mjs";
+import { applyStorageEnv, outDirFor, tempDirFor } from "../shared/storage.mjs";
 
 export const DATA = join(ROOT, "data");
-export const OUT = join(ROOT, "out");
 mkdirSync(DATA, { recursive: true });
-mkdirSync(OUT, { recursive: true });
 const FILE = join(DATA, "state.json");
 
 const tomorrow = () => {
@@ -31,6 +30,7 @@ const DEFAULTS = {
     taleTime: "20:00", // Stories crypto : créneau dédié, séparé des pubs
     talesPerDay: 1,
     taleAutoTikTok: true, // brouillon TikTok créé dès qu'une story est rendue
+    storagePath: "", // vidéos rendues + temporaires (Remotion, Chrome, ffmpeg) ; vide = dossier du projet
   },
   /** id → { publishAt, locked, rendered, renderedAt, youtubeId, uploadedAt, error } */
   videos: {},
@@ -38,6 +38,16 @@ const DEFAULTS = {
 };
 
 let state = load();
+
+/** Vidéos rendues et miniatures. Liaison vivante : suit le dossier de stockage choisi dans les Réglages. */
+export let OUT;
+export function setStorage(path) {
+  OUT = outDirFor(path);
+  mkdirSync(OUT, { recursive: true });
+  mkdirSync(tempDirFor(path), { recursive: true });
+  applyStorageEnv(path);
+}
+setStorage(state.settings.storagePath);
 
 function load() {
   if (!existsSync(FILE)) return structuredClone(DEFAULTS);

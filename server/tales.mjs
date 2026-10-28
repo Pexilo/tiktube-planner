@@ -13,7 +13,7 @@ import { TALE_APP, taleId, taleTimeline } from "../shared/tales.mjs";
 import { cleanSfx, MAX_SFX_PER_BEAT, STORY_SFX } from "../shared/tale-sfx.mjs";
 import { ensureTaleSfx } from "../scripts/gen-tale-sfx.mjs";
 import { dur, elevenSegment, pickVoice, systemSegment, wordTimings } from "../scripts/gen-voice.mjs";
-import { DATA, getState, save, video } from "./state.mjs";
+import { DATA, getState, OUT, save, video } from "./state.mjs";
 import { current as renderCurrent, enqueue, isRendered, onRendered, outFile, queue as renderQueue, thumbFile } from "./render.mjs";
 import { scheduleTales } from "./scheduler.mjs";
 import { logEvent } from "./events.mjs";
@@ -620,7 +620,9 @@ async function composeTale(slug) {
     ["Read", "Glob", "Grep", "Skill", `Write(${rel})`, `Edit(${rel})`, `Write(${abs})`, `Edit(${abs})`, "Bash(node scripts/tale-check.mjs:*)"],
     ["WebSearch", "WebFetch"],
   );
-  const w = await claude([...STORY_MODEL, "--settings", settings, "--max-turns", "80"], composePrompt(tale, before > 0), { timeout: COMPOSE_TIMEOUT });
+  // Dossier de stockage hors du projet : les images de tale-check y sont, Claude doit pouvoir les lire.
+  const outAccess = OUT.startsWith(ROOT) ? [] : ["--add-dir", OUT];
+  const w = await claude([...STORY_MODEL, "--settings", settings, "--max-turns", "80", ...outAccess], composePrompt(tale, before > 0), { timeout: COMPOSE_TIMEOUT });
   const summary = String(w.result ?? "").trim();
   log(summary);
   if (!existsSync(draft) || statSync(draft).mtimeMs === before) throw new Error(`Claude n'a pas écrit src/tales/drafts/${slug}.tsx`);
@@ -761,7 +763,7 @@ export function deleteTale(slug) {
   rmSync(join(TALE_STORIES, `${slug}.tsx`), { force: true });
   rmSync(join(ROOT, "public", "voice", t.id), { recursive: true, force: true });
   if (t.musicTrack?.file) for (const x of [t.musicTrack.file, `${t.musicTrack.file}.json`]) rmSync(join(ROOT, "public", x), { force: true });
-  rmSync(join(ROOT, "out", "tales-preview", slug), { recursive: true, force: true });
+  rmSync(join(OUT, "tales-preview", slug), { recursive: true, force: true });
   logEvent("info", `Stories : story supprimée, ${t.yt?.title ?? slug}`, t.id);
 }
 

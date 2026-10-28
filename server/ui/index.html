@@ -510,6 +510,13 @@
           <div class="card-h"><h3>Apparence</h3></div>
           <div class="field"><label>Thème</label><div class="seg" id="themeSeg"><button data-v="system">Auto</button><button data-v="light">Clair</button><button data-v="dark">Sombre</button></div></div>
         </div>
+        <div class="card pad">
+          <div class="card-h"><h3>Stockage</h3></div>
+          <div class="field" style="flex-wrap:wrap"><label>Dossier</label>
+            <div style="display:flex;gap:6px;flex:1;min-width:220px;justify-content:flex-end"><input id="storagePath" placeholder="Dossier du projet" style="flex:1;min-width:0" spellcheck="false" /><button class="btn sm" id="storageApply">Appliquer</button></div></div>
+          <p class="note" id="storageInfo"></p>
+          <p class="note">Vidéos rendues, miniatures et fichiers temporaires (Remotion, Chrome, ffmpeg) vont dans ce dossier : pratique pour un disque plus grand. Les vidéos déjà rendues y sont déplacées. Vide = dossier du projet. Tes clés et réglages (<code>data/</code>) ne bougent pas.</p>
+        </div>
         <div class="card pad" data-only="stories">
           <div class="card-h"><h3>Stories crypto</h3></div>
           <div class="field"><label>Heure de sortie</label><input type="time" data-s="taleTime" /></div>
@@ -996,6 +1003,27 @@ $("#fKind").onchange = (e) => { filters.kind = e.target.value; renderLibrary(); 
 $("#fSearch").oninput = (e) => { filters.q = e.target.value; renderLibrary(); };
 
 /* ------------------------------------------------------------------ Réglages */
+let STO = null;
+const renderStorage = (msg) => {
+  if (!STO) return;
+  if (document.activeElement !== $("#storagePath")) $("#storagePath").value = STO.path;
+  setHTML($("#storageInfo"), `${msg ? `${msg}<br>` : ""}Vidéos : <code>${esc(STO.out)}</code><br>Temporaires : <code>${esc(STO.tmp)}</code>`);
+};
+const loadStorage = async () => { STO = await api("/api/settings/storage"); renderStorage(); };
+$("#storageApply").onclick = async () => {
+  const b = $("#storageApply");
+  b.disabled = true;
+  setHTML($("#storageInfo"), "Déplacement des vidéos…");
+  const r = await api("/api/settings/storage", { path: $("#storagePath").value }).catch((e) => ({ error: e.message }));
+  b.disabled = false;
+  if (r.error) { await loadStorage(); return renderStorage(`<span style="color:var(--c-err)">${esc(r.error)}</span>`); }
+  $("#storagePath").blur();
+  await loadStorage();
+  renderStorage(`Enregistré${r.moved ? ` : ${r.moved} fichier(s) déplacé(s)` : ""}.`);
+};
+$("#storagePath").onkeydown = (e) => { if (e.key === "Enter") $("#storageApply").click(); };
+void loadStorage();
+
 function renderSettings() {
   document.querySelectorAll("[data-s]").forEach((el) => { if (document.activeElement !== el) el.value = S.settings[el.dataset.s]; });
   $("#autoToggle").classList.toggle("on", !!S.settings.autopilot);

@@ -9,6 +9,7 @@ import { promisify } from "node:util";
 import { bundle } from "@remotion/bundler";
 import { openBrowser, renderStill, selectComposition } from "@remotion/renderer";
 import { ROOT } from "../shared/catalog.mjs";
+import { outDir as storageOut } from "../shared/storage.mjs";
 import { taleTimeline } from "../shared/tales.mjs";
 
 const run = promisify(execFile);
@@ -35,7 +36,7 @@ if (errors.length) done();
 
 const tale = JSON.parse(readFileSync(jsonFile, "utf8"));
 const src = readFileSync(storyFile, "utf8");
-const outDir = join(ROOT, "out", "tales-preview", slug);
+const outDir = join(storageOut(), "tales-preview", slug);
 rmSync(outDir, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
 
@@ -75,7 +76,7 @@ const extra = (args.find((a) => a.startsWith("--frames="))?.slice(9) ?? "").spli
 const frames = [...timeline.beats.map((b) => b.from + Math.round(b.dur * 0.66)), timeline.totalFrames - 1, 0, ...extra].filter((f) => f >= 0 && f < timeline.totalFrames);
 // Les images fixes n'ont pas besoin de la voix : un public minimal (liens vers apps/, fx/ et les bruitages, qu'une nappe
 // bouclée doit charger même pour une image fixe) évite de copier tout public/ (plusieurs centaines de Mo) dans chaque bundle.
-const publicDir = join(ROOT, "out", "tales-preview", "_public");
+const publicDir = join(storageOut(), "tales-preview", "_public");
 mkdirSync(join(publicDir, "audio"), { recursive: true });
 mkdirSync(join(ROOT, "public", "audio", "tale-sfx"), { recursive: true });
 for (const d of ["apps", "fx", "audio/tale-sfx"]) if (!existsSync(join(publicDir, d))) symlinkSync(join(ROOT, "public", d), join(publicDir, d), "junction");

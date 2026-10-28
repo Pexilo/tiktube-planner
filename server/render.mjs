@@ -221,6 +221,8 @@ async function work() {
 }
 
 export const isRendered = (id) => existsSync(outFile(id));
+/** Un rendu tourne ou attend (le dossier de stockage ne peut pas changer pendant ce temps). */
+export const renderBusy = () => working || queue.length > 0;
 
 /**
  * J+1 après la sortie sur YouTube : le MP4 ne sert plus (gardé tant qu'un post TikTok non envoyé en a besoin),

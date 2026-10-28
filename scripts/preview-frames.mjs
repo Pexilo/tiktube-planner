@@ -5,9 +5,10 @@ import { renderStill, selectComposition } from "@remotion/renderer";
 import { join } from "node:path";
 import { mkdirSync } from "node:fs";
 import { ROOT } from "../shared/catalog.mjs";
+import { outDir as storageOut } from "../shared/storage.mjs";
 
 const [id, framesArg, outDirArg] = process.argv.slice(2);
-const outDir = outDirArg ?? join(ROOT, "out", "preview");
+const outDir = outDirArg ?? join(storageOut(), "preview");
 mkdirSync(outDir, { recursive: true });
 const serveUrl = await bundle({ entryPoint: join(ROOT, "src/index.ts"), publicDir: join(ROOT, "public") });
 for (const cid of id.split(",")) {
