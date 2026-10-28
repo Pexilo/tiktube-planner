@@ -13,7 +13,8 @@ import { signature } from "../shared/profile.mjs";
 export const PORT = Number(process.env.PORT ?? 4321);
 const REDIRECT = `http://localhost:${PORT}/oauth/callback`;
 const TOKEN = join(DATA, "youtube-token.json");
-const SCOPES = ["https://www.googleapis.com/auth/youtube.upload", "https://www.googleapis.com/auth/youtube.readonly"];
+// force-ssl : changer la date d'une vidéo déjà programmée (videos.update) ; upload seul ne le permet pas.
+const SCOPES = ["https://www.googleapis.com/auth/youtube.upload", "https://www.googleapis.com/auth/youtube.readonly", "https://www.googleapis.com/auth/youtube.force-ssl"];
 
 export const uploadState = { id: null, progress: 0, queue: [], lastError: null, channel: null };
 
@@ -335,6 +336,28 @@ export async function uploadOne(v, app, { now = false } = {}) {
     }
   }
   return id;
+}
+
+/** Vidéo déjà envoyée mais pas encore sortie : nouvelle date de sortie directement dans YouTube. */
+export async function reschedule(v, publishAt) {
+  const c = client();
+  if (!c || !existsSync(TOKEN)) throw new Error("YouTube non connecté");
+  const tok = JSON.parse(readFileSync(TOKEN, "utf8"));
+  if (!String(tok.scope ?? "").includes("youtube.force-ssl"))
+    throw new Error("Reconnecte YouTube (bouton YouTube en haut) pour autoriser le changement de date des vidéos déjà programmées.");
+  const st = video(v.id);
+  const yt = google.youtube({ version: "v3", auth: c });
+  // part=status remplace tout le bloc : on renvoie les mêmes réglages qu'à l'envoi.
+  await yt.videos.update({
+    part: ["status"],
+    requestBody: {
+      id: st.youtubeId,
+      status: { privacyStatus: "private", publishAt, selfDeclaredMadeForKids: false, containsSyntheticMedia: false, embeddable: true },
+    },
+  });
+  st.publishAt = publishAt;
+  st.locked = true;
+  save();
 }
 
 /** Envoie une liste de vidéos à la suite, en respectant le quota quotidien. */

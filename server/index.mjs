@@ -17,7 +17,7 @@ import { smartImport } from "./smartimport.mjs";
 import * as watch from "./watchfolder.mjs";
 import { setupRoutes } from "./setup.mjs";
 import { loadProfile } from "../shared/profile.mjs";
-import { authUrl, buildMetadata, handleCallback, PORT, refreshChannel, status as ytStatus, tiktokCaption, uploadMany, uploadOne, uploadState, uploadsToday } from "./youtube.mjs";
+import { authUrl, buildMetadata, handleCallback, PORT, refreshChannel, reschedule, status as ytStatus, tiktokCaption, uploadMany, uploadOne, uploadState, uploadsToday } from "./youtube.mjs";
 import { setupTaleRoutes } from "./tales.mjs";
 
 const app = express();
@@ -114,9 +114,25 @@ app.post("/api/schedule/generate", (_req, res) => {
   res.json({ ok: true });
 });
 
-app.patch("/api/videos/:id", (req, res) => {
+app.patch("/api/videos/:id", async (req, res) => {
   const st = video(req.params.id);
-  if (st.youtubeId) return res.status(400).json({ error: "Déjà envoyée sur YouTube : modifie la date dans YouTube Studio." });
+  // Déjà programmée sur YouTube : la date change dans YouTube, et le post TikTok d'une story suit.
+  if (st.youtubeId) {
+    if (req.body.publishAt === undefined) return res.json({ ok: true });
+    if (new Date(st.publishAt).getTime() <= Date.now()) return res.status(400).json({ error: "Déjà sortie sur YouTube : la date ne se change plus." });
+    const at = new Date(req.body.publishAt);
+    if (at.getTime() < Date.now() + 10 * 60000) return res.status(400).json({ error: "Trop proche : choisis une heure au moins 10 min plus tard." });
+    const v = catalog().videos.find((x) => x.id === req.params.id);
+    if (!v) return res.status(404).json({ error: "Vidéo introuvable" });
+    try {
+      await reschedule(v, at.toISOString());
+    } catch (e) {
+      return res.status(400).json({ error: `YouTube : ${e?.errors?.[0]?.message ?? e.message}` });
+    }
+    tt.syncTalePosts();
+    logEvent("schedule", `Date changée sur YouTube : ${v.title} → ${at.toLocaleString("fr-BE", { timeZone: "Europe/Brussels", weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}`, v.id);
+    return res.json({ ok: true });
+  }
   if (req.body.publishAt !== undefined) {
     // L'autopilote passe toutes les 10 min et YouTube veut l'envoi 15 min avant : en dessous de 30 min, le créneau serait raté.
     if (new Date(req.body.publishAt).getTime() < Date.now() + 30 * 60000)
@@ -126,6 +142,7 @@ app.patch("/api/videos/:id", (req, res) => {
   }
   if (req.body.locked !== undefined) st.locked = !!req.body.locked;
   save();
+  tt.syncTalePosts(); // le post TikTok d'une story suit tout de suite, sans attendre le prochain passage
   res.json({ ok: true });
 });
 

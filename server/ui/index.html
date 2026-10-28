@@ -202,6 +202,11 @@
   .ev-row .tt .s { display: flex; gap: 6px; align-items: center; color: var(--muted); font-size: 12px; margin-top: 2px; flex-wrap: wrap; }
   .ev-row .acts { display: flex; gap: 4px; justify-content: flex-end; }
   .ev-row input[type="datetime-local"] { padding: 4px 7px; font-size: 12.5px; }
+  /* Lot story : YouTube + TikTok sur une seule ligne, icônes reliées */
+  .ev-row .lot-ic { display: flex; flex-direction: column; align-items: center; }
+  .ev-row .lot-ic i { width: 2px; height: 6px; background: var(--muted); opacity: .5; }
+  .ev-row .lot-st { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+  .ev-row .lot-st .chip span { color: var(--muted); font-weight: 600; }
 
   /* ---------------------------------------------------------------- Bibliothèque */
   .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
@@ -891,7 +896,7 @@ function renderCalendar() {
   if ($("#tab-calendar").contains(document.activeElement) && document.activeElement.tagName === "INPUT") return;
   $("#calSub").textContent = mode === "stories" ? "Les stories qui sortent, sur YouTube et TikTok, jour par jour." : "Tout ce qui sort, sur YouTube et TikTok, jour par jour.";
   const now = Date.now();
-  const all = timeline().filter((x) => !cal.plat || x.plat === cal.plat);
+  const all = lots(timeline()).filter((x) => !cal.plat || x.plat === cal.plat || (x.tt && cal.plat === "tt"));
   // Bandeau 14 jours
   const start = new Date(); start.setHours(0, 0, 0, 0);
   const byDay = {};
@@ -914,16 +919,28 @@ function renderCalendar() {
     || `<div class="card empty"><b>${cal.range === "future" ? "Rien de prévu" : "Encore rien de publié"}</b>${cal.range === "future" ? "Clique « Recalculer le planning »." : ""}</div>`);
 }
 
+/** Story : son post TikTok suit la date YouTube → une seule ligne « lot » au lieu de deux. */
+function lots(items) {
+  const yt = new Map(items.filter((x) => x.plat === "yt" && x.v.kind === "tale").map((x) => [x.v.id, x]));
+  return items.filter((x) => {
+    const lot = x.plat === "tt" && yt.get(x.p.videoId);
+    if (lot) lot.tt = x;
+    return !lot;
+  });
+}
+
 function calRow(x) {
   if (x.plat === "yt") {
     const v = x.v, wide = isWide(v);
     const th = v.thumb ? `<img class="th ${wide ? "h" : "v"}" src="/out/${v.id}.jpg${bust(v)}" onerror="this.style.visibility='hidden'">` : `<img class="th" src="${appOf(v.slug).icon}" style="width:44px;height:44px">`;
-    const editable = !v.youtubeId;
-    return `<div class="ev-row ${v.paused && !v.youtubeId ? "paused" : ""}"><span class="time">${hhmm(x.at)}</span>${platIc("yt")}${th}
+    const editable = !v.youtubeId, movable = !v.published; // déjà programmée sur YouTube : la date se change quand même (YouTube + TikTok)
+    const p = x.tt?.p, [ttCls, ttLabel] = p ? TT_ST[p.status] ?? ["todo", p.status] : [];
+    const ttOff = p && p.sentAt && hhmm(p.sentAt) !== hhmm(x.at) ? ` à ${hhmm(p.sentAt)}` : ""; // envoyé à une autre heure que YouTube
+    return `<div class="ev-row ${v.paused && !v.youtubeId ? "paused" : ""}" ${p ? 'title="Story : YouTube et TikTok sortent ensemble"' : ""}><span class="time">${hhmm(x.at)}</span>${p ? `<span class="lot-ic">${platIc("yt")}<i></i>${platIc("tt")}</span>` : platIc("yt")}${th}
       <div class="tt"><b>${esc(v.title)}</b><div class="s"><img class="appic" style="width:16px;height:16px;border-radius:4px" src="${appOf(v.slug).icon}">${esc(v.appName)} <span class="tag">${kindLabel(v)}</span><span class="tag">${v.lang.toUpperCase()}</span>${v.locked && editable ? `<span title="Date fixée à la main">${ic("lock", 'style="width:13px;height:13px"')}</span>` : ""}</div></div>
-      ${chip(statusOf(v))}
+      ${p ? `<div class="lot-st"><span class="chip ${statusOf(v)[0]}">${esc(statusOf(v)[1])}<span>· YouTube</span></span><span class="chip ${ttCls}">${esc(ttLabel)}${ttOff}<span>· TikTok</span></span></div>` : chip(statusOf(v))}
       <div class="acts">
-        ${editable ? `<input type="datetime-local" value="${toLocalInput(v.publishAt)}" data-date="${v.id}" title="Changer la date">` : ""}
+        ${movable ? `<input type="datetime-local" value="${toLocalInput(v.publishAt)}" data-date="${v.id}" ${v.youtubeId ? 'data-onyt="1"' : ""} title="${v.youtubeId ? "Changer la date (aussi dans YouTube et TikTok)" : "Changer la date"}">` : ""}
         ${v.rendered ? `<button class="btn sm icon ghost" data-play="${v.id}" title="Voir">${ic("playc")}</button>` : ""}
         ${v.youtubeId ? `<a class="btn sm icon ghost" target="_blank" href="${v.published ? `https://youtu.be/${v.youtubeId}` : `https://studio.youtube.com/video/${v.youtubeId}/edit`}" title="${v.published ? "Ouvrir sur YouTube" : "Ouvrir dans YouTube Studio"}">${ic("ext")}</a>` : ""}
       </div></div>`;
@@ -1689,7 +1706,15 @@ document.body.addEventListener("click", async (e) => {
 document.body.addEventListener("change", async (e) => {
   const t = e.target;
   if (t.dataset.sel) { t.checked ? sel.add(t.dataset.sel) : sel.delete(t.dataset.sel); renderLibrary(); }
-  if (t.dataset.date) { const r = await api(`/api/videos/${t.dataset.date}`, { publishAt: new Date(t.value).toISOString() }, "PATCH"); if (r?.error) alert(r.error); t.blur(); refresh(); }
+  if (t.dataset.date) {
+    if (!t.value || (t.dataset.onyt && !confirm(`Déjà programmée sur YouTube : reprogrammer au ${new Date(t.value).toLocaleString(LOCALE, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} ? La date change aussi dans YouTube, et le TikTok de la story suit.`))) { t.blur(); return refresh(); }
+    const r = await api(`/api/videos/${t.dataset.date}`, { publishAt: new Date(t.value).toISOString() }, "PATCH");
+    if (r?.error && /Reconnecte YouTube/.test(r.error)) { if (confirm(`${r.error}
+
+Reconnecter maintenant ?`)) location.href = "/api/youtube/auth"; }
+    else if (r?.error) alert(r.error);
+    t.blur(); refresh(); refreshTikTok();
+  }
   if (t.dataset.tts) { const list = t.value.split(/[ ,;]+/).map((x) => x.trim()).filter((x) => /^\d{1,2}:\d{2}$/.test(x)).map((x) => x.padStart(5, "0")); await api("/api/tiktok/settings", { [t.dataset.tts]: list }, "PATCH"); t.blur(); refreshTikTok(); }
   if (t.dataset.s) { const val = t.type === "number" ? Number(t.value) : t.value; await api("/api/settings", { [t.dataset.s]: val }, "PATCH"); refresh(); }
 });
