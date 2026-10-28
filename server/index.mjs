@@ -150,10 +150,7 @@ app.patch("/api/videos/:id", async (req, res) => {
 app.patch("/api/settings", (req, res) => {
   delete req.body.storagePath; // changé uniquement via /api/settings/storage (déplacement des fichiers)
   updateSettings(req.body);
-  if (req.body.frEnabled !== undefined) {
-    dropPausedFromQueue();
-    logEvent("info", req.body.frEnabled ? "Vidéos FR réactivées" : "Vidéos FR en pause : aucune action sur le FR");
-  }
+  if (req.body.accountShare !== undefined) dropPausedFromQueue(); // une langue peut perdre son dernier compte
   if (req.body.pubsEnabled !== undefined) {
     if (req.body.pubsEnabled) {
       const n = tt.rescheduleOverduePubs();
@@ -370,7 +367,7 @@ app.post("/api/tiktok/posts/:id/images", upload.array("images", 35), async (req,
 app.post("/api/tiktok/posts/:id/send", async (req, res) => {
   const p = tt.posts().find((x) => x.id === req.params.id);
   if (!p) return res.status(404).end();
-  if (!langOn(tt.postLang(p))) return res.status(400).json({ error: "FR en pause : réactive le français pour envoyer ce post." });
+  if (!langOn(tt.postLang(p))) return res.status(400).json({ error: `Aucun compte ${tt.postLang(p).toUpperCase()} connecté : connecte-en un dans Réglages pour envoyer ce post.` });
   if (!tt.postOn(p)) return res.status(400).json({ error: "Pubs en pause : réactive les pubs pour envoyer ce post." });
   res.json({ ok: true });
   await tt.sendPost(p).catch((e) => console.error("tiktok", e.message));
@@ -380,7 +377,7 @@ app.post("/api/tiktok/from-video", (req, res) => {
   const c = catalog();
   const v = c.videos.find((x) => x.id === req.body.videoId);
   if (!v) return res.status(404).json({ error: "Vidéo inconnue" });
-  if (!langOn(v.lang)) return res.status(400).json({ error: "FR en pause : réactive le français pour l'ajouter." });
+  if (!langOn(v.lang)) return res.status(400).json({ error: `Aucun compte ${v.lang.toUpperCase()} connecté : connecte-en un dans Réglages pour l'ajouter.` });
   const m = buildMetadata(v, c.apps.find((a) => a.slug === v.slug));
   res.json(
     tt.createPost({
@@ -400,6 +397,7 @@ app.post("/api/accounts/:net/:lang/forget", (req, res) => {
   const net = NETS[req.params.net];
   if (!net || !["fr", "en"].includes(req.params.lang)) return res.status(404).end();
   net.forget(req.params.lang);
+  dropPausedFromQueue(); // dernier compte de cette langue retiré : ses rendus en attente sont annulés
   logEvent("info", `${req.params.net} : compte ${req.params.lang.toUpperCase()} retiré`);
   res.json({ ok: true });
 });

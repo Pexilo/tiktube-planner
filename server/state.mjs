@@ -25,7 +25,6 @@ const DEFAULTS = {
     maxUploadsPerDay: 6,
     uploadHorizonDays: 14,
     autopilot: false,
-    frEnabled: true, // FR en pause = aucune action (rendu, voix, planning, YouTube, TikTok) sur les vidéos FR
     pubsEnabled: true, // Pubs en pause = rien ne part (YouTube, TikTok) pour les vidéos des apps ; les stories continuent
     taleTime: "20:00", // Stories crypto : créneau dédié, séparé des pubs
     talesPerDay: 1,
@@ -74,14 +73,22 @@ export function updateSettings(patch) {
   save();
 }
 
-/** Langue active ? (FR peut être mis en pause depuis le dashboard, sans rien supprimer.) */
-export const langOn = (lang) => lang !== "fr" || state.settings.frEnabled !== false;
-
 /**
  * Un compte par langue et par réseau (YouTube, TikTok, Instagram). Une langue sans compte ne publie rien,
  * sauf si le compte de l'autre langue est partagé (réglage accountShare : un seul compte pour les deux langues).
  */
 export const LANGS = ["fr", "en"];
+// Chaque réseau inscrit sa fonction « cette langue a-t-elle un compte qui la publie ? ».
+const publishers = [];
+export const registerPublisher = (fn) => publishers.push(fn);
+/**
+ * Langue active : au moins un réseau a un compte qui la publie. Sans compte FR, rien n'est rendu, planifié
+ * ni envoyé en FR (rien n'est supprimé). Tant qu'aucun compte n'est connecté (installation), tout reste actif.
+ */
+export function langOn(lang) {
+  if (!publishers.some((f) => LANGS.some(f))) return true;
+  return publishers.some((f) => f(lang));
+}
 export const accountShared = (net, lang) => !!state.settings.accountShare?.[net]?.[lang];
 export function pickAccount(net, has, lang) {
   if (has(lang)) return lang;

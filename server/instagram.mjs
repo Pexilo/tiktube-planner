@@ -6,7 +6,7 @@
 // Un compte par langue (même app Meta) ; une langue sans compte ne publie rien, sauf compte partagé (voir docs/INSTAGRAM_SETUP.md).
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { DATA, isTaleId, LANGS, pickAccount } from "./state.mjs";
+import { DATA, isTaleId, LANGS, pickAccount, registerPublisher } from "./state.mjs";
 import { logEvent } from "./events.mjs";
 import { notify } from "../shared/platform.mjs";
 import { postLang, postOn, posts as ttPosts } from "./tiktok.mjs";
@@ -54,6 +54,7 @@ export function config() {
 const hasToken = (lang) => !!config()?.accounts?.[lang]?.accessToken;
 /** Compte qui publie les Reels de cette langue (le sien, ou celui de l'autre langue s'il est partagé), sinon null. */
 export const accountFor = (lang) => pickAccount("instagram", hasToken, lang);
+registerPublisher((lang) => !!accountFor(lang));
 
 export function status() {
   const u = igState.users;

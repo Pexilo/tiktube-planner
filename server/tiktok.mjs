@@ -8,7 +8,7 @@ import { createReadStream, existsSync, mkdirSync, readFileSync, readdirSync, ren
 import { basename, extname, join } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { DATA, getState, isTaleId, langOn, LANGS, pickAccount, pubsOn } from "./state.mjs";
+import { DATA, getState, isTaleId, langOn, LANGS, pickAccount, pubsOn, registerPublisher } from "./state.mjs";
 import { logEvent } from "./events.mjs";
 import { copyToClipboard, notify } from "../shared/platform.mjs";
 
@@ -24,6 +24,7 @@ if (existsSync(LEGACY) && !existsSync(tokenFile("en"))) renameSync(LEGACY, token
 const hasToken = (lang) => existsSync(tokenFile(lang));
 /** Compte qui reçoit les posts de cette langue (le sien, ou celui de l'autre langue s'il est partagé), sinon null. */
 export const accountFor = (lang) => pickAccount("tiktok", hasToken, lang);
+registerPublisher((lang) => !!accountFor(lang));
 const STORE = join(DATA, "tiktok.json");
 export const MEDIA = join(DATA, "tiktok-media");
 mkdirSync(MEDIA, { recursive: true });
@@ -75,7 +76,7 @@ export function scheduleDrafts(only = null) {
   const taken = new Set(store.posts.filter((p) => p.publishAt && (p.status === "scheduled" || p.status === "sending")).map((p) => p.publishAt.slice(0, 16)));
   let n = 0;
   for (const lang of ["fr", "en"]) {
-    if (!langOn(lang)) continue; // FR en pause : les brouillons FR restent brouillons
+    if (!langOn(lang)) continue; // aucun compte dans cette langue : ses brouillons restent brouillons
     const groups = new Map();
     for (const p of ready.filter((x) => postLang(x) === lang).sort((a, b) => (a.order ?? 99) - (b.order ?? 99) || a.createdAt.localeCompare(b.createdAt))) {
       const k = p.batch ?? p.source ?? "";

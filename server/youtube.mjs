@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { google } from "googleapis";
 import { loadTale, ROOT } from "../shared/catalog.mjs";
 import { buildTimeline, FPS } from "../shared/timeline.mjs";
-import { DATA, getState, LANGS, pickAccount, save, video, videoOn } from "./state.mjs";
+import { DATA, getState, LANGS, pickAccount, registerPublisher, save, video, videoOn } from "./state.mjs";
 import { outFile, thumbFile } from "./render.mjs";
 import { logEvent } from "./events.mjs";
 import { signature } from "../shared/profile.mjs";
@@ -20,6 +20,7 @@ if (existsSync(LEGACY) && !existsSync(tokenFile("en"))) renameSync(LEGACY, token
 const hasToken = (lang) => existsSync(tokenFile(lang));
 /** Chaîne qui publie les vidéos de cette langue (la sienne, ou celle de l'autre langue si elle est partagée), sinon null. */
 export const accountFor = (lang) => pickAccount("youtube", hasToken, lang);
+registerPublisher((lang) => !!accountFor(lang));
 // force-ssl : changer la date d'une vidéo déjà programmée (videos.update) ; upload seul ne le permet pas.
 const SCOPES = ["https://www.googleapis.com/auth/youtube.upload", "https://www.googleapis.com/auth/youtube.readonly", "https://www.googleapis.com/auth/youtube.force-ssl"];
 

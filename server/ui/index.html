@@ -171,6 +171,9 @@
   .row-item .tt b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .row-item .tt span { font-size: 12px; color: var(--muted); }
   .row-item .when { text-align: right; font-size: 12.5px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .row-item .when b { display: block; font-weight: 600; color: var(--text); }
+  .row-item .when .rel { display: block; font-size: 11.5px; }
+  .row-item .when .chip { margin-top: 4px; }
   .row-item .when b { display: block; color: var(--text); font-weight: 600; }
   .mini { width: 34px; height: 34px; border-radius: 9px; object-fit: cover; background: var(--surface2); flex: none; }
   .plat { width: 20px; height: 20px; border-radius: 6px; display: grid; place-items: center; flex: none; color: #fff; }
@@ -382,7 +385,6 @@
     <nav class="nav" id="nav"></nav>
     <div class="side-foot">
       <div class="conn" data-only="pubs" title="Pubs en pause : rien n'est envoyé sur YouTube ni TikTok pour les vidéos des apps (rien n'est supprimé, les stories continuent)">Envoi des pubs<div class="toggle" id="pubsToggle" style="margin-left:auto"></div></div>
-      <div class="conn" title="Français en pause : aucun rendu, planning ni envoi FR (rien n'est supprimé)">Vidéos FR<div class="toggle" id="frToggle" style="margin-left:auto"></div></div>
       <div id="sideConn"></div>
       <div class="side-row">
         <button class="btn sm" id="themeBtn" style="flex:1" title="Thème"></button>
@@ -556,7 +558,6 @@
           <div class="card-h"><h3>Autopilote</h3></div>
           <div class="field"><label>Activé</label><div class="toggle" id="autoToggle"></div></div>
           <div class="field"><label>Envoi des pubs (YouTube, TikTok ; les stories continuent)</label><div class="toggle" id="pubsToggle2"></div></div>
-          <div class="field"><label>Vidéos FR (rendu, planning, YouTube, TikTok)</label><div class="toggle" id="frToggle2"></div></div>
           <div class="field"><label>Horizon d'envoi (jours)</label><input type="number" min="1" max="90" data-s="uploadHorizonDays" style="width:80px" /></div>
           <div class="field"><label>Envois max / jour (quota API)</label><input type="number" min="1" max="50" data-s="maxUploadsPerDay" style="width:80px" /></div>
           <p class="note">Toutes les 10 minutes, tant que la plateforme tourne : rend les vidéos qui sortent dans l'horizon puis les envoie sur YouTube en privé programmé. C'est YouTube qui publie à l'heure prévue, ton Mac peut être éteint à ce moment-là.</p>
@@ -842,7 +843,6 @@ function renderAlerts() {
     const onYt = S.videos.filter((v) => v.youtubeId && !v.published && v.publishAt && new Date(v.publishAt) > Date.now());
     a += `<div class="alert">${ic("alert")}<div><b>Pubs en pause</b> : rien ne part sur YouTube ni TikTok tant que tu ne les réactives pas (rien n'est supprimé, les stories continuent). À la réactivation, les créneaux passés sont replanifiés.${onYt.length ? ` <b>${onYt.length} pub(s) déjà envoyée(s) sur YouTube sortiront quand même à leur heure</b> (c'est YouTube qui publie) : passe-les en privé dans YouTube Studio pour les retenir.` : ""} <a href="#" data-pubstoggle style="text-decoration:underline">Réactiver les pubs</a></div></div>`;
   }
-  if (S.settings.frEnabled === false && mode === "pubs") a += `<div class="alert">${ic("alert")}<div><b>Vidéos FR en pause</b> : rien n'est rendu, planifié ni envoyé en français (rien n'est supprimé). Pense à « Recalculer le planning » pour resserrer les sorties EN. <a href="#" data-frtoggle style="text-decoration:underline">Réactiver le FR</a></div></div>`;
   setHTML($("#alerts"), a);
 }
 
@@ -861,12 +861,12 @@ function renderToday() {
   const who = S.profile?.ownerName ? ` ${S.profile.ownerName}` : "";
   $("#hello").textContent = (h < 6 ? "Bonne nuit" : h < 18 ? "Bonjour" : "Bonsoir") + who;
 
-  const all = timeline();
+  const all = lots(timeline()); // une sortie = une ligne, même quand elle part sur plusieurs réseaux
   const upcoming = all.filter((x) => !x.done && new Date(x.at) > now);
   const week = upcoming.filter((x) => new Date(x.at) < now + 7 * 864e5);
   const errors = S.videos.filter(isErr).length + (TT?.posts ?? []).filter((p) => p.status === "error").length;
   const next = upcoming[0];
-  const nextName = next ? (next.plat === "yt" ? next.v.appName : "TikTok") : "";
+  const nextName = next ? (next.plat === "yt" ? next.v.appName : ttTitle(next.p)) : "";
   const warn = errors || !S.youtube.connected;
   setHTML($("#hero"), `<div class="ic">${ic(warn ? "alert" : "check")}</div><div><b>${warn ? (errors ? `${errors} élément(s) en erreur à regarder` : "YouTube est déconnecté") : "Tout roule."}</b>
     <div class="muted">${week.length} sortie(s) prévue(s) ces 7 prochains jours${next ? ` · prochaine : <b style="font-size:inherit">${esc(nextName)}</b> ${rel(next.at)} (${fmtDate(next.at)})` : ""}.</div></div>
@@ -944,20 +944,31 @@ function renderToday() {
     : `<div class="note">Les événements apparaîtront ici.</div>`));
 }
 
-/** Ligne compacte (YouTube ou TikTok) pour les listes de la page Aujourd'hui. */
+/** « Aujourd'hui · 18:00 », « Demain · 20:00 », « ven. 30 oct. · 20:00 ». */
+const whenLabel = (at) => {
+  const k = dayKey(at), day = k === dayKey(Date.now()) ? "Aujourd'hui" : k === dayKey(Date.now() + 864e5) ? "Demain" : k === dayKey(Date.now() - 864e5) ? "Hier" : new Date(at).toLocaleDateString(LOCALE, { weekday: "short", day: "numeric", month: "short" });
+  return `${day} · ${hhmm(at)}`;
+};
+/** Statut affiché seulement s'il demande un coup d'œil (à rendre, erreur…) : programmé / publié va de soi. */
+const attn = (st) => (["sched", "pub"].includes(st[0]) ? "" : chip(st));
+
+/**
+ * Une sortie = une ligne (page Aujourd'hui) : la vidéo part partout à la même heure (YouTube, TikTok, Instagram),
+ * donc ni logo ni statut par réseau. Les éléments viennent de lots(timeline()).
+ */
 function itemRow(x) {
   if (x.plat === "yt") {
     const v = x.v;
     const thumb = v.thumb ? `<img class="mini" src="/out/${v.id}.jpg${bust(v)}" onerror="this.src='${appOf(v.slug).icon}'">` : `<img class="mini" src="${appOf(v.slug).icon}">`;
     const link = v.youtubeId ? (v.published ? `https://youtu.be/${v.youtubeId}` : `https://studio.youtube.com/video/${v.youtubeId}/edit`) : null;
-    return `<${link ? `a href="${link}" target="_blank"` : `div data-play="${v.rendered ? v.id : ""}" style="cursor:${v.rendered ? "pointer" : "default"}"`} class="row-item ${v.paused && !v.youtubeId ? "paused" : ""}">${thumb}${platIc("yt")}
+    return `<${link ? `a href="${link}" target="_blank"` : `div data-play="${v.rendered ? v.id : ""}" style="cursor:${v.rendered ? "pointer" : "default"}"`} class="row-item ${v.paused && !v.youtubeId ? "paused" : ""}">${thumb}
       <div class="tt"><b>${esc(v.title)}</b><span>${esc(v.appName)} · ${kindLabel(v)} · ${v.lang.toUpperCase()}</span></div>
-      <div class="when"><b>${x.done ? rel(x.at) : rel(x.at)}</b>${chip(statusOf(v))}</div></${link ? "a" : "div"}>`;
+      <div class="when"><b>${whenLabel(x.at)}</b><span class="rel">${rel(x.at)}</span>${attn(statusOf(v))}</div></${link ? "a" : "div"}>`;
   }
   const p = x.p, th = ttThumb(p);
-  return `<a href="#tiktok" class="row-item">${th ? `<img class="mini" src="${th}">` : `<span class="mini"></span>`}${platIc("tt")}
-    <div class="tt"><b>${esc(ttTitle(p))}</b><span>${p.type === "photo" ? `Carrousel · ${p.images.length} images` : "Vidéo"}</span></div>
-    <div class="when"><b>${rel(x.at)}</b>${chip(TT_ST[p.status] ?? ["todo", p.status])}</div></a>`;
+  return `<a href="#tiktok" class="row-item">${th ? `<img class="mini" src="${th}">` : `<span class="mini"></span>`}
+    <div class="tt"><b>${esc(ttTitle(p))}</b><span>${p.type === "photo" ? `Carrousel · ${p.images.length} images` : "Vidéo"}${p.lang ? ` · ${p.lang.toUpperCase()}` : ""}</span></div>
+    <div class="when"><b>${whenLabel(x.at)}</b><span class="rel">${rel(x.at)}</span>${attn(TT_ST[p.status] ?? ["todo", p.status])}</div></a>`;
 }
 
 /* ------------------------------------------------------------------ Calendrier */
@@ -1123,7 +1134,6 @@ void loadStorage();
 function renderSettings() {
   document.querySelectorAll("[data-s]").forEach((el) => { if (document.activeElement !== el) el.value = S.settings[el.dataset.s]; });
   $("#autoToggle").classList.toggle("on", !!S.settings.autopilot);
-  for (const id of ["#frToggle", "#frToggle2"]) $(id).classList.toggle("on", S.settings.frEnabled !== false);
   for (const id of ["#pubsToggle", "#pubsToggle2"]) $(id).classList.toggle("on", S.settings.pubsEnabled !== false);
   $("#taleTtToggle").classList.toggle("on", !!S.settings.taleAutoTikTok);
   const y = S.youtube;
@@ -1449,12 +1459,11 @@ function renderTalesToday() {
   const scripts = tales.filter((t) => t.status === "script");
   const prod = tales.filter((t) => t.status !== "script" && !isSched(t));
   const sched = tales.filter((t) => isSched(t) && !isPub(t)), pub = tales.filter(isPub);
-  const ttSched = (TT?.posts ?? []).filter((p) => p.status === "scheduled").length;
   const stages = [
     ["ideas", "Idées", "var(--c-todo)", ideas.length, "à trier, sourcées"],
     ["stories", "À valider", "var(--c-work)", scripts.length, "scripts qui t'attendent"],
     ["stories", "En fabrication", "var(--c-ready)", prod.length, "voix, visuels, rendu"],
-    ["calendar", "Programmées", "var(--c-sched)", sched.length, `sur YouTube, sortie auto${ttSched ? `<br>+ ${ttSched} TikTok programmé(s)` : ""}${pub.length ? `<br>${pub.length} déjà publiée(s)` : ""}`],
+    ["calendar", "Programmées", "var(--c-sched)", sched.length, `sortie automatique, partout à la même heure${pub.length ? `<br>${pub.length} déjà publiée(s)` : ""}`],
   ];
   setHTML($("#tPipe"), stages.map(([go, l, c, n, desc], i) => `<div class="card stage" data-go="${go}">
       <div class="top"><span class="dot" style="background:${c}"></span>${l}</div><div class="num">${n}</div><div class="desc">${desc}</div>
@@ -1486,8 +1495,8 @@ function renderTalesToday() {
     ${ideas.length ? `<a href="#ideas" class="row-item"><span class="jobic" style="width:34px;height:34px;border-radius:9px">${ic("bulb")}</span><div class="tt"><b>${ideas.length} idée(s) à trier</b><span>Choisis celles qui méritent un script</span></div></a>` : ""}
     ${!todo.length && !ideas.length ? `<div class="empty"><b>Rien à valider</b>Lance « Chercher des histoires » dans Idées.</div>` : ""}`);
 
-  // Prochaines sorties / déjà publié (stories uniquement : S et TT sont filtrés)
-  const all = timeline();
+  // Prochaines sorties / déjà publié (stories uniquement : S et TT sont filtrés) ; une story = une ligne
+  const all = lots(timeline());
   const upcoming = all.filter((x) => !x.done && new Date(x.at) > now);
   setHTML($("#tNext"), `<div class="card-h"><h3>Prochaines sorties</h3><span class="spacer"></span><a class="btn sm ghost" href="#calendar">Calendrier</a></div>
     ${upcoming.slice(0, 8).map(itemRow).join("") || `<div class="empty"><b>Aucune story programmée</b>Les stories validées et rendues prennent le prochain créneau.</div>`}`);
@@ -1850,9 +1859,6 @@ $("#uploadSel").onclick = async () => {
 $("#selAll").onclick = () => { filtered().forEach((v) => sel.add(v.id)); renderLibrary(); };
 $("#selNone").onclick = () => { sel.clear(); renderLibrary(); };
 $("#regen").onclick = async () => { await api("/api/schedule/generate", {}); refresh(); };
-const toggleFr = async (e) => { e?.preventDefault(); await api("/api/settings", { frEnabled: S.settings.frEnabled === false }, "PATCH"); refresh(); refreshTikTok(); };
-$("#frToggle").onclick = $("#frToggle2").onclick = toggleFr;
-document.body.addEventListener("click", (e) => { if (e.target.closest("[data-frtoggle]")) toggleFr(e); });
 const togglePubs = async (e) => {
   e?.preventDefault();
   const on = S.settings.pubsEnabled === false;
