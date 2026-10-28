@@ -116,6 +116,7 @@ const ext = (url, label) => `<a href="${url}" target="_blank" rel="noopener">${l
 const T = {
   fr: {
     tagline: "Guide d'installation", dash: "Dashboard →", next: "Continuer →", prev: "← Retour", skip: "Passer cette étape →", optional: "option",
+    acc: { h: "Un compte par langue", fallback: (o) => `publie sur le compte ${o}`, none: "aucun compte", connect: (l) => `Connecter le compte ${l}`, change: "Changer", forget: "Retirer", forgetQ: (l) => `Retirer le compte ${l} ? Ses vidéos partiront sur l'autre compte s'il existe.` },
     steps: ["Bienvenue", "Ton profil", "Tes apps", "YouTube", "TikTok", "Photos TikTok", "Dossier TikTok", "Instagram", "Voix off", "C'est prêt", "Soutenir le dév"],
     s0: { h: "Bienvenue 👋", lead: "En quelques étapes, tu vas connecter ta chaîne YouTube, ton compte TikTok et ton Instagram. Tout reste sur ton ordinateur : tes clés sont enregistrées dans le dossier <code>data/</code>, jamais envoyées ailleurs.",
       checks: "Vérification de ton ordinateur", node: "Node.js", ffmpeg: "ffmpeg (encodage vidéo)", python: "Python + numpy/scipy (musique)", ocr: "OCR du système (lecture des slides TikTok)", claude: "Claude Code CLI (légendes automatiques)", say: "Voix du système (Shorts narrés)",
@@ -141,7 +142,8 @@ const T = {
         "Clique « Connecter ma chaîne », choisis ta chaîne. Google affiche « Application non validée » : clique <b>Continuer</b> (c'est ta propre app).",
       ],
       drop: "Glisse ici le fichier <b>client_secret….json</b> (ou clique)", secretOk: "Identifiant Google enregistré ✓", connect: "Connecter ma chaîne YouTube", connected: "Chaîne connectée",
-      warn: "En mode « Test », Google demande de te reconnecter tous les 7 jours. Pour éviter ça : Google Auth Platform → <b>Audience</b> → <b>Publier l'application</b> (pas besoin de validation pour ton propre usage). Si tes vidéos restent bloquées en privé, remplis le formulaire d'audit de l'API YouTube." },
+      warn: "En mode « Test », Google demande de te reconnecter tous les 7 jours. Pour éviter ça : Google Auth Platform → <b>Audience</b> → <b>Publier l'application</b> (pas besoin de validation pour ton propre usage). Si tes vidéos restent bloquées en privé, remplis le formulaire d'audit de l'API YouTube.",
+      multi: "Une chaîne FR et une chaîne EN ? Connecte-les une par une avec le même identifiant Google : « Connecter le compte FR », choisis la chaîne FR ; puis pareil pour l'EN. Si les deux chaînes sont sur le même compte Google (chaînes de marque), Google te demande laquelle utiliser. Ajoute chaque adresse Gmail dans <b>Utilisateurs test</b>. Une seule chaîne ? Connecte-la sur une langue : elle publie aussi l'autre." },
     s4: { h: "TikTok (Sandbox)", lead: "Les posts arrivent en <b>brouillon dans ta boîte TikTok</b> à l'heure prévue : tu ajoutes un son et tu publies. Le mode Sandbox fonctionne tout de suite pour ton propre compte, sans validation de TikTok.",
       list: (r) => [
         `Ouvre ${ext("https://developers.tiktok.com/apps/", "TikTok for Developers")} → connecte-toi → <b>Connect an app</b>.`,
@@ -153,7 +155,8 @@ const T = {
         "Copie le <b>Client key</b> et le <b>Client secret</b> du Sandbox ci-dessous, puis connecte ton compte.",
       ],
       key: "Client key", secret: "Client secret", save: "Enregistrer", connect: "Connecter mon TikTok", connected: "Compte connecté", saved: "Clés enregistrées ✓",
-      tip: "Plus tard, tu pourras soumettre l'app en « Production » (formulaire + vidéo de démo) : remplace alors les clés par celles de Production et reconnecte-toi." },
+      tip: "Plus tard, tu pourras soumettre l'app en « Production » (formulaire + vidéo de démo) : remplace alors les clés par celles de Production et reconnecte-toi.",
+      multi: "Un compte TikTok FR et un compte EN ? Ajoute les deux dans <b>Sandbox settings → Target users</b>. TikTok connecte le compte ouvert dans ton navigateur : ouvre le compte FR sur tiktok.com et clique « Connecter le compte FR » ; puis change de compte sur tiktok.com et clique « Connecter le compte EN ». Un seul compte ? Connecte-le sur une langue : il reçoit aussi l'autre." },
     s5: { h: "Photos TikTok (carrousels)", lead: "Pour les carrousels, TikTok va chercher les images sur <b>un site à toi</b> (vérifié). La plateforme les y dépose par FTP/SFTP. Pas besoin pour les vidéos — tu peux passer cette étape.",
       form: "Accès FTP / SFTP de ton hébergement", proto: "Protocole", host: "Serveur", port: "Port", user: "Utilisateur", pass: "Mot de passe", dir: "Dossier distant", url: "URL publique",
       phDir: "/public_html/tiktok (ou / si le compte FTP arrive déjà dedans)", phUrl: "https://monsite.com/tiktok",
@@ -181,6 +184,8 @@ const T = {
         "<b>Rôles de l'app → Rôles → Ajouter des personnes → Testeur Instagram</b> → ton nom d'utilisateur. Puis sur instagram.com : <b>Paramètres → Apps et sites web → Invitations de testeur → Accepter</b>.",
         "Retour sur la configuration de l'API → <b>Générez des tokens d'accès → Ajouter un compte</b> → connecte ton Instagram, puis colle le token ci-dessous.",
       ],
+      multi: "Un compte Instagram FR et un compte EN ? Passe les deux en Créateur, invite-les tous les deux comme <b>Testeur Instagram</b> (étape 5), puis génère un token pour chacun (étape 6 : « Ajouter un compte » une 2e fois) et colle-le en choisissant sa langue. Un seul compte ? Il publie les deux langues.",
+      lang: "Langue du compte",
       token: "Token d'accès", appId: "ID d'app Instagram", appIdPh: "facultatif", save: "Vérifier et enregistrer", saving: "Vérification…", connected: "Compte connecté", saved: (u) => `Token vérifié et enregistré ✓ Compte @${u}`,
       tip: "Les étapes <b>webhooks</b>, <b>connexion professionnelle</b> et <b>contrôle app</b> de la page Meta ne servent pas ici : l'app peut rester en mode développement pour publier sur ton propre compte. Le token dure 60 jours, la plateforme le renouvelle chaque semaine. Ensuite, active la publication dans le dashboard → <b>Réglages → Instagram</b>." },
     sV: { h: "Voix off (ElevenLabs)", lead: "Pour des Shorts narrés <b>plus réalistes et plus accrocheurs</b>, branche ElevenLabs. Sans clé, la plateforme garde la voix de ton ordinateur.",
@@ -214,6 +219,7 @@ const T = {
   },
   en: {
     tagline: "Setup guide", dash: "Dashboard →", next: "Continue →", prev: "← Back", skip: "Skip this step →", optional: "optional",
+    acc: { h: "One account per language", fallback: (o) => `posts to the ${o} account`, none: "no account", connect: (l) => `Connect the ${l} account`, change: "Change", forget: "Remove", forgetQ: (l) => `Remove the ${l} account? Its videos will go to the other account if there is one.` },
     steps: ["Welcome", "Your profile", "Your apps", "YouTube", "TikTok", "TikTok photos", "TikTok folder", "Instagram", "Voice-over", "All set", "Support the dev"],
     s0: { h: "Welcome 👋", lead: "In a few steps you'll connect your YouTube channel, TikTok account and Instagram. Everything stays on your computer: keys are saved in the <code>data/</code> folder and never sent anywhere else.",
       checks: "Checking your computer", node: "Node.js", ffmpeg: "ffmpeg (video encoding)", python: "Python + numpy/scipy (music)", ocr: "System OCR (reads TikTok slides)", claude: "Claude Code CLI (automatic captions)", say: "System voices (narrated Shorts)",
@@ -239,7 +245,8 @@ const T = {
         "Click “Connect my channel” and pick your channel. Google shows “App not verified”: click <b>Continue</b> (it's your own app).",
       ],
       drop: "Drop the <b>client_secret….json</b> file here (or click)", secretOk: "Google credential saved ✓", connect: "Connect my YouTube channel", connected: "Channel connected",
-      warn: "In “Testing” mode Google asks you to reconnect every 7 days. To avoid it: Google Auth Platform → <b>Audience</b> → <b>Publish app</b> (no verification needed for personal use). If your videos stay locked as private, fill in the YouTube API audit form." },
+      warn: "In “Testing” mode Google asks you to reconnect every 7 days. To avoid it: Google Auth Platform → <b>Audience</b> → <b>Publish app</b> (no verification needed for personal use). If your videos stay locked as private, fill in the YouTube API audit form.",
+      multi: "A FR channel and an EN channel? Connect them one at a time with the same Google credential: “Connect the FR account”, pick the FR channel; then the same for EN. If both channels sit on the same Google account (brand channels), Google asks which one to use. Add each Gmail address under <b>Test users</b>. Only one channel? Connect it on one language: it posts the other one too." },
     s4: { h: "TikTok (Sandbox)", lead: "Posts land as <b>drafts in your TikTok inbox</b> at the planned time: add a sound and publish. Sandbox mode works right away for your own account, no TikTok review needed.",
       list: (r) => [
         `Open ${ext("https://developers.tiktok.com/apps/", "TikTok for Developers")} → log in → <b>Connect an app</b>.`,
@@ -251,7 +258,8 @@ const T = {
         "Copy the Sandbox <b>Client key</b> and <b>Client secret</b> below, then connect your account.",
       ],
       key: "Client key", secret: "Client secret", save: "Save", connect: "Connect my TikTok", connected: "Account connected", saved: "Keys saved ✓",
-      tip: "Later you can submit the app for “Production” (form + demo video): then swap in the Production keys and reconnect." },
+      tip: "Later you can submit the app for “Production” (form + demo video): then swap in the Production keys and reconnect.",
+      multi: "A FR TikTok account and an EN one? Add both under <b>Sandbox settings → Target users</b>. TikTok connects the account open in your browser: open the FR account on tiktok.com and click “Connect the FR account”; then switch accounts on tiktok.com and click “Connect the EN account”. Only one account? Connect it on one language: it gets the other one too." },
     s5: { h: "TikTok photos (carousels)", lead: "For carousels, TikTok pulls the images from <b>a website you own</b> (verified). The platform uploads them there over FTP/SFTP. Not needed for videos — you can skip this step.",
       form: "Your hosting's FTP / SFTP access", proto: "Protocol", host: "Server", port: "Port", user: "User", pass: "Password", dir: "Remote folder", url: "Public URL",
       phDir: "/public_html/tiktok (or / if the FTP account already lands there)", phUrl: "https://mysite.com/tiktok",
@@ -279,6 +287,8 @@ const T = {
         "<b>App roles → Roles → Add people → Instagram Tester</b> → your username. Then on instagram.com: <b>Settings → Apps and websites → Tester invites → Accept</b>.",
         "Back on the API setup → <b>Generate access tokens → Add account</b> → connect your Instagram, then paste the token below.",
       ],
+      multi: "A FR Instagram account and an EN one? Switch both to Creator, invite both as <b>Instagram Tester</b> (step 5), then generate a token for each (step 6: “Add account” a second time) and paste it with its language. Only one account? It posts both languages.",
+      lang: "Account language",
       token: "Access token", appId: "Instagram app ID", appIdPh: "optional", save: "Check and save", saving: "Checking…", connected: "Account connected", saved: (u) => `Token checked and saved ✓ Account @${u}`,
       tip: "The <b>webhooks</b>, <b>business login</b> and <b>app review</b> steps on the Meta page aren't needed here: the app can stay in development mode to publish on your own account. The token lasts 60 days and the platform renews it every week. Then turn publishing on in the dashboard → <b>Settings → Instagram</b>." },
     sV: { h: "Voice-over (ElevenLabs)", lead: "For <b>more realistic, punchier</b> narrated Shorts, connect ElevenLabs. Without a key, the platform keeps your computer's voice.",
@@ -352,6 +362,16 @@ const navBtns = (canSkip) => `<div class="nav">${step > 0 ? `<button class="btn"
   ${step < LAST ? `<button class="btn ${canSkip ? "" : "primary"}" data-go="${step + 1}">${canSkip ? t().skip : t().next}</button>` : ""}</div>`;
 const how = (items) => `<ol class="how">${items.map((x) => `<li>${x}</li>`).join("")}</ol>`;
 const stat = (ok, yes, no) => `<span class="status ${ok ? "ok" : "no"}">${ok ? "● " + yes : "○ " + no}</span>`;
+const LANGS = ["fr", "en"];
+/** Un compte par langue : une ligne FR et une ligne EN (statut, Connecter / Changer, Retirer). */
+function langAccounts(net, accs, ok, label, connect) {
+  const a = t().acc;
+  return `<div style="margin-top:16px"><h3>${a.h}</h3>${LANGS.map((l) => {
+    const x = accs?.[l] ?? {}, o = LANGS.find((y) => y !== l), has = ok(x);
+    const sub = has ? label(x) : ok(accs?.[o] ?? {}) ? a.fallback(o.toUpperCase()) : a.none;
+    return `<div class="row" style="margin-top:8px"><b style="width:28px">${l.toUpperCase()}</b>${stat(has, esc(sub), esc(sub))}<span style="flex:1"></span>${connect ? `<a class="btn sm ${has ? "" : "primary"}" href="${connect(l)}">${has ? a.change : a.connect(l.toUpperCase())}</a>` : ""}${has ? `<button class="btn sm" data-forget="${net}" data-lang="${l}">${a.forget}</button>` : ""}</div>`;
+  }).join("")}</div>`;
+}
 
 const VIEWS = [
   () => {
@@ -387,7 +407,8 @@ const VIEWS = [
       <div class="card">${how(x.list())}
         <label class="drop" id="ytDrop"><input type="file" accept=".json,application/json" hidden id="ytFile">${y.hasSecret ? `✓ ${x.secretOk}` : x.drop}</label>
         <div class="msg" id="ytMsg"></div>
-        <div class="row" style="margin-top:14px">${y.hasSecret ? `<a class="btn primary" href="/api/youtube/auth">${x.connect}</a>` : ""}${stat(y.connected, `${x.connected}${y.channel?.title ? ` · ${esc(y.channel.title)}` : ""}`, x.connected)}</div>
+        ${y.hasSecret ? langAccounts("youtube", y.accounts, (a) => !!a.connected, (a) => a.channel?.title ?? x.connected, (l) => `/api/youtube/auth?lang=${l}`) : ""}
+        <div class="tip">${x.multi}</div>
         <div class="tip warnbox">${x.warn}</div>
       </div>${navBtns(!y.connected)}`;
   },
@@ -400,7 +421,8 @@ const VIEWS = [
           <label>${x.secret}</label><input id="ttSecret" type="password" placeholder="${k.hasKeys ? "••••••••" : ""}" autocomplete="off">
           <span></span><div class="row"><button class="btn" id="saveTT">${x.save}</button><span class="msg" id="ttMsg"></span></div>
         </div>
-        <div class="row" style="margin-top:14px">${k.hasKeys ? `<a class="btn primary" href="/api/tiktok/auth">${x.connect}</a>` : ""}${stat(k.connected, `${x.connected}${k.user?.display_name ? ` · ${esc(k.user.display_name)}` : ""}`, x.connected)}</div>
+        ${k.hasKeys ? langAccounts("tiktok", k.accounts, (a) => !!a.connected, (a) => a.user?.display_name ?? x.connected, (l) => `/api/tiktok/auth?lang=${l}`) : ""}
+        <div class="tip">${x.multi}</div>
         <div class="tip">${x.tip}</div>
       </div>${navBtns(!k.connected)}`;
   },
@@ -446,11 +468,13 @@ const VIEWS = [
     return `<h1>${x.h}</h1><p class="lead">${x.lead}</p>
       <div class="card">${how(x.list)}
         <div class="form">
+          <label>${x.lang}</label><select id="igLang" style="max-width:120px"><option value="en">EN</option><option value="fr" ${g.accounts?.en?.configured && !g.accounts?.fr?.configured ? "selected" : ""}>FR</option></select>
           <label>${x.token}</label><input id="igToken" type="password" placeholder="${g.configured ? "IGAA… (✓)" : "IGAA…"}" autocomplete="off">
           <label>${x.appId}</label><input id="igAppId" placeholder="${esc(x.appIdPh)}" autocomplete="off" style="max-width:240px">
           <span></span><div class="row"><button class="btn ${g.connected ? "" : "primary"}" id="saveIG">${x.save}</button><span class="msg" id="igMsg"></span></div>
         </div>
-        <div class="row" style="margin-top:14px">${stat(g.connected, `${x.connected}${g.user?.username ? ` · @${esc(g.user.username)}` : ""}`, x.connected)}</div>
+        ${langAccounts("instagram", g.accounts, (a) => !!a.configured, (a) => (a.user ? `@${a.user.username}` : "Token ✗"), null)}
+        <div class="tip">${x.multi}</div>
         <div class="tip">${x.tip}</div>
       </div>${navBtns(!g.connected)}`;
   },
@@ -547,7 +571,7 @@ function bindDrop(zoneId, inputId, onFile) {
 }
 
 document.body.addEventListener("click", async (e) => {
-  const el = e.target.closest("[data-step],[data-go],[data-copy],[data-l],[data-el-preview],[data-el-test],#saveProfile,#saveTT,#saveIG,#saveHost,#privacy,#finish,#wCreate,#wOpen,#elSaveKey,#elForget,#elSave,#elAddBtn");
+  const el = e.target.closest("[data-step],[data-go],[data-copy],[data-l],[data-el-preview],[data-el-test],[data-forget],#saveProfile,#saveTT,#saveIG,#saveHost,#privacy,#finish,#wCreate,#wOpen,#elSaveKey,#elForget,#elSave,#elAddBtn");
   if (!el) return;
   if (el.dataset.step ?? el.dataset.go) { step = Number(el.dataset.step ?? el.dataset.go); history.replaceState(null, "", `#${step}`); await load(true); bindAll(); window.scrollTo(0, 0); return; }
   if (el.dataset.copy) { await navigator.clipboard.writeText(el.dataset.copy); el.classList.add("done"); setTimeout(() => el.classList.remove("done"), 1500); return; }
@@ -561,10 +585,15 @@ document.body.addEventListener("click", async (e) => {
     if (r.error) return msg("#ttMsg", false, esc(r.error));
     await load(true); bindAll(); msg("#ttMsg", true, t().s4.saved);
   }
+  if (el.dataset.forget) {
+    if (!confirm(t().acc.forgetQ(el.dataset.lang.toUpperCase()))) return;
+    await api(`/api/accounts/${el.dataset.forget}/${el.dataset.lang}/forget`, {});
+    await load(true); bindAll(); return;
+  }
   if (el.id === "saveIG") {
     const x = t().sI, label = el.textContent;
     el.disabled = true; el.textContent = x.saving;
-    const r = await api("/api/setup/instagram", { accessToken: $("#igToken").value, appId: $("#igAppId").value });
+    const r = await api("/api/setup/instagram", { lang: $("#igLang").value, accessToken: $("#igToken").value, appId: $("#igAppId").value });
     el.disabled = false; el.textContent = label;
     if (r.error) return msg("#igMsg", false, esc(r.error));
     await load(true); bindAll(); msg("#igMsg", true, x.saved(esc(r.username)));

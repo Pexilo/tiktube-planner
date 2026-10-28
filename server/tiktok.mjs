@@ -4,11 +4,11 @@
 //
 // Config : data/tiktok-config.json (voir tiktok-config.example.json et docs/TIKTOK_SETUP.md)
 import { createHash, randomBytes } from "node:crypto";
-import { createReadStream, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { createReadStream, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, extname, join } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { DATA, getState, isTaleId, langOn, pubsOn } from "./state.mjs";
+import { DATA, getState, isTaleId, langOn, LANGS, pickAccount, pubsOn } from "./state.mjs";
 import { logEvent } from "./events.mjs";
 import { copyToClipboard, notify } from "../shared/platform.mjs";
 
@@ -16,7 +16,14 @@ const run = promisify(execFile);
 export const PORT = Number(process.env.PORT ?? 4321);
 const REDIRECT = `http://localhost:${PORT}/tiktok/callback/`;
 const CONFIG = join(DATA, "tiktok-config.json");
-const TOKEN = join(DATA, "tiktok-token.json");
+// Un compte par langue : data/tiktok-token-fr.json et data/tiktok-token-en.json (même app TikTok).
+const tokenFile = (lang) => join(DATA, `tiktok-token-${lang}.json`);
+// Ancien jeton unique : devient le compte EN, qui sert aussi au FR tant qu'il n'a pas le sien.
+const LEGACY = join(DATA, "tiktok-token.json");
+if (existsSync(LEGACY) && !existsSync(tokenFile("en"))) renameSync(LEGACY, tokenFile("en"));
+const hasToken = (lang) => existsSync(tokenFile(lang));
+/** Compte qui reçoit les posts de cette langue (le sien, sinon celui de l'autre langue). */
+export const accountFor = (lang) => pickAccount(hasToken, lang);
 const STORE = join(DATA, "tiktok.json");
 export const MEDIA = join(DATA, "tiktok-media");
 mkdirSync(MEDIA, { recursive: true });
@@ -103,7 +110,7 @@ export function scheduleDrafts(only = null) {
   saveStore();
   return n;
 }
-export const tiktokState = { sending: null, lastError: null, user: null };
+export const tiktokState = { sending: null, lastError: null, users: {} };
 const newId = () => `tt-${Date.now().toString(36)}-${randomBytes(3).toString("hex")}`;
 
 export function config() {
@@ -116,8 +123,9 @@ export function status() {
     configured: !!(c?.clientKey && c?.clientSecret),
     hosting: !!(c?.hosting?.host && c?.hosting?.publicBaseUrl),
     hostingDomain: c?.hosting?.publicBaseUrl ? c.hosting.publicBaseUrl.replace(/^https?:\/\//, "").split("/")[0] : null,
-    connected: existsSync(TOKEN),
-    user: tiktokState.user,
+    connected: LANGS.some(hasToken),
+    accounts: Object.fromEntries(LANGS.map((l) => [l, { connected: hasToken(l), user: tiktokState.users[l] ?? null, usedFor: LANGS.filter((x) => accountFor(x) === l) }])),
+    user: tiktokState.users[accountFor("en")] ?? null,
     sending: tiktokState.sending,
     lastError: tiktokState.lastError,
   };
@@ -125,16 +133,17 @@ export function status() {
 
 /* ------------------------------------------------------------------ OAuth (PKCE desktop) */
 
-let pending = null; // { verifier, state }
+let pending = null; // { verifier, state, lang }
 
-export function authUrl() {
+/** Connexion du compte d'une langue. TikTok connecte le compte ouvert dans le navigateur : change de compte sur tiktok.com avant. */
+export function authUrl(lang = "en") {
   const c = config();
   if (!c?.clientKey) throw new Error("data/tiktok-config.json manquant (clientKey/clientSecret)");
   const verifier = randomBytes(48).toString("base64url");
   // TikTok desktop : code_challenge = SHA-256 du verifier encodé en HEX (pas en base64url).
   const challenge = createHash("sha256").update(verifier).digest("hex");
   const state = randomBytes(12).toString("hex");
-  pending = { verifier, state };
+  pending = { verifier, state, lang: LANGS.includes(lang) ? lang : "en" };
   const q = new URLSearchParams({
     client_key: c.clientKey,
     scope: "user.info.basic,video.upload",
@@ -147,36 +156,37 @@ export function authUrl() {
   return `https://www.tiktok.com/v2/auth/authorize/?${q}`;
 }
 
-async function tokenRequest(params) {
+async function tokenRequest(params, lang) {
   const c = config();
   const body = new URLSearchParams({ client_key: c.clientKey, client_secret: c.clientSecret, ...params });
   const r = await fetch(`${API}/v2/oauth/token/`, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body });
   const j = await r.json();
   if (!j.access_token) throw new Error(`OAuth TikTok : ${j.error_description ?? j.error ?? JSON.stringify(j)}`);
   const tok = { ...j, obtained_at: Date.now() };
-  writeFileSync(TOKEN, JSON.stringify(tok, null, 2));
+  writeFileSync(tokenFile(lang), JSON.stringify(tok, null, 2));
   return tok;
 }
 
 export async function handleCallback(query) {
   if (!pending || query.state !== pending.state) throw new Error("État OAuth invalide — relance la connexion.");
   if (query.error) throw new Error(`${query.error} : ${query.error_description ?? ""}`);
-  await tokenRequest({ code: String(query.code), grant_type: "authorization_code", redirect_uri: REDIRECT, code_verifier: pending.verifier });
+  const { lang, verifier } = pending;
+  await tokenRequest({ code: String(query.code), grant_type: "authorization_code", redirect_uri: REDIRECT, code_verifier: verifier }, lang);
   pending = null;
-  await refreshUser();
+  await refreshUser(lang);
 }
 
-async function accessToken() {
-  if (!existsSync(TOKEN)) throw new Error("TikTok non connecté");
-  let t = JSON.parse(readFileSync(TOKEN, "utf8"));
-  if (Date.now() > t.obtained_at + (t.expires_in - 300) * 1000) t = await tokenRequest({ grant_type: "refresh_token", refresh_token: t.refresh_token });
+async function accessToken(lang) {
+  if (!lang || !hasToken(lang)) throw new Error("TikTok non connecté");
+  let t = JSON.parse(readFileSync(tokenFile(lang), "utf8"));
+  if (Date.now() > t.obtained_at + (t.expires_in - 300) * 1000) t = await tokenRequest({ grant_type: "refresh_token", refresh_token: t.refresh_token }, lang);
   return t.access_token;
 }
 
-async function api(path, body) {
+async function api(path, body, lang) {
   const r = await fetch(`${API}${path}`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${await accessToken()}`, "Content-Type": "application/json; charset=UTF-8" },
+    headers: { Authorization: `Bearer ${await accessToken(lang)}`, "Content-Type": "application/json; charset=UTF-8" },
     body: JSON.stringify(body ?? {}),
   });
   const j = await r.json();
@@ -184,15 +194,28 @@ async function api(path, body) {
   return j.data;
 }
 
-export async function refreshUser() {
-  try {
-    const r = await fetch(`${API}/v2/user/info/?fields=open_id,display_name,avatar_url`, { headers: { Authorization: `Bearer ${await accessToken()}` } });
-    const j = await r.json();
-    tiktokState.user = j.data?.user ?? null;
-  } catch (e) {
-    tiktokState.lastError = e.message;
+/** Retire le compte d'une langue : ses posts partiront sur le compte de l'autre langue. */
+export function forget(lang) {
+  if (!LANGS.includes(lang)) return;
+  rmSync(tokenFile(lang), { force: true });
+  delete tiktokState.users[lang];
+}
+
+export async function refreshUser(only) {
+  for (const lang of only ? [only] : LANGS) {
+    if (!hasToken(lang)) {
+      delete tiktokState.users[lang];
+      continue;
+    }
+    try {
+      const r = await fetch(`${API}/v2/user/info/?fields=open_id,display_name,avatar_url`, { headers: { Authorization: `Bearer ${await accessToken(lang)}` } });
+      const j = await r.json();
+      tiktokState.users[lang] = j.data?.user ?? null;
+    } catch (e) {
+      tiktokState.lastError = `Compte ${lang.toUpperCase()} : ${e.message}`;
+    }
   }
-  return tiktokState.user;
+  return tiktokState.users;
 }
 
 /* ------------------------------------------------------------------ hébergement des images (FTP / SFTP) */
@@ -231,13 +254,13 @@ export async function prepareImage(postId, srcPath, index) {
 
 /* ------------------------------------------------------------------ envoi dans la boîte TikTok */
 
-async function sendVideo(file) {
+async function sendVideo(file, lang) {
   const size = statSync(file).size;
   // Règles TikTok : morceaux de 5 à 64 Mo (le dernier peut aller jusqu'à 128 Mo) ; < 64 Mo → un seul morceau.
   const CH = 10 * 1024 * 1024;
   const chunk = size <= 64 * 1024 * 1024 ? size : CH;
   const total = size <= 64 * 1024 * 1024 ? 1 : Math.floor(size / CH);
-  const d = await api("/v2/post/publish/inbox/video/init/", { source_info: { source: "FILE_UPLOAD", video_size: size, chunk_size: chunk, total_chunk_count: total } });
+  const d = await api("/v2/post/publish/inbox/video/init/", { source_info: { source: "FILE_UPLOAD", video_size: size, chunk_size: chunk, total_chunk_count: total } }, lang);
   const buf = readFileSync(file);
   for (let i = 0; i < total; i++) {
     const start = i * chunk;
@@ -252,14 +275,14 @@ async function sendVideo(file) {
   return d.publish_id;
 }
 
-async function sendPhotos(post) {
+async function sendPhotos(post, lang) {
   const urls = await uploadImages(post);
   const d = await api("/v2/post/publish/content/init/", {
     post_info: { title: post.title.slice(0, 90), description: post.description.slice(0, 4000) },
     source_info: { source: "PULL_FROM_URL", photo_cover_index: 0, photo_images: urls },
     post_mode: "MEDIA_UPLOAD",
     media_type: "PHOTO",
-  });
+  }, lang);
   return d.publish_id;
 }
 
@@ -275,16 +298,18 @@ export async function sendPost(post) {
   post.status = "sending";
   saveStore();
   try {
+    const account = accountFor(postLang(post));
+    if (!account) throw new Error("TikTok non connecté");
     let publishId;
     if (post.type === "photo") {
       if (!post.images?.length) throw new Error("Aucune image dans ce carrousel");
-      publishId = await sendPhotos(post);
+      publishId = await sendPhotos(post, account);
     } else {
       const file = post.videoFile;
       if (!file || !existsSync(file)) throw new Error("Vidéo introuvable (rends-la d'abord)");
-      publishId = await sendVideo(file);
+      publishId = await sendVideo(file, account);
     }
-    Object.assign(post, { status: "sent", publishId, sentAt: new Date().toISOString(), error: null, retryAt: null, waiting: null, attempts: 0 });
+    Object.assign(post, { status: "sent", account, publishId, sentAt: new Date().toISOString(), error: null, retryAt: null, waiting: null, attempts: 0 });
     tiktokState.lastError = null;
     logEvent("upload", `TikTok : brouillon envoyé — « ${post.title} »`, post.id);
     void notifySent(post);

@@ -2,10 +2,11 @@
 // Contrairement à TikTok, l'API Instagram publie directement (pas de brouillon à finir dans l'app).
 // L'API ne programme pas : c'est la plateforme qui publie à l'heure prévue, elle doit donc tourner.
 //
-// Config : data/instagram-config.json { appId, accessToken } (voir docs/INSTAGRAM_SETUP.md)
+// Config : data/instagram-config.json { appId, accounts: { fr: { accessToken }, en: { accessToken } } }
+// Un compte par langue (même app Meta) ; une langue sans compte publie sur celui de l'autre (voir docs/INSTAGRAM_SETUP.md).
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { DATA, isTaleId } from "./state.mjs";
+import { DATA, isTaleId, LANGS, pickAccount } from "./state.mjs";
 import { logEvent } from "./events.mjs";
 import { notify } from "../shared/platform.mjs";
 import { postLang, postOn, posts as ttPosts } from "./tiktok.mjs";
@@ -32,18 +33,35 @@ export function updateIgSettings(patch) {
   return next;
 }
 
-export const igState = { publishing: null, lastError: null, user: null };
+/** users : compte Instagram connecté par langue ({ fr, en }). */
+export const igState = { publishing: null, lastError: null, users: {} };
+
+const writeConfig = (c) => writeFileSync(CONFIG, JSON.stringify(c, null, 2), { mode: 0o600 });
 
 export function config() {
-  return existsSync(CONFIG) ? JSON.parse(readFileSync(CONFIG, "utf8")) : null;
+  if (!existsSync(CONFIG)) return null;
+  const c = JSON.parse(readFileSync(CONFIG, "utf8"));
+  // Ancien format (un seul token) : devient le compte EN, qui sert aussi au FR tant qu'il n'a pas le sien.
+  if (c.accessToken && !c.accounts) {
+    c.accounts = /^COLLE_ICI|^TOKEN_GENERE/.test(c.accessToken) ? {} : { en: { accessToken: c.accessToken, ...(c.refreshedAt ? { refreshedAt: c.refreshedAt } : {}) } };
+    delete c.accessToken;
+    delete c.refreshedAt;
+    writeConfig(c);
+  }
+  return c;
 }
 
+const hasToken = (lang) => !!config()?.accounts?.[lang]?.accessToken;
+/** Compte qui publie les Reels de cette langue (le sien, sinon celui de l'autre langue). */
+export const accountFor = (lang) => pickAccount(hasToken, lang);
+
 export function status() {
-  const c = config();
+  const u = igState.users;
   return {
-    configured: !!c?.accessToken && !/^COLLE_ICI/.test(c.accessToken),
-    connected: !!igState.user,
-    user: igState.user,
+    configured: LANGS.some(hasToken),
+    connected: LANGS.some((l) => u[l]),
+    user: u[accountFor("en")] ?? null,
+    accounts: Object.fromEntries(LANGS.map((l) => [l, { configured: hasToken(l), user: u[l] ?? null, usedFor: LANGS.filter((x) => accountFor(x) === l) }])),
     publishing: igState.publishing,
     lastError: igState.lastError,
   };
@@ -52,57 +70,71 @@ export function status() {
 /* ------------------------------------------------------------------ API Graph Instagram */
 
 /** Token longue durée (60 jours) : renouvelé chaque semaine tant que la plateforme tourne. */
-async function accessToken() {
-  const c = config();
-  if (!status().configured) throw new Error("data/instagram-config.json : accessToken manquant");
-  const age = Date.now() - new Date(c.refreshedAt ?? 0).getTime();
+async function accessToken(lang) {
+  if (!lang || !hasToken(lang)) throw new Error("Instagram non connecté");
+  const c = config(), a = c.accounts[lang];
+  const age = Date.now() - new Date(a.refreshedAt ?? 0).getTime();
   if (age > 7 * 86400000) {
-    const r = await fetch(`${API.replace(/\/v[\d.]+$/, "")}/refresh_access_token?grant_type=ig_refresh_token&access_token=${encodeURIComponent(c.accessToken)}`);
+    const r = await fetch(`${API.replace(/\/v[\d.]+$/, "")}/refresh_access_token?grant_type=ig_refresh_token&access_token=${encodeURIComponent(a.accessToken)}`);
     const j = await r.json();
-    if (j.access_token) {
-      Object.assign(c, { accessToken: j.access_token, refreshedAt: new Date().toISOString() });
-      writeFileSync(CONFIG, JSON.stringify(c, null, 2));
-    } else if (!c.refreshedAt) {
-      // Token tout neuf (< 24 h) : Meta refuse de le renouveler, on retentera la semaine prochaine.
-      c.refreshedAt = new Date().toISOString();
-      writeFileSync(CONFIG, JSON.stringify(c, null, 2));
+    // Token tout neuf (< 24 h) : Meta refuse de le renouveler, on retentera la semaine prochaine.
+    if (j.access_token || !a.refreshedAt) {
+      Object.assign(a, { ...(j.access_token ? { accessToken: j.access_token } : {}), refreshedAt: new Date().toISOString() });
+      writeConfig(c);
     }
   }
-  return config().accessToken;
+  return a.accessToken;
 }
 
-async function api(path, { method = "GET", params = {} } = {}) {
-  const q = new URLSearchParams({ ...params, access_token: await accessToken() });
+async function api(path, { method = "GET", params = {}, lang } = {}) {
+  const q = new URLSearchParams({ ...params, access_token: await accessToken(lang) });
   const r = await fetch(method === "GET" ? `${API}${path}?${q}` : `${API}${path}`, method === "GET" ? {} : { method, body: q });
   const j = await r.json();
   if (j.error) throw new Error(`${j.error.error_user_msg ?? j.error.message} (code ${j.error.code}${j.error.error_subcode ? `/${j.error.error_subcode}` : ""})`);
   return j;
 }
 
-export async function refreshUser() {
-  try {
-    igState.user = await api("/me", { params: { fields: "user_id,username,profile_picture_url,account_type" } });
-    igState.lastError = null;
-  } catch (e) {
-    igState.user = null;
-    igState.lastError = e.message;
+export async function refreshUser(only) {
+  igState.lastError = null;
+  for (const lang of only ? [only] : LANGS) {
+    if (!hasToken(lang)) {
+      delete igState.users[lang];
+      continue;
+    }
+    try {
+      igState.users[lang] = await api("/me", { lang, params: { fields: "user_id,username,profile_picture_url,account_type" } });
+    } catch (e) {
+      igState.users[lang] = null;
+      igState.lastError = `Compte ${lang.toUpperCase()} : ${e.message}`;
+    }
   }
-  return igState.user;
+  return igState.users;
 }
 
-/** Guide d'installation : vérifie le token auprès d'Instagram avant de l'enregistrer. */
-export async function saveToken(token, appId) {
+/** Guide d'installation : vérifie le token auprès d'Instagram avant de l'enregistrer pour cette langue. */
+export async function saveToken(token, appId, lang = "en") {
+  if (!LANGS.includes(lang)) lang = "en";
   token = String(token ?? "").trim();
   if (!token) throw new Error("Colle le token d'accès généré dans Meta.");
   const j = await fetch(`${API}/me?fields=user_id,username&access_token=${encodeURIComponent(token)}`).then((r) => r.json());
   if (j.error) throw new Error(`Token refusé par Instagram : ${j.error.message}`);
-  const c = { ...(config() ?? {}), ...(appId?.trim() ? { appId: appId.trim() } : {}), accessToken: token };
-  delete c.refreshedAt;
-  writeFileSync(CONFIG, JSON.stringify(c, null, 2), { mode: 0o600 });
-  return refreshUser();
+  const c = config() ?? {};
+  if (appId?.trim()) c.appId = appId.trim();
+  c.accounts = { ...c.accounts, [lang]: { accessToken: token } };
+  writeConfig(c);
+  return (await refreshUser(lang))[lang];
 }
 
-export const quota = () => api(`/${igState.user.user_id}/content_publishing_limit`, { params: { fields: "config,quota_usage" } }).then((j) => j.data?.[0]);
+/** Retire le compte d'une langue (ses Reels repartent sur le compte de l'autre langue). */
+export function forget(lang) {
+  const c = config();
+  if (!c?.accounts?.[lang]) return;
+  delete c.accounts[lang];
+  delete igState.users[lang];
+  writeConfig(c);
+}
+
+export const quota = (lang) => api(`/${igState.users[lang].user_id}/content_publishing_limit`, { lang, params: { fields: "config,quota_usage" } }).then((j) => j.data?.[0]);
 
 /* ------------------------------------------------------------------ publication d'un Reel */
 
@@ -118,26 +150,27 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function publishReel(p) {
   const file = p.videoFile;
   if (!file || !existsSync(file)) throw new Error("Vidéo introuvable (rends-la d'abord)");
-  const me = igState.user ?? (await refreshUser());
+  const lang = accountFor(postLang(p));
+  const me = (lang && igState.users[lang]) || (lang && (await refreshUser(lang))[lang]);
   if (!me) throw new Error(igState.lastError ?? "Instagram non connecté");
   // 1. Conteneur Reel en envoi « resumable » : le fichier part depuis le disque, pas besoin d'URL publique.
-  const box = await api(`/${me.user_id}/media`, { method: "POST", params: { media_type: "REELS", upload_type: "resumable", caption: igCaption(p), share_to_feed: "true" } });
+  const box = await api(`/${me.user_id}/media`, { lang, method: "POST", params: { media_type: "REELS", upload_type: "resumable", caption: igCaption(p), share_to_feed: "true" } });
   const size = statSync(file).size;
-  const up = await fetch(box.uri, { method: "POST", headers: { Authorization: `OAuth ${await accessToken()}`, offset: "0", file_size: String(size) }, body: readFileSync(file) });
+  const up = await fetch(box.uri, { method: "POST", headers: { Authorization: `OAuth ${await accessToken(lang)}`, offset: "0", file_size: String(size) }, body: readFileSync(file) });
   const uj = await up.json().catch(() => ({}));
   if (!up.ok || uj.success === false) throw new Error(`Envoi de la vidéo : HTTP ${up.status} ${uj.debug_info?.message ?? uj.error?.message ?? ""}`.trim());
   // 2. Instagram traite la vidéo (quelques secondes à quelques minutes).
   for (let i = 0; ; i++) {
-    const s = await api(`/${box.id}`, { params: { fields: "status_code,status" } });
+    const s = await api(`/${box.id}`, { lang, params: { fields: "status_code,status" } });
     if (s.status_code === "FINISHED") break;
     if (s.status_code === "ERROR" || s.status_code === "EXPIRED") throw new Error(`Traitement Instagram : ${s.status ?? s.status_code}`);
     if (i > 120) throw new Error("Traitement Instagram trop long (10 min)");
     await sleep(5000);
   }
   // 3. Publication.
-  const pub = await api(`/${me.user_id}/media_publish`, { method: "POST", params: { creation_id: box.id } });
-  const info = await api(`/${pub.id}`, { params: { fields: "permalink" } }).catch(() => ({}));
-  return { mediaId: pub.id, permalink: info.permalink ?? null };
+  const pub = await api(`/${me.user_id}/media_publish`, { lang, method: "POST", params: { creation_id: box.id } });
+  const info = await api(`/${pub.id}`, { lang, params: { fields: "permalink" } }).catch(() => ({}));
+  return { mediaId: pub.id, permalink: info.permalink ?? null, account: lang };
 }
 
 export async function publish(p) {
@@ -200,17 +233,21 @@ let lastSync = 0;
  * quand la légende commence par son titre. Évite un doublon et affiche le lien.
  */
 export async function syncExisting() {
-  if (!igState.user) return 0;
   lastSync = Date.now();
-  const { data = [] } = await api(`/${igState.user.user_id}/media`, { params: { fields: "id,caption,permalink,timestamp", limit: "50" } });
   let n = 0;
-  for (const p of ttPosts()) {
-    const t = norm(p.title);
-    if (p.type !== "video" || t.length < 10 || store.items[p.id]?.status === "published") continue;
-    const m = data.find((x) => norm(x.caption).startsWith(t));
-    if (!m) continue;
-    store.items[p.id] = { status: "published", mediaId: m.id, permalink: m.permalink ?? null, publishedAt: new Date(m.timestamp).toISOString(), manual: true };
-    n++;
+  for (const lang of LANGS) {
+    const me = igState.users[lang];
+    if (!me) continue;
+    const { data = [] } = await api(`/${me.user_id}/media`, { lang, params: { fields: "id,caption,permalink,timestamp", limit: "50" } });
+    // Chaque compte ne regarde que les posts qu'il publierait (ceux de sa langue, ou de l'autre si elle n'a pas de compte).
+    for (const p of ttPosts()) {
+      const t = norm(p.title);
+      if (p.type !== "video" || t.length < 10 || store.items[p.id]?.status === "published" || accountFor(postLang(p)) !== lang) continue;
+      const m = data.find((x) => norm(x.caption).startsWith(t));
+      if (!m) continue;
+      store.items[p.id] = { status: "published", account: lang, mediaId: m.id, permalink: m.permalink ?? null, publishedAt: new Date(m.timestamp).toISOString(), manual: true };
+      n++;
+    }
   }
   if (n) {
     saveStore();
@@ -222,7 +259,8 @@ export async function syncExisting() {
 /** Planificateur : publie le prochain Reel dont l'heure est arrivée (appelé chaque minute). */
 export async function tick() {
   if (!igSettings().enabled || igState.publishing || !status().configured) return;
-  if (!igState.user && !(await refreshUser())) return;
+  if (!status().connected) await refreshUser();
+  if (!status().connected) return;
   const now = new Date().toISOString();
   const due = () => pending()
     .filter((p) => p.status !== "draft" && p.publishAt <= now)

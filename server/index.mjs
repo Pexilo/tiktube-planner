@@ -18,7 +18,7 @@ import { smartImport } from "./smartimport.mjs";
 import * as watch from "./watchfolder.mjs";
 import { setupRoutes } from "./setup.mjs";
 import { loadProfile } from "../shared/profile.mjs";
-import { authUrl, buildMetadata, handleCallback, PORT, refreshChannel, reschedule, status as ytStatus, tiktokCaption, uploadMany, uploadOne, uploadState, uploadsToday } from "./youtube.mjs";
+import { authUrl, buildMetadata, forget as forgetYt, handleCallback, PORT, refreshChannel, reschedule, status as ytStatus, tiktokCaption, uploadMany, uploadOne, uploadState, uploadsToday } from "./youtube.mjs";
 import { setupTaleRoutes } from "./tales.mjs";
 
 const app = express();
@@ -228,16 +228,17 @@ app.post("/api/videos/:id/reveal", (req, res) => {
 });
 
 // ---------------------------------------------------------------- YouTube
-app.get("/api/youtube/auth", (_req, res) => {
+// ?lang=fr|en : la chaîne qui publiera les vidéos de cette langue
+app.get("/api/youtube/auth", (req, res) => {
   try {
-    res.redirect(authUrl());
+    res.redirect(authUrl(String(req.query.lang ?? "en")));
   } catch (e) {
     res.status(400).send(`<p style="font-family:system-ui">${e.message}. Suis le guide docs/YOUTUBE_SETUP.md.</p>`);
   }
 });
 app.get("/oauth/callback", async (req, res) => {
   try {
-    await handleCallback(String(req.query.code));
+    await handleCallback(String(req.query.code), String(req.query.state ?? "en"));
     res.redirect(loadProfile().setupDone ? "/?connected=1" : "/setup.html#3");
   } catch (e) {
     res.status(500).send(`Erreur OAuth : ${e.message}`);
@@ -291,9 +292,9 @@ app.get("/api/tiktok", (_req, res) => {
       .map((v) => ({ id: v.id, title: v.title, appName: v.appName, lang: v.lang })),
   });
 });
-app.get("/api/tiktok/auth", (_req, res) => {
+app.get("/api/tiktok/auth", (req, res) => {
   try {
-    res.redirect(tt.authUrl());
+    res.redirect(tt.authUrl(String(req.query.lang ?? "en")));
   } catch (e) {
     res.status(400).send(`<p style="font-family:system-ui">${e.message}. Suis le guide docs/TIKTOK_SETUP.md.</p>`);
   }
@@ -393,12 +394,22 @@ app.post("/api/tiktok/from-video", (req, res) => {
 });
 setInterval(() => void tt.tick().catch((e) => console.error("tiktok", e)), 60 * 1000);
 
+// ---------------------------------------------------------------- Comptes par langue (YouTube, TikTok, Instagram)
+const NETS = { youtube: { forget: forgetYt }, tiktok: tt, instagram: ig };
+app.post("/api/accounts/:net/:lang/forget", (req, res) => {
+  const net = NETS[req.params.net];
+  if (!net || !["fr", "en"].includes(req.params.lang)) return res.status(404).end();
+  net.forget(req.params.lang);
+  logEvent("info", `${req.params.net} : compte ${req.params.lang.toUpperCase()} retiré`);
+  res.json({ ok: true });
+});
+
 // ---------------------------------------------------------------- Instagram (Reels publiés à l'heure du post TikTok)
 app.patch("/api/instagram/settings", (req, res) => res.json(ig.updateIgSettings(req.body)));
 app.post("/api/instagram/refresh", async (_req, res) => {
-  const user = await ig.refreshUser();
-  const linked = user ? await ig.syncExisting().catch(() => 0) : 0;
-  res.json({ user, linked, status: ig.status() });
+  await ig.refreshUser();
+  const linked = ig.status().connected ? await ig.syncExisting().catch(() => 0) : 0;
+  res.json({ linked, status: ig.status() });
 });
 app.post("/api/instagram/posts/:id/publish", async (req, res) => {
   const p = tt.posts().find((x) => x.id === req.params.id);

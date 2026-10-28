@@ -1,75 +1,101 @@
 // Connexion OAuth YouTube (client "Application de bureau") + upload programmé (publishAt).
 // YouTube publie lui-même à l'heure prévue : le Mac n'a pas besoin d'être allumé à ce moment-là.
-import { createReadStream, existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { createReadStream, existsSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { google } from "googleapis";
 import { loadTale, ROOT } from "../shared/catalog.mjs";
 import { buildTimeline, FPS } from "../shared/timeline.mjs";
-import { DATA, getState, save, video, videoOn } from "./state.mjs";
+import { DATA, getState, LANGS, pickAccount, save, video, videoOn } from "./state.mjs";
 import { outFile, thumbFile } from "./render.mjs";
 import { logEvent } from "./events.mjs";
 import { signature } from "../shared/profile.mjs";
 
 export const PORT = Number(process.env.PORT ?? 4321);
 const REDIRECT = `http://localhost:${PORT}/oauth/callback`;
-const TOKEN = join(DATA, "youtube-token.json");
+// Une chaîne par langue : data/youtube-token-fr.json et data/youtube-token-en.json.
+const tokenFile = (lang) => join(DATA, `youtube-token-${lang}.json`);
+// Ancien jeton unique (une seule chaîne) : devient la chaîne EN, qui sert aussi au FR tant qu'il n'a pas la sienne.
+const LEGACY = join(DATA, "youtube-token.json");
+if (existsSync(LEGACY) && !existsSync(tokenFile("en"))) renameSync(LEGACY, tokenFile("en"));
+const hasToken = (lang) => existsSync(tokenFile(lang));
+/** Chaîne qui publie les vidéos de cette langue (la sienne, sinon celle de l'autre langue). */
+export const accountFor = (lang) => pickAccount(hasToken, lang);
 // force-ssl : changer la date d'une vidéo déjà programmée (videos.update) ; upload seul ne le permet pas.
 const SCOPES = ["https://www.googleapis.com/auth/youtube.upload", "https://www.googleapis.com/auth/youtube.readonly", "https://www.googleapis.com/auth/youtube.force-ssl"];
 
-export const uploadState = { id: null, progress: 0, queue: [], lastError: null, channel: null };
+export const uploadState = { id: null, progress: 0, queue: [], lastError: null, channels: {} };
 
 function secretPath() {
   for (const p of [join(ROOT, "client_secret.json"), join(DATA, "client_secret.json")]) if (existsSync(p)) return p;
   return null;
 }
 
-function client() {
+/** Client OAuth ; avec `lang`, connecté à la chaîne de cette langue (jeton renouvelé dans son fichier). */
+function client(lang) {
   const p = secretPath();
   if (!p) return null;
   const j = JSON.parse(readFileSync(p, "utf8"));
   const c = j.installed ?? j.web;
   const oauth = new google.auth.OAuth2(c.client_id, c.client_secret, REDIRECT);
-  if (existsSync(TOKEN)) oauth.setCredentials(JSON.parse(readFileSync(TOKEN, "utf8")));
-  oauth.on("tokens", (t) => {
-    const old = existsSync(TOKEN) ? JSON.parse(readFileSync(TOKEN, "utf8")) : {};
-    writeFileSync(TOKEN, JSON.stringify({ ...old, ...t }, null, 2));
-  });
+  if (lang && hasToken(lang)) {
+    const file = tokenFile(lang);
+    oauth.setCredentials(JSON.parse(readFileSync(file, "utf8")));
+    oauth.on("tokens", (t) => {
+      const old = existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : {};
+      writeFileSync(file, JSON.stringify({ ...old, ...t }, null, 2));
+    });
+  }
   return oauth;
 }
 
 export function status() {
+  const accounts = Object.fromEntries(LANGS.map((l) => [l, { connected: hasToken(l), channel: uploadState.channels[l] ?? null, usedFor: LANGS.filter((x) => accountFor(x) === l) }]));
   return {
     hasSecret: !!secretPath(),
-    connected: existsSync(TOKEN),
-    channel: uploadState.channel,
+    connected: LANGS.some(hasToken),
+    accounts,
+    channel: uploadState.channels[accountFor("en")] ?? null,
   };
 }
 
-export function authUrl() {
+/** Connexion d'une chaîne pour une langue : la langue voyage dans `state` jusqu'au retour OAuth. */
+export function authUrl(lang = "en") {
   const c = client();
   if (!c) throw new Error("client_secret.json introuvable à la racine du projet");
-  return c.generateAuthUrl({ access_type: "offline", prompt: "consent", scope: SCOPES });
+  return c.generateAuthUrl({ access_type: "offline", prompt: "consent select_account", scope: SCOPES, state: LANGS.includes(lang) ? lang : "en" });
 }
 
-export async function handleCallback(code) {
-  const c = client();
-  const { tokens } = await c.getToken(code);
-  writeFileSync(TOKEN, JSON.stringify(tokens, null, 2));
-  await refreshChannel();
+export async function handleCallback(code, lang = "en") {
+  if (!LANGS.includes(lang)) lang = "en";
+  const { tokens } = await client().getToken(code);
+  writeFileSync(tokenFile(lang), JSON.stringify(tokens, null, 2));
+  await refreshChannel(lang);
 }
 
-export async function refreshChannel() {
-  const c = client();
-  if (!c || !existsSync(TOKEN)) return null;
-  try {
-    const yt = google.youtube({ version: "v3", auth: c });
-    const r = await yt.channels.list({ part: ["snippet", "statistics"], mine: true });
-    const ch = r.data.items?.[0];
-    uploadState.channel = ch ? { id: ch.id, title: ch.snippet.title, thumb: ch.snippet.thumbnails?.default?.url, subs: ch.statistics?.subscriberCount } : null;
-  } catch (e) {
-    uploadState.lastError = `Chaîne : ${e.message}`;
+/** Retire la chaîne d'une langue : ses vidéos partiront sur la chaîne de l'autre langue. */
+export function forget(lang) {
+  if (!LANGS.includes(lang)) return;
+  rmSync(tokenFile(lang), { force: true });
+  delete uploadState.channels[lang];
+}
+
+export async function refreshChannel(only) {
+  for (const lang of only ? [only] : LANGS) {
+    const c = client(lang);
+    if (!c || !hasToken(lang)) {
+      delete uploadState.channels[lang];
+      continue;
+    }
+    try {
+      const yt = google.youtube({ version: "v3", auth: c });
+      const r = await yt.channels.list({ part: ["snippet", "statistics"], mine: true });
+      const ch = r.data.items?.[0];
+      uploadState.channels[lang] = ch ? { id: ch.id, title: ch.snippet.title, thumb: ch.snippet.thumbnails?.default?.url, subs: ch.statistics?.subscriberCount } : null;
+    } catch (e) {
+      uploadState.lastError = `Chaîne ${lang.toUpperCase()} : ${e.message}`;
+    }
   }
-  return uploadState.channel;
+  return uploadState.channels;
 }
 
 const plain = (t) => t.replace(/\*/g, "");
@@ -276,8 +302,9 @@ export const uploadsToday = () => getState().uploadsLog.filter((u) => u.at.slice
 
 /** `now` : publiée tout de suite en public (créneau raté), sinon privée et programmée sur `publishAt`. */
 export async function uploadOne(v, app, { now = false } = {}) {
-  const c = client();
-  if (!c || !existsSync(TOKEN)) throw new Error("YouTube non connecté");
+  const account = accountFor(v.lang);
+  const c = client(account);
+  if (!c || !account) throw new Error("YouTube non connecté");
   const st = video(v.id);
   if (st.youtubeId) return st.youtubeId;
   if (!existsSync(outFile(v.id))) throw new Error("Vidéo pas encore rendue");
@@ -320,7 +347,8 @@ export async function uploadOne(v, app, { now = false } = {}) {
     },
   );
   const id = res.data.id;
-  Object.assign(st, { youtubeId: id, uploadedAt: new Date().toISOString(), uploadError: null });
+  // ytAccount : la chaîne qui a reçu la vidéo (pour la reprogrammer plus tard avec le bon jeton).
+  Object.assign(st, { youtubeId: id, ytAccount: account, uploadedAt: new Date().toISOString(), uploadError: null });
   getState().uploadsLog.push({ at: new Date().toISOString(), id: v.id });
   save();
   if (now) logEvent("upload", `Publiée sur YouTube : ${meta.title}`, v.id);
@@ -340,12 +368,14 @@ export async function uploadOne(v, app, { now = false } = {}) {
 
 /** Vidéo déjà envoyée mais pas encore sortie : nouvelle date de sortie directement dans YouTube. */
 export async function reschedule(v, publishAt) {
-  const c = client();
-  if (!c || !existsSync(TOKEN)) throw new Error("YouTube non connecté");
-  const tok = JSON.parse(readFileSync(TOKEN, "utf8"));
+  const st = video(v.id);
+  // Envoyée avant les comptes par langue : c'était l'ancienne chaîne unique, devenue la chaîne EN.
+  const account = st.ytAccount ?? (hasToken("en") ? "en" : accountFor(v.lang));
+  const c = client(account);
+  if (!c || !account || !hasToken(account)) throw new Error(`Chaîne YouTube ${String(account ?? v.lang).toUpperCase()} non connectée`);
+  const tok = JSON.parse(readFileSync(tokenFile(account), "utf8"));
   if (!String(tok.scope ?? "").includes("youtube.force-ssl"))
     throw new Error("Reconnecte YouTube (bouton YouTube en haut) pour autoriser le changement de date des vidéos déjà programmées.");
-  const st = video(v.id);
   const yt = google.youtube({ version: "v3", auth: c });
   // part=status remplace tout le bloc : on renvoie les mêmes réglages qu'à l'envoi.
   await yt.videos.update({

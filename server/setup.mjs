@@ -125,12 +125,18 @@ export function setupRoutes(app) {
   // Token Instagram (Meta → Configuration de l'API avec la connexion Instagram → Générez des tokens d'accès)
   app.post("/api/setup/instagram", async (req, res) => {
     try {
-      const user = await ig.saveToken(req.body?.accessToken, req.body?.appId);
+      const lang = req.body?.lang === "fr" ? "fr" : "en";
+      const user = await ig.saveToken(req.body?.accessToken, req.body?.appId, lang);
       if (!user) throw new Error(ig.status().lastError ?? "Instagram ne répond pas, réessaie.");
-      res.json({ ok: true, username: user.username });
+      res.json({ ok: true, lang, username: user.username });
     } catch (e) {
       res.status(400).json({ error: e.message });
     }
+  });
+
+  app.post("/api/setup/instagram/forget", (req, res) => {
+    ig.forget(req.body?.lang === "fr" ? "fr" : "en");
+    res.json({ ok: true });
   });
 
   // Hébergement des photos de carrousels : enregistre puis teste (dépôt d'un fichier + lecture via l'URL publique)

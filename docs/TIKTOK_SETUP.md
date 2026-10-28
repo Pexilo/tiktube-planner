@@ -92,3 +92,16 @@ Toutes les 2 minutes (ou bouton « Analyser maintenant » dans l'onglet TikTok),
 Si TikTok refuse un envoi parce que trop de brouillons attendent dans ta boîte (`spam_risk_too_many_pending_share`,
 ~5 max), le post n'est pas perdu : nouvel essai automatique toutes les 2 h. Un créneau manqué (Mac éteint) part
 dès que la plateforme tourne à nouveau.
+
+## Un compte TikTok FR et un compte EN
+
+La plateforme gère **un compte par langue** avec la même app TikTok : chaque post part dans la boîte du compte
+de sa langue.
+
+1. Ajoute les deux comptes dans **Sandbox settings → Target users**.
+2. TikTok connecte le compte **ouvert dans ton navigateur** : ouvre le compte FR sur tiktok.com, puis
+   **Réglages → TikTok → Connecter le compte FR**.
+3. Change de compte sur tiktok.com, puis **Connecter le compte EN**.
+
+Un seul compte ? Connecte-le sur une langue : il reçoit aussi l'autre. Les jetons sont dans
+`data/tiktok-token-fr.json` et `data/tiktok-token-en.json` (l'ancien `tiktok-token.json` devient le compte EN).

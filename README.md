@@ -90,7 +90,7 @@ data/       ⚠️ local only (git-ignored): OAuth tokens, TikTok config, state
 
 ## Security
 
-- Secrets live only in `data/` (`client_secret.json`, `youtube-token.json`, `tiktok-config.json`, `tiktok-token.json`) — all git-ignored.
+- Secrets live only in `data/` (`client_secret.json`, `youtube-token-{fr,en}.json`, `tiktok-config.json`, `tiktok-token-{fr,en}.json`, `instagram-config.json`) — all git-ignored.
 - Nothing is sent anywhere except Google/TikTok APIs and your own FTP host.
 
 ## 💜 Support the developer

@@ -26,14 +26,19 @@ L'app peut rester en mode développement : pas de contrôle app (App Review) pou
 ## 4. Token
 
 1. Retour sur **Configuration de l'API avec la connexion Instagram**, étape **Générez des tokens d'accès → Ajouter un compte**, connecte ton Instagram et autorise.
-2. Copie le token et colle-le dans `data/instagram-config.json` (ignoré par git, voir `instagram-config.example.json`) :
+2. Copie le token et colle-le dans le **guide d'installation → étape Instagram**, en choisissant la langue du compte : il est vérifié auprès d'Instagram puis enregistré dans `data/instagram-config.json` (ignoré par git, voir `instagram-config.example.json`) :
 
 ```json
 {
   "appId": "ID d'app Instagram",
-  "accessToken": "IGAA…"
+  "accounts": {
+    "fr": { "accessToken": "IGAA…" },
+    "en": { "accessToken": "IGAA…" }
+  }
 }
 ```
+
+L'ancien format (`"accessToken"` à la racine) est converti tout seul en compte EN.
 
 Le token dure 60 jours : la plateforme le renouvelle chaque semaine tant qu'elle tourne. Si elle reste éteinte plus de 60 jours, régénère-le à l'étape 4.
 
@@ -43,4 +48,15 @@ Les étapes **webhooks**, **connexion professionnelle Instagram** et **contrôle
 
 **Réglages → Instagram** : vérifie que le compte est « Connecté », choisis **Stories** ou **Tout** et les langues, puis active **Publier les Reels (auto)**. Seuls les posts prévus après l'activation partent ; pour un post plus ancien, utilise « Publier sur Instagram » sur sa carte dans l'onglet TikTok.
 
-Limite Meta : 100 publications par 24 h via l'API.
+Limite Meta : 100 publications par 24 h via l'API (par compte).
+
+## Un compte Instagram FR et un compte EN
+
+Chaque Reel part sur le compte de la langue de son post ; une langue sans compte publie sur celui de l'autre.
+
+1. Passe les deux comptes en **Créateur** (étape 1).
+2. Invite-les tous les deux comme **Testeur Instagram** dans la même app Meta, et accepte chaque invitation (étape 3).
+3. Génère un token pour chacun : **Ajouter un compte** une 2e fois (étape 4), connecte l'autre compte Instagram.
+4. Dans le guide d'installation, colle chaque token avec sa langue (FR ou EN).
+
+Les comptes connectés apparaissent dans la barre latérale avec leur langue, et dans **Réglages → Instagram** (Retirer un compte : ses Reels repartent sur l'autre).

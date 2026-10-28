@@ -58,3 +58,18 @@ Avec l'autopilote et un horizon de 14 jours, c'est largement suffisant pour 1 Sh
 
 Les miniatures des vidéos 16:9 sont envoyées automatiquement **si ta chaîne est vérifiée par téléphone**
 (<https://www.youtube.com/verify>). Sinon YouTube choisit une image et la plateforme l'indique.
+
+## Une chaîne FR et une chaîne EN
+
+La plateforme gère **une chaîne par langue** avec le même `client_secret.json` : chaque vidéo part sur la chaîne
+de sa langue. Dans **Réglages → YouTube** (ou l'étape YouTube du guide d'installation) :
+
+1. **Connecter le compte FR** → choisis le compte Google et la chaîne FR. Si les deux chaînes sont sur le même
+   compte Google (chaînes de marque), Google te demande laquelle utiliser.
+2. Pareil avec **Connecter le compte EN**.
+3. Ajoute chaque adresse Gmail dans **Google Auth Platform → Audience → Utilisateurs test**.
+
+Une seule chaîne ? Connecte-la sur une langue : elle publie aussi l'autre. Les jetons sont dans
+`data/youtube-token-fr.json` et `data/youtube-token-en.json` (l'ancien `youtube-token.json` devient la chaîne EN).
+Une vidéo déjà envoyée reste liée à la chaîne qui l'a reçue (changement de date compris). Le quota (6 envois/jour)
+est celui du projet Google Cloud : il est partagé entre les deux chaînes.
