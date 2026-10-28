@@ -395,7 +395,11 @@ setInterval(() => void tt.tick().catch((e) => console.error("tiktok", e)), 60 * 
 
 // ---------------------------------------------------------------- Instagram (Reels publiés à l'heure du post TikTok)
 app.patch("/api/instagram/settings", (req, res) => res.json(ig.updateIgSettings(req.body)));
-app.post("/api/instagram/refresh", async (_req, res) => res.json({ user: await ig.refreshUser(), status: ig.status() }));
+app.post("/api/instagram/refresh", async (_req, res) => {
+  const user = await ig.refreshUser();
+  const linked = user ? await ig.syncExisting().catch(() => 0) : 0;
+  res.json({ user, linked, status: ig.status() });
+});
 app.post("/api/instagram/posts/:id/publish", async (req, res) => {
   const p = tt.posts().find((x) => x.id === req.params.id);
   if (!p || p.type !== "video") return res.status(404).json({ error: "Post vidéo introuvable" });

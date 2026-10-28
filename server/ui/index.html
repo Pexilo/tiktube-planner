@@ -456,7 +456,7 @@
       <div class="page-head">
         <div><h1>Calendrier</h1><p id="calSub">Tout ce qui sort, sur YouTube et TikTok, jour par jour.</p></div>
         <div class="spacer"></div>
-        <div class="seg" id="calPlat"><button data-v="" class="on">Tout</button><button data-v="yt">YouTube</button><button data-v="tt">TikTok</button></div>
+        <div class="seg" id="calPlat"><button data-v="" class="on">Tout</button><button data-v="yt">YouTube</button><button data-v="tt">TikTok</button><button data-v="ig">Instagram</button></div>
         <div class="seg" id="calRange"><button data-v="future" class="on">À venir</button><button data-v="past">Déjà publié</button></div>
         <button class="btn" id="regen" title="Les vidéos déjà envoyées ou dont tu as modifié la date (cadenas) ne bougent pas."><svg class="i" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>Recalculer le planning</button>
       </div>
@@ -911,9 +911,9 @@ function itemRow(x) {
 /* ------------------------------------------------------------------ Calendrier */
 function renderCalendar() {
   if ($("#tab-calendar").contains(document.activeElement) && document.activeElement.tagName === "INPUT") return;
-  $("#calSub").textContent = mode === "stories" ? "Les stories qui sortent, sur YouTube et TikTok, jour par jour." : "Tout ce qui sort, sur YouTube et TikTok, jour par jour.";
+  $("#calSub").textContent = mode === "stories" ? "Les stories qui sortent, sur YouTube, TikTok et Instagram, jour par jour." : "Tout ce qui sort, sur YouTube, TikTok et Instagram, jour par jour.";
   const now = Date.now();
-  const all = lots(timeline()).filter((x) => !cal.plat || x.plat === cal.plat || (x.tt && cal.plat === "tt"));
+  const all = lots(timeline()).filter((x) => !cal.plat || x.plat === cal.plat || (x.tt && cal.plat === "tt") || (cal.plat === "ig" && igOf(x.tt?.p ?? x.p)));
   // Bandeau 14 jours
   const start = new Date(); start.setHours(0, 0, 0, 0);
   const byDay = {};
@@ -936,6 +936,15 @@ function renderCalendar() {
     || `<div class="card empty"><b>${cal.range === "future" ? "Rien de prévu" : "Encore rien de publié"}</b>${cal.range === "future" ? "Clique « Recalculer le planning »." : ""}</div>`);
 }
 
+/** Statut Instagram du Reel lié à un post TikTok (null si le post ne part pas sur Instagram). */
+const IG_ST = { published: ["pub", "Publié"], publishing: ["work", "Publication…"], waiting: ["work", "En attente"], error: ["err", "Erreur"] };
+function igOf(p) {
+  const g = TT?.instagram, it = p && g?.items[p.id];
+  if (it && IG_ST[it.status]) return IG_ST[it.status];
+  return p && g?.pending.includes(p.id) ? ["sched", "Programmé"] : null;
+}
+const igChip = (ig) => `<span class="chip ${ig[0]}">${esc(ig[1])}<span>· Instagram</span></span>`;
+
 /** Story : son post TikTok suit la date YouTube → une seule ligne « lot » au lieu de deux. */
 function lots(items) {
   const yt = new Map(items.filter((x) => x.plat === "yt" && x.v.kind === "tale").map((x) => [x.v.id, x]));
@@ -953,19 +962,20 @@ function calRow(x) {
     const editable = !v.youtubeId, movable = !v.published; // déjà programmée sur YouTube : la date se change quand même (YouTube + TikTok)
     const p = x.tt?.p, [ttCls, ttLabel] = p ? TT_ST[p.status] ?? ["todo", p.status] : [];
     const ttOff = p && p.sentAt && hhmm(p.sentAt) !== hhmm(x.at) ? ` à ${hhmm(p.sentAt)}` : ""; // envoyé à une autre heure que YouTube
-    return `<div class="ev-row ${v.paused && !v.youtubeId ? "paused" : ""}" ${p ? 'title="Story : YouTube et TikTok sortent ensemble"' : ""}><span class="time">${hhmm(x.at)}</span>${p ? `<span class="lot-ic">${platIc("yt")}<i></i>${platIc("tt")}</span>` : platIc("yt")}${th}
+    const ig = igOf(p);
+    return `<div class="ev-row ${v.paused && !v.youtubeId ? "paused" : ""}" ${p ? `title="Story : YouTube, TikTok${ig ? " et Instagram" : ""} sortent ensemble"` : ""}><span class="time">${hhmm(x.at)}</span>${p ? `<span class="lot-ic">${platIc("yt")}<i></i>${platIc("tt")}${ig ? `<i></i>${platIc("ig")}` : ""}</span>` : platIc("yt")}${th}
       <div class="tt"><b>${esc(v.title)}</b><div class="s"><img class="appic" style="width:16px;height:16px;border-radius:4px" src="${appOf(v.slug).icon}">${esc(v.appName)} <span class="tag">${kindLabel(v)}</span><span class="tag">${v.lang.toUpperCase()}</span>${v.locked && editable ? `<span title="Date fixée à la main">${ic("lock", 'style="width:13px;height:13px"')}</span>` : ""}</div></div>
-      ${p ? `<div class="lot-st"><span class="chip ${statusOf(v)[0]}">${esc(statusOf(v)[1])}<span>· YouTube</span></span><span class="chip ${ttCls}">${esc(ttLabel)}${ttOff}<span>· TikTok</span></span></div>` : chip(statusOf(v))}
+      ${p ? `<div class="lot-st"><span class="chip ${statusOf(v)[0]}">${esc(statusOf(v)[1])}<span>· YouTube</span></span><span class="chip ${ttCls}">${esc(ttLabel)}${ttOff}<span>· TikTok</span></span>${ig ? igChip(ig) : ""}</div>` : chip(statusOf(v))}
       <div class="acts">
         ${movable ? `<input type="datetime-local" value="${toLocalInput(v.publishAt)}" data-date="${v.id}" ${v.youtubeId ? 'data-onyt="1"' : ""} title="${v.youtubeId ? "Changer la date (aussi dans YouTube et TikTok)" : "Changer la date"}">` : ""}
         ${v.rendered ? `<button class="btn sm icon ghost" data-play="${v.id}" title="Voir">${ic("playc")}</button>` : ""}
         ${v.youtubeId ? `<a class="btn sm icon ghost" target="_blank" href="${v.published ? `https://youtu.be/${v.youtubeId}` : `https://studio.youtube.com/video/${v.youtubeId}/edit`}" title="${v.published ? "Ouvrir sur YouTube" : "Ouvrir dans YouTube Studio"}">${ic("ext")}</a>` : ""}
       </div></div>`;
   }
-  const p = x.p, th = ttThumb(p);
-  return `<div class="ev-row"><span class="time">${hhmm(x.at)}</span>${platIc("tt")}${th ? `<img class="th v" src="${th}">` : `<span class="th"></span>`}
+  const p = x.p, th = ttThumb(p), ig = igOf(p), [ttCls, ttLabel] = TT_ST[p.status] ?? ["todo", p.status];
+  return `<div class="ev-row"><span class="time">${hhmm(x.at)}</span>${ig ? `<span class="lot-ic">${platIc("tt")}<i></i>${platIc("ig")}</span>` : platIc("tt")}${th ? `<img class="th v" src="${th}">` : `<span class="th"></span>`}
     <div class="tt"><b>${esc(ttTitle(p))}</b><div class="s">TikTok <span class="tag">${p.type === "photo" ? `Carrousel ${p.images.length}` : "Vidéo"}</span>${p.source ? `<span>${esc(p.source)}</span>` : ""}</div></div>
-    ${chip(TT_ST[p.status] ?? ["todo", p.status])}
+    ${ig ? `<div class="lot-st"><span class="chip ${ttCls}">${esc(ttLabel)}<span>· TikTok</span></span>${igChip(ig)}</div>` : chip([ttCls, ttLabel])}
     <div class="acts"><a class="btn sm ghost" href="#tiktok">Modifier</a></div></div>`;
 }
 $("#calPlat").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; cal.plat = b.dataset.v; segOn("#calPlat", cal.plat); renderCalendar(); };
@@ -1098,7 +1108,7 @@ function igLine(p) {
   if (p.type !== "video" || !g?.status.configured) return "";
   const it = g.items[p.id], btn = (label) => `<button class="btn sm ghost" data-igpub="${p.id}">${label}</button>`;
   const line =
-    it?.status === "published" ? `${chip(["pub", "Reel publié"])}${it.permalink ? `<a href="${esc(it.permalink)}" target="_blank" rel="noopener" style="text-decoration:underline">Voir</a>` : ""}`
+    it?.status === "published" ? `${chip(["pub", it.manual ? "Publié à la main" : "Reel publié"])}${it.permalink ? `<a href="${esc(it.permalink)}" target="_blank" rel="noopener" style="text-decoration:underline">Voir</a>` : ""}`
     : it?.status === "publishing" ? `<span class="spin"></span>Publication en cours…`
     : it?.status === "waiting" ? `${chip(["work", "En attente"])}<span class="note">${esc(it.error ?? "")} Nouvel essai ${rel(it.retryAt)}.</span>`
     : it?.status === "error" ? `${chip(["err", "Erreur"])}${btn("Réessayer")}<button class="btn sm ghost" data-igskip="${p.id}">Ignorer</button>`

@@ -178,14 +178,46 @@ export function skip(id) {
   saveStore();
 }
 
+/* ------------------------------------------------------------------ Reels publiés à la main */
+
+const norm = (s) => String(s ?? "").normalize("NFKD").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+let lastSync = 0;
+
+/**
+ * Reels déjà sur le compte (publiés à la main dans l'app Instagram) : rattachés à leur post TikTok
+ * quand la légende commence par son titre. Évite un doublon et affiche le lien.
+ */
+export async function syncExisting() {
+  if (!igState.user) return 0;
+  lastSync = Date.now();
+  const { data = [] } = await api(`/${igState.user.user_id}/media`, { params: { fields: "id,caption,permalink,timestamp", limit: "50" } });
+  let n = 0;
+  for (const p of ttPosts()) {
+    const t = norm(p.title);
+    if (p.type !== "video" || t.length < 10 || store.items[p.id]?.status === "published") continue;
+    const m = data.find((x) => norm(x.caption).startsWith(t));
+    if (!m) continue;
+    store.items[p.id] = { status: "published", mediaId: m.id, permalink: m.permalink ?? null, publishedAt: new Date(m.timestamp).toISOString(), manual: true };
+    n++;
+  }
+  if (n) {
+    saveStore();
+    logEvent("info", `Instagram : ${n} Reel(s) publié(s) à la main rattaché(s) à leur post`);
+  }
+  return n;
+}
+
 /** Planificateur : publie le prochain Reel dont l'heure est arrivée (appelé chaque minute). */
 export async function tick() {
   if (!igSettings().enabled || igState.publishing || !status().configured) return;
   if (!igState.user && !(await refreshUser())) return;
   const now = new Date().toISOString();
-  const due = pending()
+  const due = () => pending()
     .filter((p) => p.status !== "draft" && p.publishAt <= now)
     .filter((p) => { const it = store.items[p.id]; return !it || (it.status === "waiting" && it.retryAt <= now); })
     .sort((a, b) => a.publishAt.localeCompare(b.publishAt));
-  if (due[0]) await publish(due[0]);
+  // Juste avant de publier (et toutes les 30 min) : déjà posté à la main ? Alors pas de doublon.
+  if (due()[0] || Date.now() - lastSync > 30 * 60000) await syncExisting().catch((e) => (igState.lastError = e.message));
+  const next = due()[0];
+  if (next) await publish(next);
 }
