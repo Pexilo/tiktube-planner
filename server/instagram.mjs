@@ -90,6 +90,18 @@ export async function refreshUser() {
   return igState.user;
 }
 
+/** Guide d'installation : vérifie le token auprès d'Instagram avant de l'enregistrer. */
+export async function saveToken(token, appId) {
+  token = String(token ?? "").trim();
+  if (!token) throw new Error("Colle le token d'accès généré dans Meta.");
+  const j = await fetch(`${API}/me?fields=user_id,username&access_token=${encodeURIComponent(token)}`).then((r) => r.json());
+  if (j.error) throw new Error(`Token refusé par Instagram : ${j.error.message}`);
+  const c = { ...(config() ?? {}), ...(appId?.trim() ? { appId: appId.trim() } : {}), accessToken: token };
+  delete c.refreshedAt;
+  writeFileSync(CONFIG, JSON.stringify(c, null, 2), { mode: 0o600 });
+  return refreshUser();
+}
+
 export const quota = () => api(`/${igState.user.user_id}/content_publishing_limit`, { params: { fields: "config,quota_usage" } }).then((j) => j.data?.[0]);
 
 /* ------------------------------------------------------------------ publication d'un Reel */

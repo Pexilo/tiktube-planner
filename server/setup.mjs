@@ -1,4 +1,4 @@
-// Guide d'installation (server/ui/setup.html) : vérifications, profil, clés YouTube / TikTok, hébergement des photos.
+// Guide d'installation (server/ui/setup.html) : vérifications, profil, clés YouTube / TikTok / Instagram, hébergement des photos.
 // Tout est enregistré en local : data/ (clés, jetons) et content/profile.json — jamais envoyé ailleurs.
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, unlinkSync } from "node:fs";
 import { join, basename } from "node:path";
@@ -12,6 +12,7 @@ import { loadProfile, saveProfile } from "../shared/profile.mjs";
 import { DATA } from "./state.mjs";
 import * as yt from "./youtube.mjs";
 import * as tt from "./tiktok.mjs";
+import * as ig from "./instagram.mjs";
 import { watchDir } from "./watchfolder.mjs";
 
 const TT_CONFIG = join(DATA, "tiktok-config.json");
@@ -77,6 +78,7 @@ export function setupStatus() {
     apps: apps.map((f) => f.replace(/\.json$/, "")),
     youtube: yt.status(),
     tiktok: { ...tt.status(), hasKeys: !!(c.clientKey && c.clientSecret), clientKeyHint: c.clientKey ? `${c.clientKey.slice(0, 4)}…` : null },
+    instagram: { ...ig.status(), enabled: ig.igSettings().enabled },
     hosting: c.hosting ? { ...c.hosting, password: c.hosting.password ? "••••••" : "" } : null,
     elevenlabs: el.status(),
     watch: { dir: watchDir(), exists: existsSync(watchDir()), enabled: tt.ttSettings().watch, slots: { fr: tt.ttSettings().frTimes, en: tt.ttSettings().enTimes } },
@@ -118,6 +120,17 @@ export function setupRoutes(app) {
     if (!clientKey?.trim() || !clientSecret?.trim()) return res.status(400).json({ error: "Client key et client secret requis." });
     writeTT({ ...readTT(), clientKey: clientKey.trim(), clientSecret: clientSecret.trim() });
     res.json({ ok: true });
+  });
+
+  // Token Instagram (Meta → Configuration de l'API avec la connexion Instagram → Générez des tokens d'accès)
+  app.post("/api/setup/instagram", async (req, res) => {
+    try {
+      const user = await ig.saveToken(req.body?.accessToken, req.body?.appId);
+      if (!user) throw new Error(ig.status().lastError ?? "Instagram ne répond pas, réessaie.");
+      res.json({ ok: true, username: user.username });
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
   });
 
   // Hébergement des photos de carrousels : enregistre puis teste (dépôt d'un fichier + lecture via l'URL publique)

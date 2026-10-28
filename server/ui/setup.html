@@ -116,8 +116,8 @@ const ext = (url, label) => `<a href="${url}" target="_blank" rel="noopener">${l
 const T = {
   fr: {
     tagline: "Guide d'installation", dash: "Dashboard →", next: "Continuer →", prev: "← Retour", skip: "Passer cette étape →", optional: "option",
-    steps: ["Bienvenue", "Ton profil", "Tes apps", "YouTube", "TikTok", "Photos TikTok", "Dossier TikTok", "Voix off", "C'est prêt", "Soutenir le dév"],
-    s0: { h: "Bienvenue 👋", lead: "En quelques étapes, tu vas connecter ta chaîne YouTube et ton compte TikTok. Tout reste sur ton ordinateur : tes clés sont enregistrées dans le dossier <code>data/</code>, jamais envoyées ailleurs.",
+    steps: ["Bienvenue", "Ton profil", "Tes apps", "YouTube", "TikTok", "Photos TikTok", "Dossier TikTok", "Instagram", "Voix off", "C'est prêt", "Soutenir le dév"],
+    s0: { h: "Bienvenue 👋", lead: "En quelques étapes, tu vas connecter ta chaîne YouTube, ton compte TikTok et ton Instagram. Tout reste sur ton ordinateur : tes clés sont enregistrées dans le dossier <code>data/</code>, jamais envoyées ailleurs.",
       checks: "Vérification de ton ordinateur", node: "Node.js", ffmpeg: "ffmpeg (encodage vidéo)", python: "Python + numpy/scipy (musique)", ocr: "OCR du système (lecture des slides TikTok)", claude: "Claude Code CLI (légendes automatiques)", say: "Voix du système (Shorts narrés)",
       missing: "Relance <code>./install.sh</code> (Mac) ou <code>install.ps1</code> (Windows) pour installer ce qui manque.", claudeNote: "Facultatif : sans Claude Code, l'import de dossiers TikTok fonctionne mais sans légendes écrites automatiquement. Installe-le sur claude.com/claude-code." },
     s1: { h: "Ton profil", lead: "Ton prénom s'affiche sur le dashboard ; la signature est ajoutée en bas de chaque description YouTube.",
@@ -172,6 +172,17 @@ const T = {
       prompt: (d) => `Crée 3 carrousels TikTok pour mon app <NOM DE L'APP> (6 slides 1080×1920 chacun, en français et en anglais) et dépose-les dans ${d}/<NOM>-<DATE>/ : un sous-dossier par carrousel dans fr/ et en/ (01.png, 02.png…), plus un fichier LEGENDES.md avec, pour chaque carrousel, le titre et la légende FR / EN (texte + hashtags).`,
       slots: (s) => `Créneaux : FR ${s.fr.join(" · ")} — EN ${s.en.join(" · ")}. Modifiables dans le dashboard → Réglages → TikTok.`,
       inbox: "TikTok accepte ~5 brouillons non publiés dans ta boîte : publie-les au fil de l'eau, sinon la plateforme réessaie toutes les 2 h." },
+    sI: { h: "Instagram (Reels)", lead: "Chaque story (ou chaque vidéo, au choix) part aussi en <b>Reel sur Instagram</b>, à la même heure que son post TikTok. Instagram publie directement : pas de brouillon à finir dans l'app. Il faut un compte Instagram Pro et une app Meta gratuite (≈ 10 min).",
+      list: [
+        "Dans l'app Instagram : <b>Paramètres → Type de compte et outils → Passer à un compte professionnel → Créateur</b>. Pas besoin de page Facebook.",
+        `Ouvre ${ext("https://developers.facebook.com/apps/", "Meta for Developers")} et connecte-toi avec <b>un compte Facebook</b> (ton perso convient : il sert seulement à gérer l'app, rien n'apparaît dessus). Prends la connexion Facebook classique, pas « compte professionnel » (work.meta.com). Inscris-toi comme développeur si c'est demandé.`,
+        "<b>Créer une app</b> → cas d'usage <b>« Gérer les messages et le contenu sur Instagram »</b>, sans portfolio business.",
+        "<b>API Instagram → Configuration de l'API avec la connexion Instagram</b> → <b>Add all required permissions</b>. Puis dans <b>Autorisations et fonctionnalités</b>, ajoute aussi <code>instagram_business_content_publish</code> (c'est elle qui permet de publier).",
+        "<b>Rôles de l'app → Rôles → Ajouter des personnes → Testeur Instagram</b> → ton nom d'utilisateur. Puis sur instagram.com : <b>Paramètres → Apps et sites web → Invitations de testeur → Accepter</b>.",
+        "Retour sur la configuration de l'API → <b>Générez des tokens d'accès → Ajouter un compte</b> → connecte ton Instagram, puis colle le token ci-dessous.",
+      ],
+      token: "Token d'accès", appId: "ID d'app Instagram", appIdPh: "facultatif", save: "Vérifier et enregistrer", saving: "Vérification…", connected: "Compte connecté", saved: (u) => `Token vérifié et enregistré ✓ Compte @${u}`,
+      tip: "Les étapes <b>webhooks</b>, <b>connexion professionnelle</b> et <b>contrôle app</b> de la page Meta ne servent pas ici : l'app peut rester en mode développement pour publier sur ton propre compte. Le token dure 60 jours, la plateforme le renouvelle chaque semaine. Ensuite, active la publication dans le dashboard → <b>Réglages → Instagram</b>." },
     sV: { h: "Voix off (ElevenLabs)", lead: "Pour des Shorts narrés <b>plus réalistes et plus accrocheurs</b>, branche ElevenLabs. Sans clé, la plateforme garde la voix de ton ordinateur.",
       keyH: "1. Ta clé d'API",
       keyHow: [
@@ -195,7 +206,7 @@ const T = {
     s6: { h: "C'est prêt 🎉", lead: "Ta plateforme est configurée. Voici comment l'utiliser au quotidien.",
       list: [
         "<b>Vidéos</b> : rends tes vidéos, puis active l'<b>autopilote</b> (Réglages) — il rend et programme sur YouTube ce qui sort dans les prochains jours.",
-        "<b>Calendrier</b> : tout ce qui sort sur YouTube et TikTok, jour par jour.",
+        "<b>Calendrier</b> : tout ce qui sort sur YouTube, TikTok et Instagram, jour par jour.",
         "<b>TikTok</b> : dépose un dossier dans <code>~/Desktop/Tiktok</code> (sous-dossiers <code>fr/</code> <code>en/</code> d'images + un fichier de légendes) : il est analysé, programmé, puis rangé dans <code>Programmés</code>.",
         "Optionnel : <code>npm run menubar</code> installe une icône dans la barre des menus pour démarrer/arrêter la plateforme.",
       ],
@@ -203,8 +214,8 @@ const T = {
   },
   en: {
     tagline: "Setup guide", dash: "Dashboard →", next: "Continue →", prev: "← Back", skip: "Skip this step →", optional: "optional",
-    steps: ["Welcome", "Your profile", "Your apps", "YouTube", "TikTok", "TikTok photos", "TikTok folder", "Voice-over", "All set", "Support the dev"],
-    s0: { h: "Welcome 👋", lead: "In a few steps you'll connect your YouTube channel and TikTok account. Everything stays on your computer: keys are saved in the <code>data/</code> folder and never sent anywhere else.",
+    steps: ["Welcome", "Your profile", "Your apps", "YouTube", "TikTok", "TikTok photos", "TikTok folder", "Instagram", "Voice-over", "All set", "Support the dev"],
+    s0: { h: "Welcome 👋", lead: "In a few steps you'll connect your YouTube channel, TikTok account and Instagram. Everything stays on your computer: keys are saved in the <code>data/</code> folder and never sent anywhere else.",
       checks: "Checking your computer", node: "Node.js", ffmpeg: "ffmpeg (video encoding)", python: "Python + numpy/scipy (music)", ocr: "System OCR (reads TikTok slides)", claude: "Claude Code CLI (automatic captions)", say: "System voices (narrated Shorts)",
       missing: "Run <code>./install.sh</code> (Mac) or <code>install.ps1</code> (Windows) again to install what's missing.", claudeNote: "Optional: without Claude Code, TikTok folder import still works but captions aren't written for you. Get it at claude.com/claude-code." },
     s1: { h: "Your profile", lead: "Your first name shows on the dashboard; the signature is appended to every YouTube description.",
@@ -259,6 +270,17 @@ const T = {
       prompt: (d) => `Create 3 TikTok carousels for my app <APP NAME> (6 slides of 1080×1920 each, in French and English) and save them in ${d}/<NAME>-<DATE>/: one subfolder per carousel under fr/ and en/ (01.png, 02.png…), plus a CAPTIONS.md file with, for each carousel, the title and the FR / EN caption (text + hashtags).`,
       slots: (s) => `Slots: FR ${s.fr.join(" · ")} — EN ${s.en.join(" · ")}. Change them in the dashboard → Settings → TikTok.`,
       inbox: "TikTok accepts ~5 unpublished drafts in your inbox: publish them as they come, otherwise the platform retries every 2 h." },
+    sI: { h: "Instagram (Reels)", lead: "Each story (or each video, your choice) also goes out as an <b>Instagram Reel</b>, at the same time as its TikTok post. Instagram publishes directly: no draft to finish in the app. You need an Instagram Pro account and a free Meta app (≈ 10 min).",
+      list: [
+        "In the Instagram app: <b>Settings → Account type and tools → Switch to professional account → Creator</b>. No Facebook Page needed.",
+        `Open ${ext("https://developers.facebook.com/apps/", "Meta for Developers")} and log in with <b>a Facebook account</b> (your personal one is fine: it only manages the app, nothing shows on it). Use the regular Facebook login, not “work account” (work.meta.com). Register as a developer if asked.`,
+        "<b>Create app</b> → use case <b>“Manage messaging & content on Instagram”</b>, no business portfolio.",
+        "<b>Instagram API → API setup with Instagram login</b> → <b>Add all required permissions</b>. Then in <b>Permissions and features</b>, also add <code>instagram_business_content_publish</code> (that's the one that allows publishing).",
+        "<b>App roles → Roles → Add people → Instagram Tester</b> → your username. Then on instagram.com: <b>Settings → Apps and websites → Tester invites → Accept</b>.",
+        "Back on the API setup → <b>Generate access tokens → Add account</b> → connect your Instagram, then paste the token below.",
+      ],
+      token: "Access token", appId: "Instagram app ID", appIdPh: "optional", save: "Check and save", saving: "Checking…", connected: "Account connected", saved: (u) => `Token checked and saved ✓ Account @${u}`,
+      tip: "The <b>webhooks</b>, <b>business login</b> and <b>app review</b> steps on the Meta page aren't needed here: the app can stay in development mode to publish on your own account. The token lasts 60 days and the platform renews it every week. Then turn publishing on in the dashboard → <b>Settings → Instagram</b>." },
     sV: { h: "Voice-over (ElevenLabs)", lead: "For <b>more realistic, punchier</b> narrated Shorts, connect ElevenLabs. Without a key, the platform keeps your computer's voice.",
       keyH: "1. Your API key",
       keyHow: [
@@ -282,7 +304,7 @@ const T = {
     s6: { h: "All set 🎉", lead: "Your platform is configured. Here's how to use it day to day.",
       list: [
         "<b>Videos</b>: render your videos, then turn on the <b>autopilot</b> (Settings) — it renders and schedules on YouTube whatever comes out in the next few days.",
-        "<b>Calendar</b>: everything going out on YouTube and TikTok, day by day.",
+        "<b>Calendar</b>: everything going out on YouTube, TikTok and Instagram, day by day.",
         "<b>TikTok</b>: drop a folder into <code>~/Desktop/Tiktok</code> (<code>fr/</code> <code>en/</code> image subfolders + a captions file): it's analysed, scheduled, then moved to <code>Programmés</code>.",
         "Optional: <code>npm run menubar</code> installs a menu bar icon to start/stop the platform.",
       ],
@@ -300,12 +322,14 @@ const done = () => [
   ST.tiktok.connected,
   !!ST.hosting?.host,
   ST.watch.exists && ST.watch.enabled,
+  !!ST.instagram?.connected,
   ST.elevenlabs.hasKey && !!(ST.elevenlabs.voices.fr || ST.elevenlabs.voices.en),
   !!ST.profile.setupDone,
   !!ST.profile.setupDone,
 ];
-const OPTIONAL = [false, false, false, false, true, true, true, true, false, true];
-const LAST = 9;
+const OPTIONAL = [false, false, false, false, true, true, true, true, true, false, true];
+const LAST = 10;
+const VOICE_STEP = 8;
 // Liens de l'auteur (étape « Soutenir le développeur »)
 const AUTHOR = {
   apps: "https://taap.be/louis.valli",
@@ -418,6 +442,19 @@ const VIEWS = [
       ${navBtns(!(w.exists && w.enabled))}`;
   },
   () => {
+    const x = t().sI, g = ST.instagram ?? {};
+    return `<h1>${x.h}</h1><p class="lead">${x.lead}</p>
+      <div class="card">${how(x.list)}
+        <div class="form">
+          <label>${x.token}</label><input id="igToken" type="password" placeholder="${g.configured ? "IGAA… (✓)" : "IGAA…"}" autocomplete="off">
+          <label>${x.appId}</label><input id="igAppId" placeholder="${esc(x.appIdPh)}" autocomplete="off" style="max-width:240px">
+          <span></span><div class="row"><button class="btn ${g.connected ? "" : "primary"}" id="saveIG">${x.save}</button><span class="msg" id="igMsg"></span></div>
+        </div>
+        <div class="row" style="margin-top:14px">${stat(g.connected, `${x.connected}${g.user?.username ? ` · @${esc(g.user.username)}` : ""}`, x.connected)}</div>
+        <div class="tip">${x.tip}</div>
+      </div>${navBtns(!g.connected)}`;
+  },
+  () => {
     const x = t().sV, e = ST.elevenlabs, sub = ELC?.subscription;
     let voicesCard = "";
     if (e.hasKey && !ELC) {
@@ -469,7 +506,7 @@ const VIEWS = [
         <div class="row">${AUTHOR.social.map(([n, h, u, svg]) => `<a class="btn" href="${u}" target="_blank" rel="noopener"><svg width="16" height="16" viewBox="0 0 24 24">${svg}</svg>${n} <span class="note">${esc(h)}</span></a>`).join("")}</div>
       </div>
       <p class="note" style="text-align:center;margin-top:22px">${x.thanks}</p>
-      <div class="nav"><button class="btn" data-go="8">${t().prev}</button><button class="btn primary" id="finish">${x.go}</button></div>`;
+      <div class="nav"><button class="btn" data-go="${LAST - 1}">${t().prev}</button><button class="btn primary" id="finish">${x.go}</button></div>`;
   },
 ];
 
@@ -480,7 +517,7 @@ async function loadEleven() {
   elLoading = true;
   ELC = await api("/api/setup/elevenlabs/catalog").catch((e) => ({ error: e.message }));
   elLoading = false;
-  if (step === 7) { render(true); bindAll(); } // toujours sur l'étape Voix off
+  if (step === VOICE_STEP) { render(true); bindAll(); } // toujours sur l'étape Voix off
 }
 const elVoice = (lang) => { const o = $(`#elV-${lang}`)?.selectedOptions[0]; return o?.value ? { id: o.value, name: o.dataset.name } : null; };
 
@@ -510,7 +547,7 @@ function bindDrop(zoneId, inputId, onFile) {
 }
 
 document.body.addEventListener("click", async (e) => {
-  const el = e.target.closest("[data-step],[data-go],[data-copy],[data-l],[data-el-preview],[data-el-test],#saveProfile,#saveTT,#saveHost,#privacy,#finish,#wCreate,#wOpen,#elSaveKey,#elForget,#elSave,#elAddBtn");
+  const el = e.target.closest("[data-step],[data-go],[data-copy],[data-l],[data-el-preview],[data-el-test],#saveProfile,#saveTT,#saveIG,#saveHost,#privacy,#finish,#wCreate,#wOpen,#elSaveKey,#elForget,#elSave,#elAddBtn");
   if (!el) return;
   if (el.dataset.step ?? el.dataset.go) { step = Number(el.dataset.step ?? el.dataset.go); history.replaceState(null, "", `#${step}`); await load(true); bindAll(); window.scrollTo(0, 0); return; }
   if (el.dataset.copy) { await navigator.clipboard.writeText(el.dataset.copy); el.classList.add("done"); setTimeout(() => el.classList.remove("done"), 1500); return; }
@@ -523,6 +560,14 @@ document.body.addEventListener("click", async (e) => {
     const r = await api("/api/setup/tiktok", { clientKey: $("#ttKey").value, clientSecret: $("#ttSecret").value });
     if (r.error) return msg("#ttMsg", false, esc(r.error));
     await load(true); bindAll(); msg("#ttMsg", true, t().s4.saved);
+  }
+  if (el.id === "saveIG") {
+    const x = t().sI, label = el.textContent;
+    el.disabled = true; el.textContent = x.saving;
+    const r = await api("/api/setup/instagram", { accessToken: $("#igToken").value, appId: $("#igAppId").value });
+    el.disabled = false; el.textContent = label;
+    if (r.error) return msg("#igMsg", false, esc(r.error));
+    await load(true); bindAll(); msg("#igMsg", true, x.saved(esc(r.username)));
   }
   if (el.id === "saveHost") {
     el.disabled = true; el.textContent = t().s5.testing;
