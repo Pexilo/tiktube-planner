@@ -1581,7 +1581,8 @@ document.body.addEventListener("click", async (e) => {
   const play = e.target.closest("[data-sfxplay]");
   if (play) {
     // Aperçu au volume choisi (le navigateur plafonne à 100 % ; la vidéo, elle, monte au-delà).
-    const a = new Audio(`/public/audio/tale-sfx/${encodeURIComponent(play.dataset.sfxplay)}.wav`);
+    // ?v= : ignore une version en cache d'avant le no-cache du serveur (un son refait garde son nom).
+    const a = new Audio(`/public/audio/tale-sfx/${encodeURIComponent(play.dataset.sfxplay)}.wav?v=${Math.round(performance.timeOrigin)}`);
     a.volume = Math.min(1, Number(play.closest("[data-sfx]")?.querySelector('[data-bf="sfxvol"]')?.value ?? 1) * 0.5);
     return void a.play().catch(() => {});
   }

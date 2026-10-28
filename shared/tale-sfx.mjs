@@ -31,7 +31,7 @@ export const STORY_SFX = {
   typing: { mode: "bed", dur: 4, gain: 0.3, loop: true, use: "someone coding, hacking, writing a message", prompt: "fast mechanical keyboard typing in a quiet dark room" },
   siren: { mode: "bed", dur: 5, gain: 0.22, loop: true, use: "police, an arrest, an investigation closing in", prompt: "distant police siren wailing in a city at night, far away" },
   cash: { mode: "hit", dur: 1.5, gain: 0.4, use: "money in: a payout, a fortune, a price", prompt: "cash register cha-ching with coins clinking" },
-  fall: { mode: "hit", dur: 2, gain: 0.2, influence: 0.7, use: "money out: a crash, a loss, a failure", prompt: "short descending pitch-drop sweep, like a market crash, falling from high to low and dying out, airy and dark, documentary sound design, no music" },
+  fall: { mode: "hit", dur: 2.5, gain: 0.2, influence: 0.6, use: "money out: a crash, a loss, a failure", prompt: "dramatic failure sound effect: descending whoosh falling down in pitch with a low boom at the start, power-down, sad and heavy, short reverb tail fading to silence, no music, no melody" },
   shimmer: { mode: "hit", dur: 2, gain: 0.35, use: "a discovery, a hidden treasure, a lucky break", prompt: "magical airy shimmer reveal, soft sparkle swell, no music" },
   slam: { mode: "hit", dur: 2, gain: 0.45, use: "prison, a seizure, a door closing for good", prompt: "heavy metal prison door slam with echo" },
   gavel: { mode: "hit", dur: 1.5, gain: 0.45, use: "a court ruling, a judge, a verdict", prompt: "single wooden gavel strike in a courtroom with room reverb" },

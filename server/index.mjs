@@ -28,7 +28,8 @@ app.use("/out", (req, res, next) => {
   if (outStatic.dir !== OUT) outStatic = { dir: OUT, mw: express.static(OUT) };
   outStatic.mw(req, res, next);
 });
-app.use("/public", express.static(join(ROOT, "public")));
+// Voix et bruitages sont refaits sous le même nom : le navigateur revalide à chaque lecture (304 si rien n'a changé).
+app.use("/public", express.static(join(ROOT, "public"), { setHeaders: (res) => res.setHeader("Cache-Control", "no-cache") }));
 app.use(express.static(join(ROOT, "server/ui")));
 
 const catalog = () => loadCatalog();
