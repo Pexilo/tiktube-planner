@@ -1,4 +1,4 @@
-// Guide d'installation (server/ui/setup.html) : vérifications, profil, clés YouTube / TikTok / Instagram, hébergement des photos.
+// Guide d'installation (server/ui/setup.html) : vérifications, profil, clés YouTube / TikTok / Instagram, hébergement des photos, webhook Discord.
 // Tout est enregistré en local : data/ (clés, jetons) et content/profile.json — jamais envoyé ailleurs.
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, unlinkSync } from "node:fs";
 import { join, basename } from "node:path";
@@ -13,6 +13,7 @@ import { DATA } from "./state.mjs";
 import * as yt from "./youtube.mjs";
 import * as tt from "./tiktok.mjs";
 import * as ig from "./instagram.mjs";
+import * as discord from "./discord.mjs";
 import { watchDir } from "./watchfolder.mjs";
 
 const TT_CONFIG = join(DATA, "tiktok-config.json");
@@ -81,6 +82,7 @@ export function setupStatus() {
     instagram: { ...ig.status(), enabled: ig.igSettings().enabled },
     hosting: c.hosting ? { ...c.hosting, password: c.hosting.password ? "••••••" : "" } : null,
     elevenlabs: el.status(),
+    discord: discord.status(),
     watch: { dir: watchDir(), exists: existsSync(watchDir()), enabled: tt.ttSettings().watch, slots: { fr: tt.ttSettings().frTimes, en: tt.ttSettings().enTimes } },
     redirect: { youtube: `http://localhost:${yt.PORT}/oauth/callback`, tiktok: `http://localhost:${yt.PORT}/tiktok/callback/` },
   };
@@ -221,6 +223,25 @@ export function setupRoutes(app) {
   app.post("/api/setup/open-folder", (_req, res) => {
     if (existsSync(watchDir())) openPath(watchDir());
     res.json({ ok: existsSync(watchDir()) });
+  });
+
+  // Webhook Discord (miniature + légende des stories à leur sortie) : vérifié par un message d'essai avant d'être enregistré.
+  app.post("/api/setup/discord", async (req, res) => {
+    const webhook = String(req.body?.webhook ?? "").trim() || discord.readConfig().webhook;
+    const userId = String(req.body?.userId ?? "").trim();
+    if (!webhook || !discord.isWebhook(webhook)) return res.status(400).json({ error: "Colle l'URL du webhook (https://discord.com/api/webhooks/…)." });
+    if (userId && !discord.isUserId(userId)) return res.status(400).json({ error: "L'ID utilisateur Discord est un nombre de 17 à 20 chiffres." });
+    try {
+      await discord.test(webhook, userId || null);
+      discord.writeConfig({ webhook, userId: userId || null });
+      res.json({ ok: true });
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+  app.post("/api/setup/discord/forget", (_req, res) => {
+    discord.writeConfig({ webhook: null, userId: null });
+    res.json(discord.status());
   });
 
   app.get("/api/setup/tiktok-icon", (_req, res) => res.download(join(ROOT, "docs/tiktok-app-icon.png"), "app-icon-1024.png"));

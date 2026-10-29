@@ -54,6 +54,7 @@ For French narrated Shorts, add a French voice (Settings → Time & language →
 ### Optional
 
 - **ElevenLabs voice-over** — setup guide → *Voice-over*: paste an API key (permissions: Text to Speech, Voices read, Models read; User read to show credits), pick a French and an English voice (a Voice Library voice can be added by pasting its link), a model and a tone (natural / punchy / very expressive), listen to a test, save. Narrated Shorts are then voiced by ElevenLabs, with subtitles timed on its word alignment; only new or changed narrations are regenerated (about 300 characters per Short and language). The key stays in `data/elevenlabs.json`. Without a key, the system voice is used. `ELEVENLABS_API` points to another server (e.g. EU data residency).
+- **Discord notifications** — setup guide → *Discord*: paste a channel webhook URL (channel → Edit Channel → Integrations → Webhooks → New Webhook → Copy Webhook URL) and, to get pinged, your Discord user ID (User Settings → Advanced → Developer Mode, then right-click your name → Copy User ID). A test message is posted, then each story is posted when it comes out: its thumbnail as an image to download for Instagram / TikTok, and its title and caption ready to copy. Saved in `data/discord-config.json` (or `DISCORD_WEBHOOK`).
 - [Claude Code](https://claude.com/claude-code) CLI — writes TikTok captions when your folder has none, and resolves ambiguous slide/caption matches.
 - `npm run studio` — Remotion Studio to tweak animations live.
 
@@ -132,6 +133,10 @@ Duplique `content/apps/mrrkit.json`, adapte les textes, couleurs, prix et liens,
 Guide d'installation → **Voix off** : colle une clé d'API ElevenLabs, choisis une voix française et une voix anglaise, le modèle et le ton (naturel / accrocheur / très expressif), écoute un essai, enregistre. Les Shorts narrés sont alors lus par ElevenLabs, sous-titres calés sur son alignement des mots ; seules les narrations nouvelles ou modifiées sont régénérées. La clé reste dans `data/elevenlabs.json`. Sans clé, la voix du système est utilisée.
 
 La même clé compose aussi la **musique** (ElevenLabs Music, modèle `music_v2_5`) : il faut lui donner la permission **Music Generation** sur elevenlabs.io. Les pistes issues de l'ancienne synthèse sont remplacées au prochain rendu ou avec `npm run audio`. Pour revenir à la synthèse Python : `"music": false` dans `data/elevenlabs.json`.
+
+### Discord (facultatif)
+
+Guide d'installation → **Discord** : colle l'URL d'un webhook de ton salon (Modifier le salon → Intégrations → Webhooks → Nouveau webhook → Copier l'URL) et, pour être notifié, ton ID utilisateur Discord (Paramètres → Avancés → Mode développeur, puis clic droit sur ton nom → Copier l'identifiant). Un message d'essai est posté, puis chaque story y arrive à sa sortie : sa miniature à télécharger pour Instagram / TikTok, son titre et sa légende prêts à copier. Enregistré dans `data/discord-config.json`.
 
 ### TikTok
 

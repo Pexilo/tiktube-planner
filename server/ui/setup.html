@@ -117,7 +117,7 @@ const T = {
   fr: {
     tagline: "Guide d'installation", dash: "Dashboard →", next: "Continuer →", prev: "← Retour", skip: "Passer cette étape →", optional: "option",
     acc: { h: "Un compte par langue", fallback: (o) => `publie sur le compte ${o}`, none: "aucun compte : rien ne part dans cette langue", connect: (l) => `Connecter le compte ${l}`, change: "Changer", forget: "Retirer", forgetQ: (l) => `Retirer le compte ${l} ? Plus rien ne partira dans cette langue, sauf si l'autre compte est partagé.` },
-    steps: ["Bienvenue", "Ton profil", "Tes apps", "YouTube", "TikTok", "Photos TikTok", "Dossier TikTok", "Instagram", "Voix off", "C'est prêt", "Soutenir le dév"],
+    steps: ["Bienvenue", "Ton profil", "Tes apps", "YouTube", "TikTok", "Photos TikTok", "Dossier TikTok", "Instagram", "Voix off", "Discord", "C'est prêt", "Soutenir le dév"],
     s0: { h: "Bienvenue 👋", lead: "En quelques étapes, tu vas connecter ta chaîne YouTube, ton compte TikTok et ton Instagram. Tout reste sur ton ordinateur : tes clés sont enregistrées dans le dossier <code>data/</code>, jamais envoyées ailleurs.",
       checks: "Vérification de ton ordinateur", node: "Node.js", ffmpeg: "ffmpeg (encodage vidéo)", python: "Python + numpy/scipy (musique)", ocr: "OCR du système (lecture des slides TikTok)", claude: "Claude Code CLI (légendes automatiques)", say: "Voix du système (Shorts narrés)",
       missing: "Relance <code>./install.sh</code> (Mac) ou <code>install.ps1</code> (Windows) pour installer ce qui manque.", claudeNote: "Facultatif : sans Claude Code, l'import de dossiers TikTok fonctionne mais sans légendes écrites automatiquement. Installe-le sur claude.com/claude-code." },
@@ -204,6 +204,15 @@ const T = {
       noTs: "Ce modèle ne renvoie pas d'horodatage : les sous-titres seront estimés.",
       addLabel: "Voice Library", addPh: "Lien ou ID, ex. https://elevenlabs.io/voices/…", addBtn: "Ajouter", adding: "Ajout…", added: (n) => `« ${n} » ajoutée à tes voix et sélectionnée : écoute-la, puis enregistre.`,
       tip: `Pour une voix de la ${ext("https://elevenlabs.io/app/voice-library", "Voice Library")}, colle son lien dans « Voice Library » ci-dessus : elle est ajoutée à <b>My Voices</b> et apparaît dans la liste. Chaque Short narré consomme environ 300 caractères par langue ; seules les voix nouvelles ou modifiées sont regénérées.` },
+    sD: { h: "Discord (miniatures des stories)", lead: "À la sortie de chaque story, la plateforme poste sur ton salon Discord <b>sa miniature</b> (à télécharger pour Instagram / TikTok) avec <b>son titre et sa légende</b> prêts à copier, et te mentionne pour que tu reçoives la notification.",
+      list: [
+        "Dans Discord : clic droit sur ton salon → <b>Modifier le salon → Intégrations → Webhooks → Nouveau webhook</b> → <b>Copier l'URL du webhook</b>.",
+        "Pour être notifié : <b>Paramètres utilisateur → Avancés → Mode développeur</b>, puis clic droit sur ton nom → <b>Copier l'identifiant utilisateur</b>.",
+        "Colle les deux ci-dessous : un message d'essai est posté (avec la mention), puis tout est enregistré dans <code>data/discord-config.json</code>, sur ton ordinateur uniquement.",
+      ],
+      hook: "URL du webhook", user: "ID utilisateur", userPh: "facultatif, ex. 224537059308732416", save: "Tester et enregistrer", saving: "Envoi de l'essai…", forget: "Retirer",
+      connected: "Webhook connecté", notConnected: "Non connecté", ping: (id) => `mentionne <@${id}>`, saved: "Message d'essai posté sur Discord ✓",
+      tip: "Une story part sur Discord une seule fois, à son heure de sortie (sur YouTube ou en brouillon TikTok). Sortie pendant que le serveur était éteint depuis plus de 12 h : rien n'est rattrapé." },
     sS: { h: "Soutenir le développeur 💜", lead: "TikTube Planner est <b>gratuit et open source</b>. S'il te fait gagner du temps, la meilleure façon de me dire merci : <b>télécharge une de mes apps</b> et, si elle te plaît, <b>laisse-lui une note</b>. C'est tout ce que je demande 🙏",
       apps: "Découvrir mes apps", appsSub: "iPhone, Android, Apple Watch, Garmin… — une note ⭐⭐⭐⭐⭐ m'aide énormément.",
       follow: "Me suivre", followSub: "Pas obligatoire, mais ça fait toujours plaisir — je partage comment je construis mes apps avec l'IA.",
@@ -220,7 +229,7 @@ const T = {
   en: {
     tagline: "Setup guide", dash: "Dashboard →", next: "Continue →", prev: "← Back", skip: "Skip this step →", optional: "optional",
     acc: { h: "One account per language", fallback: (o) => `posts to the ${o} account`, none: "no account: nothing goes out in this language", connect: (l) => `Connect the ${l} account`, change: "Change", forget: "Remove", forgetQ: (l) => `Remove the ${l} account? Nothing will go out in this language, unless the other account is shared.` },
-    steps: ["Welcome", "Your profile", "Your apps", "YouTube", "TikTok", "TikTok photos", "TikTok folder", "Instagram", "Voice-over", "All set", "Support the dev"],
+    steps: ["Welcome", "Your profile", "Your apps", "YouTube", "TikTok", "TikTok photos", "TikTok folder", "Instagram", "Voice-over", "Discord", "All set", "Support the dev"],
     s0: { h: "Welcome 👋", lead: "In a few steps you'll connect your YouTube channel, TikTok account and Instagram. Everything stays on your computer: keys are saved in the <code>data/</code> folder and never sent anywhere else.",
       checks: "Checking your computer", node: "Node.js", ffmpeg: "ffmpeg (video encoding)", python: "Python + numpy/scipy (music)", ocr: "System OCR (reads TikTok slides)", claude: "Claude Code CLI (automatic captions)", say: "System voices (narrated Shorts)",
       missing: "Run <code>./install.sh</code> (Mac) or <code>install.ps1</code> (Windows) again to install what's missing.", claudeNote: "Optional: without Claude Code, TikTok folder import still works but captions aren't written for you. Get it at claude.com/claude-code." },
@@ -307,6 +316,15 @@ const T = {
       noTs: "This model returns no timestamps: subtitles will be estimated.",
       addLabel: "Voice Library", addPh: "Link or ID, e.g. https://elevenlabs.io/voices/…", addBtn: "Add", adding: "Adding…", added: (n) => `“${n}” added to your voices and selected: listen to it, then save.`,
       tip: `For a ${ext("https://elevenlabs.io/app/voice-library", "Voice Library")} voice, paste its link in “Voice Library” above: it's added to <b>My Voices</b> and shows up in the list. Each narrated Short uses about 300 characters per language; only new or changed voices are regenerated.` },
+    sD: { h: "Discord (story thumbnails)", lead: "When each story comes out, the platform posts <b>its thumbnail</b> (to download for Instagram / TikTok) to your Discord channel with <b>its title and caption</b> ready to copy, and mentions you so you get the notification.",
+      list: [
+        "In Discord: right-click your channel → <b>Edit Channel → Integrations → Webhooks → New Webhook</b> → <b>Copy Webhook URL</b>.",
+        "To get notified: <b>User Settings → Advanced → Developer Mode</b>, then right-click your name → <b>Copy User ID</b>.",
+        "Paste both below: a test message is posted (with the mention), then everything is saved in <code>data/discord-config.json</code>, on your computer only.",
+      ],
+      hook: "Webhook URL", user: "User ID", userPh: "optional, e.g. 224537059308732416", save: "Test and save", saving: "Sending test…", forget: "Remove",
+      connected: "Webhook connected", notConnected: "Not connected", ping: (id) => `mentions <@${id}>`, saved: "Test message posted on Discord ✓",
+      tip: "A story goes to Discord once, at its release time (on YouTube or as a TikTok draft). Released while the server was off for more than 12 h: nothing is caught up." },
     sS: { h: "Support the developer 💜", lead: "TikTube Planner is <b>free and open source</b>. If it saves you time, the best way to say thanks: <b>download one of my apps</b> and, if you like it, <b>leave it a rating</b>. That's all I ask 🙏",
       apps: "Discover my apps", appsSub: "iPhone, Android, Apple Watch, Garmin… — a ⭐⭐⭐⭐⭐ rating helps me a lot.",
       follow: "Follow me", followSub: "Not required, but always appreciated — I share how I build my apps with AI.",
@@ -334,11 +352,12 @@ const done = () => [
   ST.watch.exists && ST.watch.enabled,
   !!ST.instagram?.connected,
   ST.elevenlabs.hasKey && !!(ST.elevenlabs.voices.fr || ST.elevenlabs.voices.en),
+  !!ST.discord?.configured,
   !!ST.profile.setupDone,
   !!ST.profile.setupDone,
 ];
-const OPTIONAL = [false, false, false, false, true, true, true, true, true, false, true];
-const LAST = 10;
+const OPTIONAL = [false, false, false, false, true, true, true, true, true, true, false, true];
+const LAST = 11;
 const VOICE_STEP = 8;
 // Liens de l'auteur (étape « Soutenir le développeur »)
 const AUTHOR = {
@@ -515,6 +534,20 @@ const VIEWS = [
       ${voicesCard}${navBtns(!e.hasKey)}`;
   },
   () => {
+    const x = t().sD, d = ST.discord ?? {};
+    return `<h1>${x.h}</h1><p class="lead">${x.lead}</p>
+      <div class="card">${how(x.list)}
+        <div class="form">
+          <label>${x.hook}</label><input id="dcHook" type="password" placeholder="${d.hookHint ? esc(d.hookHint) + " (✓)" : "https://discord.com/api/webhooks/…"}" autocomplete="off">
+          <label>${x.user}</label><input id="dcUser" value="${esc(d.userId ?? "")}" placeholder="${esc(x.userPh)}" autocomplete="off" style="max-width:240px">
+          <span></span><div class="row"><button class="btn ${d.configured ? "" : "primary"}" id="saveDC">${x.save}</button>${d.configured ? `<button class="btn sm" id="dcForget">${x.forget}</button>` : ""}</div>
+        </div>
+        <div class="row" style="margin-top:12px">${stat(d.configured, x.connected, x.notConnected)}${d.configured && d.userId ? `<span class="note">${esc(x.ping(d.userId))}</span>` : ""}</div>
+        <div class="msg" id="dcMsg"></div>
+        <div class="tip">${x.tip}</div>
+      </div>${navBtns(!d.configured)}`;
+  },
+  () => {
     const x = t().s6;
     return `<h1>${x.h}</h1><p class="lead">${x.lead}</p><div class="card">${how(x.list)}</div>
       ${navBtns(false)}`;
@@ -571,7 +604,7 @@ function bindDrop(zoneId, inputId, onFile) {
 }
 
 document.body.addEventListener("click", async (e) => {
-  const el = e.target.closest("[data-step],[data-go],[data-copy],[data-l],[data-el-preview],[data-el-test],[data-forget],#saveProfile,#saveTT,#saveIG,#saveHost,#privacy,#finish,#wCreate,#wOpen,#elSaveKey,#elForget,#elSave,#elAddBtn");
+  const el = e.target.closest("[data-step],[data-go],[data-copy],[data-l],[data-el-preview],[data-el-test],[data-forget],#saveProfile,#saveTT,#saveIG,#saveHost,#privacy,#finish,#wCreate,#wOpen,#elSaveKey,#elForget,#elSave,#elAddBtn,#saveDC,#dcForget");
   if (!el) return;
   if (el.dataset.step ?? el.dataset.go) { step = Number(el.dataset.step ?? el.dataset.go); history.replaceState(null, "", `#${step}`); await load(true); bindAll(); window.scrollTo(0, 0); return; }
   if (el.dataset.copy) { await navigator.clipboard.writeText(el.dataset.copy); el.classList.add("done"); setTimeout(() => el.classList.remove("done"), 1500); return; }
@@ -658,6 +691,15 @@ document.body.addEventListener("click", async (e) => {
     ST = await api("/api/setup/status"); lastRaw = JSON.stringify(ST); renderNav();
     msg("#elVMsg", true, t().sV.saved);
   }
+  if (el.id === "saveDC") {
+    const x = t().sD, label = el.textContent;
+    el.disabled = true; el.textContent = x.saving;
+    const r = await api("/api/setup/discord", { webhook: $("#dcHook").value, userId: $("#dcUser").value });
+    el.disabled = false; el.textContent = label;
+    if (r.error) return msg("#dcMsg", false, esc(r.error));
+    await load(true); bindAll(); msg("#dcMsg", true, x.saved);
+  }
+  if (el.id === "dcForget") { await api("/api/setup/discord/forget", {}); await load(true); bindAll(); }
   if (el.id === "finish") { await api("/api/setup/profile", { setupDone: true }); location.href = "/"; }
 });
 

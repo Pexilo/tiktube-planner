@@ -14,6 +14,7 @@ import multer from "multer";
 import { homedir, tmpdir } from "node:os";
 import * as tt from "./tiktok.mjs";
 import * as ig from "./instagram.mjs";
+import * as discord from "./discord.mjs";
 import { smartImport } from "./smartimport.mjs";
 import * as watch from "./watchfolder.mjs";
 import { setupRoutes } from "./setup.mjs";
@@ -422,6 +423,20 @@ app.post("/api/instagram/posts/:id/skip", (req, res) => {
   res.json({ ok: true });
 });
 setInterval(() => void ig.tick().catch((e) => console.error("instagram", e)), 60 * 1000);
+
+// ---------------------------------------------------------------- Discord (miniature + légende des stories à leur sortie)
+app.post("/api/discord/send/:id", async (req, res) => {
+  const c = catalog();
+  const v = c.videos.find((x) => x.id === req.params.id && x.kind === "tale");
+  if (!v) return res.status(404).json({ error: "Story inconnue" });
+  try {
+    await discord.send(v, c.apps.find((a) => a.slug === v.slug));
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+setInterval(() => void discord.tick(activeCatalog()).catch((e) => console.error("discord", e)), 60 * 1000);
 
 // ---------------------------------------------------------------- Remotion Studio
 let studio = null;
