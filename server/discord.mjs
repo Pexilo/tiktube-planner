@@ -62,13 +62,14 @@ export async function send(v, app) {
   const embed = {
     title: title.slice(0, 256),
     ...(st.youtubeId ? { url: `https://youtube.com/shorts/${st.youtubeId}` } : {}),
-    description: `**Titre**\n\`\`\`\n${title}\n\`\`\`\n**Description**\n\`\`\`\n${description}\n\`\`\``.slice(0, 4096),
     image: { url: `attachment://${name}` },
     color: 0xf7931a,
-    footer: { text: `Story ${v.lang.toUpperCase()}` },
+    footer: { text: `Story ${v.lang.toUpperCase()} · titre et description juste en dessous` },
     timestamp: st.publishAt ?? new Date().toISOString(),
   };
   await post(url, { ...ping(), embeds: [embed], attachments: [{ id: 0, filename: name }] }, { path: thumbFile(v.id), name });
+  // Titre puis description en messages texte seuls : un appui long → « Copier le texte » sur mobile (pas les blocs de code).
+  for (const text of [title, description]) await post(url, { content: text.slice(0, 2000), allowed_mentions: { parse: [] } });
   st.discordAt = new Date().toISOString();
   save();
   logEvent("info", `Discord : miniature envoyée — « ${title} »`, v.id);
