@@ -29,9 +29,12 @@ const saveStore = () => writeFileSync(STORE, JSON.stringify(store, null, 2));
 export const items = () => store.items;
 
 // since : seuls les posts dont l'heure tombe après l'activation partent (pas de rattrapage de l'historique TikTok).
-const DEFAULT_SETTINGS = { enabled: false, scope: "tales", langs: ["fr", "en"], since: null };
-export const igSettings = () => ({ ...DEFAULT_SETTINGS, ...(store.settings ?? {}) });
-export function updateIgSettings(patch) {
+// Pas de réglage de langues : une langue part dès qu'un compte la publie (voir accountFor).
+const DEFAULT_SETTINGS = { enabled: false, scope: "tales", since: null };
+const { langs: _drop, ...saved } = store.settings ?? {};
+store.settings = saved;
+export const igSettings = () => ({ ...DEFAULT_SETTINGS, ...store.settings });
+export function updateIgSettings({ langs: _ignored, ...patch }) {
   const next = { ...igSettings(), ...patch };
   if (patch.enabled && !igSettings().enabled) next.since = new Date().toISOString();
   store.settings = next;
@@ -278,10 +281,10 @@ export async function publish(p) {
 
 const isTalePost = (p) => isTaleId(p.videoId) || p.source === "tales";
 
-/** Le post TikTok est-il concerné par Instagram (réglages : stories ou tout, langues) ? */
+/** Le post TikTok est-il concerné par Instagram (réglage stories ou tout, et un compte pour sa langue) ? */
 export function eligible(p) {
   const s = igSettings();
-  return p.type === "video" && (s.scope === "all" || isTalePost(p)) && s.langs.includes(postLang(p)) && !!accountFor(postLang(p)) && postOn(p);
+  return p.type === "video" && (s.scope === "all" || isTalePost(p)) && !!accountFor(postLang(p)) && postOn(p);
 }
 
 /** Posts qu'Instagram doit encore publier : leur vidéo ne doit pas être nettoyée du disque. */

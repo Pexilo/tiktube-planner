@@ -1157,12 +1157,11 @@ function renderSettings() {
     ${t.configured ? "" : `<p class="note">Remplis <code>data/tiktok-config.json</code> (guide : <code>docs/TIKTOK_SETUP.md</code>).</p>`}`);
   const g = TT?.instagram;
   if (g) {
-    const s = g.status, on = (v) => (g.settings.scope === v ? "on" : ""), lang = (l) => (g.settings.langs.includes(l) ? "on" : "");
+    const s = g.status, on = (v) => (g.settings.scope === v ? "on" : "");
     setHTML($("#igBox"), `${s.accounts ? accountRows("ig") : ""}
       ${s.lastError ? `<p class="note" style="color:var(--c-err)">${esc(s.lastError)}</p>` : ""}
       <div class="field"><label>Publier les Reels (auto)</label><div class="toggle ${g.settings.enabled ? "on" : ""}" data-igtoggle></div></div>
       <div class="field"><label>Quels posts</label><div class="seg" data-igscope><button data-v="tales" class="${on("tales")}">Stories</button><button data-v="all" class="${on("all")}">Tout</button></div></div>
-      <div class="field"><label>Langues</label><div class="seg" data-iglangs><button data-v="fr" class="${lang("fr")}">FR</button><button data-v="en" class="${lang("en")}">EN</button></div></div>
       <p class="note">Chaque post vidéo TikTok concerné est publié en Reel à la même heure, directement (pas de brouillon). La plateforme doit tourner à ce moment-là. Seuls les posts prévus après l'activation partent. Les carrousels photo restent sur TikTok.</p>
       ${s.configured ? `<button class="btn sm" data-igrefresh style="margin-top:8px">Vérifier la connexion</button>` : `<p class="note">Ajoute ton compte depuis le <a href="/setup.html#7" style="text-decoration:underline">guide d'installation</a> (étape Instagram).</p>`}`);
   }
@@ -1185,14 +1184,13 @@ function igLine(p) {
   return `<div class="igline">${platIc("ig")}${line}</div>${it?.status === "error" ? `<div class="note" style="color:var(--c-err)">Instagram : ${esc(it.error)}</div>` : ""}`;
 }
 document.body.addEventListener("click", async (e) => {
-  const t = e.target.closest("[data-igtoggle],[data-igscope] button,[data-iglangs] button,[data-igrefresh],[data-igpub],[data-igskip]"); if (!t) return;
+  const t = e.target.closest("[data-igtoggle],[data-igscope] button,[data-igrefresh],[data-igpub],[data-igskip]"); if (!t) return;
   const g = TT.instagram.settings;
   if (t.matches("[data-igtoggle]")) {
     if (!g.enabled && !confirm("Publier automatiquement les Reels sur Instagram ? Chaque post vidéo TikTok concerné sera publié publiquement à son heure, sans validation dans l'app.")) return;
     await api("/api/instagram/settings", { enabled: !g.enabled }, "PATCH");
   }
   if (t.closest("[data-igscope]")) await api("/api/instagram/settings", { scope: t.dataset.v }, "PATCH");
-  if (t.closest("[data-iglangs]")) await api("/api/instagram/settings", { langs: g.langs.includes(t.dataset.v) ? g.langs.filter((l) => l !== t.dataset.v) : [...g.langs, t.dataset.v] }, "PATCH");
   if (t.dataset.igrefresh !== undefined) { t.innerHTML = `<span class="spin"></span>Vérification…`; await api("/api/instagram/refresh", {}); }
   if (t.dataset.igpub) {
     if (!confirm("Publier ce Reel sur Instagram maintenant ? Il sera public tout de suite.")) return;
