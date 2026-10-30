@@ -56,7 +56,7 @@ const Header: React.FC<{ text: string }> = ({ text }) => {
 
 export const TaleThumb: React.FC<TaleVideoProps & { Story: React.FC<StoryProps> }> = ({ tale, app, Story }) => {
   const timeline = tale.timeline ?? taleTimeline(tale.beats, tale.voice?.segments);
-  const text = thumbText(tale.yt.title);
+  const text = thumbText(tale.thumb?.title === "hook" && tale.hook ? tale.hook : tale.yt.title);
   return (
     <ThemeProvider app={app} lang={tale.lang ?? "en"}>
       <AbsoluteFill
