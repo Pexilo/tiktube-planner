@@ -85,10 +85,56 @@ const G: Record<string, string[]> = {
   "£": ["..##.", ".#..#", ".#...", "###..", ".#...", ".#...", "#####"],
   "█": ["#####", "#####", "#####", "#####", "#####", "#####", "#####"],
 };
-const ALIASES: Record<string, string> = { "’": "'", "‘": "'", "“": '"', "”": '"', "—": "-", "–": "-", "…": "...", "×": "x" };
+const ALIASES: Record<string, string> = {
+  "’": "'", "‘": "'", "“": '"', "”": '"', "«": '"', "»": '"', "—": "-", "–": "-", "…": "...", "×": "x",
+  " ": " ", " ": " ", "œ": "oe", "Œ": "OE", "æ": "ae", "Æ": "AE", "ß": "ss",
+};
 
-const glyph = (ch: string) => G[ch] ?? G[ch.toUpperCase()] ?? G["?"];
-const norm = (s: string) => [...s].map((c) => ALIASES[c] ?? c).join("");
+/** Lettres accentuées (é, è, à, ç…) : la lettre de base, la police n'a que des majuscules de 7 pixels sans place pour l'accent. */
+const glyph = (ch: string) => G[ch] ?? G[ch.toUpperCase()] ?? G[ch.normalize("NFD")[0]?.toUpperCase()] ?? G["?"];
+
+/*
+ * Textes à l'écran d'une story traduite (shared/tales.mjs → localizedTale) : les visuels sont écrits en anglais, chaque
+ * texte dessiné par la police passe par ce dictionnaire (anglais → traduction, insensible à la casse ; `{}` = partie
+ * variable). Posé par <TaleProvider> au rendu : une composition par page, donc une seule langue à la fois.
+ */
+let DICT: { exact: Map<string, string>; patterns: { re: RegExp; to: string }[] } | null = null;
+let RAW = 0;
+const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+export function setTextLocale(text: Record<string, string> | null | undefined) {
+  const entries = Object.entries(text ?? {}).filter(([k, v]) => k.trim() && typeof v === "string");
+  if (!entries.length) return void (DICT = null);
+  DICT = { exact: new Map(), patterns: [] };
+  for (const [k, v] of entries) {
+    if (k.includes("{}")) DICT.patterns.push({ re: new RegExp(`^${k.trim().split("{}").map(esc).join("(.+?)")}$`, "i"), to: v });
+    else DICT.exact.set(k.trim().toUpperCase(), v);
+  }
+}
+/** Texte tel qu'il s'affiche dans la langue de la story (inchangé dans la langue de base). */
+export function tr(s: string): string {
+  if (!DICT || RAW || !s) return s;
+  const t = s.trim();
+  const hit = DICT.exact.get(t.toUpperCase());
+  if (hit !== undefined) return hit;
+  for (const p of DICT.patterns) {
+    const m = p.re.exec(t);
+    if (m) {
+      let k = 1;
+      return p.to.replace(/\{\}/g, () => m[k++] ?? "");
+    }
+  }
+  return s;
+}
+/** Dessine sans traduction (sous-titres : déjà les mots de la voix). */
+export function untranslated<T>(fn: () => T): T {
+  RAW++;
+  try {
+    return fn();
+  } finally {
+    RAW--;
+  }
+}
+const norm = (s: string) => [...tr(s)].map((c) => ALIASES[c] ?? c).join("");
 
 /** Largeur d'un texte en pixels de texte (lettres + 1 pixel d'espacement). */
 export const textWidth = (s: string) => {

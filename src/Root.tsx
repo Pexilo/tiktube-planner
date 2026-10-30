@@ -5,7 +5,7 @@ import type { AppContent, Lang, VideoProps, VoiceTrack } from "./lib/types";
 import { Video } from "./compositions/Video";
 import { Thumbnail } from "./compositions/Thumbnail";
 import { KeynoteVideo } from "./keynote/Keynote";
-import { renderedTale, taleTimeline } from "../shared/tales.mjs";
+import { renderedTale, taleLangs, taleTimeline } from "../shared/tales.mjs";
 import { makeTaleVideo } from "./tales/TaleVideo";
 import { makeTaleThumb } from "./tales/TaleThumb";
 import type { StoryProps, Tale } from "./tales/types";
@@ -30,8 +30,10 @@ const TALES = TALE_APP
   ? taleFiles
       .keys()
       .filter((k) => k.startsWith("./"))
-      .map((k) => renderedTale(taleFiles(k) as Tale))
+      .map((k) => taleFiles(k) as Tale)
       .filter((t) => storyFiles.keys().includes(`./${t.slug}.tsx`))
+      // Une composition par langue : la base (anglais) et chaque traduction voisée (mêmes visuels, cf. shared/tales.mjs).
+      .flatMap((base) => taleLangs(base).map((lang) => renderedTale(base, lang)!))
       .map((tale) => {
         const { Story } = storyFiles(`./${tale.slug}.tsx`) as { Story: React.FC<StoryProps> };
         return { tale, frames: (tale.timeline ?? taleTimeline(tale.beats, tale.voice?.segments)).totalFrames, component: makeTaleVideo(Story), thumb: makeTaleThumb(Story) };

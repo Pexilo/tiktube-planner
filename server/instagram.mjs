@@ -14,7 +14,7 @@ import { logEvent } from "./events.mjs";
 import { has, IS_WIN, notify } from "../shared/platform.mjs";
 import { postLang, postOn, posts as ttPosts } from "./tiktok.mjs";
 import { loadTales } from "../shared/catalog.mjs";
-import { cleanTitle, renderedTale, taleThumbFrame } from "../shared/tales.mjs";
+import { cleanTitle, renderedTale, taleLangs, taleThumbFrame } from "../shared/tales.mjs";
 import { FPS } from "../shared/timeline.mjs";
 
 const CONFIG = join(DATA, "instagram-config.json");
@@ -223,8 +223,9 @@ async function publishReel(p) {
   // 1. Conteneur Reel : Instagram télécharge la vidéo depuis l'URL publique temporaire.
   // Couverture : cover_url exigerait aussi une image publique, donc thumb_offset : l'image
   // de la vidéo qui sert de visuel à la miniature de la story (sans le titre posé dessus).
-  const tale = isTalePost(p) ? loadTales().find((t) => t.id === p.videoId) : null;
-  const cover = tale?.timeline ? { thumb_offset: String(Math.round((taleThumbFrame(renderedTale(tale)) / FPS) * 1000)) } : {};
+  // Vidéo d'une story dans l'une de ses langues (tale-<slug>-en, tale-<slug>-fr) : la couverture suit sa timeline.
+  const tale = isTalePost(p) ? loadTales().map((t) => taleLangs(t).map((l) => renderedTale(t, l))).flat().find((t) => t.id === p.videoId) : null;
+  const cover = tale?.timeline ? { thumb_offset: String(Math.round((taleThumbFrame(tale) / FPS) * 1000)) } : {};
   const shared = await exposeFile(file);
   let box;
   try {

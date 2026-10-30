@@ -4,6 +4,7 @@ import { TALE_VOICE_DELAY } from "../../../shared/tales.mjs";
 import { clamp, EASE_IN_OUT, EASE_OUT } from "../../components/fx";
 import { Backdrop, BgCtx, isLight, type Ambient, type Light, type Tone } from "../pixel/backdrop";
 import { LayoutCtx, newRegistry } from "../pixel/layout";
+import { setTextLocale } from "../pixel/font";
 import { isLightHex, Stage as HDStage, type Scene } from "../hd/stage";
 import { Sound, SoundOff } from "./sfx";
 import type { Tale, TaleTimeline } from "../types";
@@ -60,6 +61,8 @@ export function estimateWords(text: string, dur: number): Word[] {
 export const TaleProvider: React.FC<{ tale: Tale; timeline: TaleTimeline; children: React.ReactNode }> = ({ tale, timeline, children }) => {
   const words = tale.beats.map((b, i) => tale.voice?.segments[i]?.words ?? estimateWords(b.text, (timeline.beats[i].dur - TALE_VOICE_DELAY) / 30 - 0.3));
   const looks = useMemo(() => new Map<string, BeatLook>(), []);
+  // Story traduite : la police traduit les textes à l'écran des visuels (écrits en anglais) pendant ce rendu.
+  setTextLocale(tale.i18n?.text);
   return <Ctx.Provider value={{ tale, timeline, words, looks }}>{children}</Ctx.Provider>;
 };
 
@@ -70,6 +73,40 @@ export const useTale = () => {
 };
 
 const norm = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+
+/** Début (s) de la `nth`e occurrence du mot dans la phrase (`word` nombre = index du mot), null si absent. */
+function findWord(ws: Word[], word: string | number, nth = 1): number | null {
+  if (typeof word === "number") return ws.length ? ws[Math.max(0, Math.min(ws.length - 1, word))].s : null;
+  const target = norm(word);
+  if (!target) return null;
+  let seen = 0;
+  for (const w of ws) if (norm(w.w).includes(target) && ++seen === nth) return w.s;
+  return null;
+}
+
+/**
+ * Début (s, relatif à la voix du beat) d'un mot-repère écrit en anglais dans les visuels ou les bruitages. Dans la langue
+ * de base : le mot lui-même. Dans une story traduite : le mot traduit (`i18n.anchors`), sinon la même place relative que
+ * dans la phrase anglaise (voix anglaise, ou estimée). null si le mot n'est pas dans la phrase.
+ */
+export function wordStart(tale: Tale, words: Word[][], i: number, word: string | number, nth = 1): number | null {
+  const ws = words[i] ?? [];
+  const i18n = tale.i18n;
+  if (!i18n) return findWord(ws, word, nth);
+  if (typeof word === "string") {
+    const map = i18n.anchors[tale.beats[i]?.id] ?? {};
+    const key = Object.keys(map).find((k) => norm(k) === norm(word));
+    const to = key ? map[key] : undefined;
+    const hit = to ? findWord(ws, to, nth) ?? findWord(ws, to) : null;
+    if (hit !== null) return hit;
+  }
+  const base = i18n.base[i];
+  if (!base) return null;
+  const bws = base.words ?? estimateWords(base.text, Math.max(1.6, base.text.split(/\s+/).filter(Boolean).length / 2.7));
+  const t = findWord(bws, word, nth);
+  const [la, lb] = [bws.at(-1)?.e ?? 0, ws.at(-1)?.e ?? 0];
+  return t === null || la <= 0 ? null : (t / la) * lb;
+}
 
 /**
  * Infos d'un beat. `at(mot)` = frame (relative au début du beat) où le mot commence à être dit :
@@ -82,13 +119,7 @@ export function useBeatInfo(id: string) {
   if (i < 0) throw new Error(`Beat inconnu : ${id}`);
   const ws = words[i];
   const toFrame = (sec: number) => TALE_VOICE_DELAY + Math.round(sec * 30);
-  const at = (word: string | number, nth = 1) => {
-    if (typeof word === "number") return toFrame(ws[Math.max(0, Math.min(ws.length - 1, word))]?.s ?? 0);
-    const target = norm(word);
-    let seen = 0;
-    for (const w of ws) if (norm(w.w).includes(target) && ++seen === nth) return toFrame(w.s);
-    return 0;
-  };
+  const at = (word: string | number, nth = 1) => toFrame(wordStart(tale, words, i, word, nth) ?? 0);
   return { index: i, beat: tale.beats[i], from: timeline.beats[i].from, dur: timeline.beats[i].dur, words: ws, at, end: toFrame(ws.at(-1)?.e ?? 0) };
 }
 

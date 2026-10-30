@@ -29,6 +29,7 @@ const DEFAULTS = {
     taleTime: "20:00", // Stories crypto : créneau dédié, séparé des pubs
     talesPerDay: 1,
     taleAutoTikTok: true, // brouillon TikTok créé dès qu'une story est rendue
+    taleFrench: true, // chaque story (écrite en anglais) a aussi sa version française, publiée à la même heure sur les comptes FR
     storagePath: "", // vidéos rendues + temporaires (Remotion, Chrome, ffmpeg) ; vide = dossier du projet
     accountShare: {}, // { youtube: { en: true } } = la chaîne EN publie aussi les vidéos FR (pas de chaîne FR)
   },

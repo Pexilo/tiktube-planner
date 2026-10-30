@@ -9,7 +9,7 @@ import { DATA, getState, LANGS, pickAccount, registerPublisher, save, video, vid
 import { outFile, thumbFile } from "./render.mjs";
 import { logEvent } from "./events.mjs";
 import { signature } from "../shared/profile.mjs";
-import { cleanTitle } from "../shared/tales.mjs";
+import { cleanTitle, localizedTale } from "../shared/tales.mjs";
 
 export const PORT = Number(process.env.PORT ?? 4321);
 const REDIRECT = `http://localhost:${PORT}/oauth/callback`;
@@ -240,7 +240,9 @@ function buildKeynoteMetadata(v, app) {
 
 /** Stories crypto : l'histoire et ses sources d'abord, une seule ligne discrète vers l'app, puis les hashtags. Aucun lien. */
 function buildTaleMetadata(v, app) {
-  const tale = loadTale(v.taleSlug);
+  // Story traduite : titre, description, résumé et hashtags de sa langue ; sources et app identiques.
+  const tale = localizedTale(loadTale(v.taleSlug), v.lang);
+  const fr = v.lang === "fr";
   // Titre court, sans emoji ni hashtag : YouTube reconnaît les Shorts au format, les hashtags restent dans la description.
   const title = cleanTitle(tale.yt.title).slice(0, 100);
   const tags = [...new Set(tale.yt.hashtags.map((h) => h.replace(/^#/, "")))];
@@ -249,14 +251,14 @@ function buildTaleMetadata(v, app) {
   const noLinks = (s) => String(s ?? "").replace(/\s*\(?\b(?:https?:\/\/|www\.)\S+/gi, "").trim();
   const lines = [noLinks(tale.yt.description), "", noLinks(tale.summary), ""];
   if (tale.sources?.length) {
-    lines.push("Sources:");
+    lines.push(fr ? "Sources :" : "Sources:");
     for (const s of tale.sources) lines.push(`• ${noLinks(s.title)}${s.date ? ` (${s.date})` : ""}`);
     lines.push("");
   }
-  lines.push(`Check your own wallet's real P&L with ${app.name}.`, "", hashtags.join(" "));
+  lines.push(fr ? `Vérifie le vrai P&L de ton wallet avec ${app.name}.` : `Check your own wallet's real P&L with ${app.name}.`, "", hashtags.join(" "));
   const out = [];
   let len = 0;
-  for (const t of ["crypto stories", ...tags]) {
+  for (const t of [fr ? "histoires crypto" : "crypto stories", ...tags]) {
     if (out.some((x) => x.toLowerCase() === t.toLowerCase()) || len + t.length + 3 > 480) continue;
     out.push(t);
     len += t.length + 3;

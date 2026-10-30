@@ -6,11 +6,11 @@ import { clamp, SfxMute } from "../components/fx";
 import { FeatureWidget } from "../components/widgets";
 import { font, MONO, ThemeProvider, useTheme } from "../lib/theme";
 import type { AppContent } from "../lib/types";
-import { loopHoldFrom, TaleProvider, useTale, type Word } from "./kit/core";
+import { loopHoldFrom, TaleProvider, useTale, wordStart, type Word } from "./kit/core";
 import { Sound } from "./kit/sfx";
 import { Canvas, P, PAL, PixelArt } from "./pixel/engine";
 import { CAPTION_ROW, SAFE_LEFT, SAFE_RIGHT, SAFE_TOP } from "./pixel/layout";
-import { drawText, PixelText, textWidth } from "./pixel/font";
+import { drawText, PixelText, textWidth, untranslated } from "./pixel/font";
 import { Backdrop } from "./pixel/backdrop";
 import { Label } from "./pixel/props";
 import type { StoryProps, Tale } from "./types";
@@ -91,6 +91,11 @@ const PixelCaptions: React.FC<{ words: Word[] }> = ({ words }) => {
   if (gi < 0) return null;
   const g = groups[gi];
   // Une seule grille au pas des lettres (CAP_P) : bloc encre, mots en papier, mot prononcé sur un bloc lime.
+  // Les mots de la voix, tels quels : pas de passage par le dictionnaire des textes à l'écran (story traduite).
+  return untranslated(() => captionBlock(g, t, cp));
+};
+
+function captionBlock(g: Word[], t: number, cp: number) {
   const sizes = g.map((w) => textWidth(w.w));
   const gap = 4;
   const pad = 2;
@@ -228,8 +233,6 @@ const Inner: React.FC<TaleVideoProps & { Story: React.FC<StoryProps> }> = ({ tal
   );
 };
 
-const norm = (s: string) => s.toLowerCase().replace(/[^p{L}p{N}]/gu, "");
-
 /**
  * Bruitages narratifs du script (`beat.sfx`), calés sur le mot choisi (début de la phrase sans mot) :
  * un impact démarre sur le mot, une montée se termine sur le mot, une nappe tient du mot à la fin de la phrase
@@ -246,8 +249,7 @@ const StorySfx: React.FC = () => {
           const def = STORY_SFX[c.cue];
           if (!def) return null;
           const tb = timeline.beats[i];
-          const w = c.word ? words[i].find((x) => norm(x.w).includes(norm(c.word!)) && norm(c.word!)) : undefined;
-          const at = tb.from + TALE_VOICE_DELAY + Math.round((w?.s ?? 0) * 30);
+          const at = tb.from + TALE_VOICE_DELAY + Math.round((c.word ? wordStart(tale, words, i, c.word) ?? 0 : 0) * 30);
           const len = Math.round(def.dur * 30);
           let from = def.mode === "swell" ? at - len + 2 : def.mode === "bed" ? at - 3 : at - 1;
           const skip = Math.max(0, -from);
@@ -277,7 +279,7 @@ export const TaleVideo: React.FC<TaleVideoProps & { Story: React.FC<StoryProps> 
   const { tale, app } = props;
   const timeline = tale.timeline ?? taleTimeline(tale.beats, tale.voice?.segments);
   return (
-    <ThemeProvider app={app} lang="en">
+    <ThemeProvider app={app} lang={tale.lang ?? "en"}>
       <AbsoluteFill
         style={{
           background: PAL.ink,

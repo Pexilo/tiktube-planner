@@ -27,6 +27,11 @@ les installations de modules, les médias et `@remotion/effects`. En cas de conf
    Reste fidèle aux faits du JSON : n'invente ni chiffre, ni citation, ni titre de presse.
    Le son : pas de musique ; les bruitages narratifs du JSON (`beats[].sfx`) sont joués par l'habillage, et chaque composant du kit
    joue son petit son d'animation tout seul (KIT.md, « Sons »). Cale les apparitions clés sur le mot du bruitage quand il y en a un.
+   Deux langues : la même composition est aussi rendue en français (voix FR, textes à l'écran traduits ensuite d'après ton code).
+   Écris donc chaque texte à l'écran en anglais, en entier, comme une chaîne ou un gabarit (`\`DAY ${day}\``) passé tel quel au kit :
+   jamais découpé, concaténé morceau par morceau ou coupé avec `slice`. Cale les mouvements sur des mots porteurs de sens
+   (`at("pizza")`, `at("thousand")`), pas sur des mots outils (« the », « a », « and ») qui n'ont pas d'équivalent dans l'autre
+   langue. Laisse un peu de marge en largeur aux textes : le français est souvent 20 % plus long.
 2. Lance `node scripts/tale-check.mjs {{slug}} --draft`. La dernière ligne de sortie est un JSON `{ ok, errors, stills, sheet }`.
 3. Corrige les erreurs, puis ouvre `sheet` et les `stills` avec Read et critique-les comme un directeur artistique.
    Charge le skill `design-superpowers:design-review` (outil Skill) et applique sa grille de qualité visuelle et de mouvement

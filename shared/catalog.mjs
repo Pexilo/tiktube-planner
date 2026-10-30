@@ -3,7 +3,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildTimeline, musicFor, videosFor, FPS } from "./timeline.mjs";
-import { cleanTitle, renderedTale, TALE_APP } from "./tales.mjs";
+import { cleanTitle, renderedTale, TALE_APP, taleLangs } from "./tales.mjs";
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const APP_ORDER = ["hyrox", "sociaflow", "beautyflow", "mrrkit", "decido", "revenuepilot"];
@@ -78,24 +78,28 @@ export function loadCatalog() {
   }
   // Stories crypto : une fois la voix posée (timeline) et les visuels promus dans src/tales/stories/.
   const host = apps.find((a) => a.slug === TALE_APP);
-  for (const tale of host ? loadTales() : []) {
-    if (!tale.timeline || !existsSync(join(TALE_STORIES, `${tale.slug}.tsx`))) continue;
-    videos.push({
-      id: tale.id,
-      slug: TALE_APP,
-      kind: "tale",
-      format: "short",
-      lang: "en",
-      shortIndex: 0,
-      appName: "Crypto stories",
-      title: cleanTitle(tale.yt.title),
-      durationSec: renderedTale(tale).timeline.totalFrames / FPS,
-      color: host.brand.primary,
-      tale: true,
-      taleSlug: tale.slug,
-      taleType: tale.type,
-      eventDate: tale.eventDate,
-    });
+  // Une vidéo par langue (la base anglaise, puis chaque traduction voisée), publiées à la même heure (server/scheduler.mjs).
+  for (const base of host ? loadTales() : []) {
+    if (!base.timeline || !existsSync(join(TALE_STORIES, `${base.slug}.tsx`))) continue;
+    for (const lang of taleLangs(base)) {
+      const tale = renderedTale(base, lang);
+      videos.push({
+        id: tale.id,
+        slug: TALE_APP,
+        kind: "tale",
+        format: "short",
+        lang,
+        shortIndex: 0,
+        appName: "Crypto stories",
+        title: cleanTitle(tale.yt.title),
+        durationSec: tale.timeline.totalFrames / FPS,
+        color: host.brand.primary,
+        tale: true,
+        taleSlug: base.slug,
+        taleType: base.type,
+        eventDate: base.eventDate,
+      });
+    }
   }
   return { apps, videos };
 }

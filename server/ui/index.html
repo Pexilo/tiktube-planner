@@ -322,6 +322,7 @@
   .tale-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 20px; align-items: start; }
   .tale-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
   .tale-side input, .tale-side select, .tale-side textarea { width: 100%; }
+  .tale-side input[type="checkbox"] { width: auto; }
   .tale-side textarea { resize: vertical; }
   .lbl-up { display: block; font-size: 11.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 5px; }
   .beat { border: 1px solid var(--line); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
@@ -545,7 +546,8 @@
           <div class="field"><label>Heure de sortie</label><input type="time" data-s="taleTime" /></div>
           <div class="field"><label>Stories par jour</label><input type="number" min="0" max="4" data-s="talesPerDay" style="width:80px" /></div>
           <div class="field"><label>Aussi sur TikTok (auto)</label><div class="toggle" id="taleTtToggle"></div></div>
-          <p class="note">Une story validée est fabriquée puis programmée sur YouTube au prochain créneau libre. Avec TikTok auto, elle part aussi en brouillon dans ta boîte TikTok.</p>
+          <div class="field"><label>Version française</label><div class="toggle" id="taleFrToggle"></div></div>
+          <p class="note">Une story validée est fabriquée puis programmée sur YouTube au prochain créneau libre. Avec TikTok auto, elle part aussi en brouillon dans ta boîte TikTok. Avec la version française, le script anglais est traduit par Claude (termes crypto gardés en anglais), voisé avec la voix FR, et sort à la même heure sur tes comptes FR.</p>
         </div>
         <div class="card pad" data-only="pubs">
           <div class="card-h"><h3>Rythme YouTube</h3></div>
@@ -1141,6 +1143,7 @@ function renderSettings() {
   $("#autoToggle").classList.toggle("on", !!S.settings.autopilot);
   for (const id of ["#pubsToggle", "#pubsToggle2"]) $(id).classList.toggle("on", S.settings.pubsEnabled !== false);
   $("#taleTtToggle").classList.toggle("on", !!S.settings.taleAutoTikTok);
+  $("#taleFrToggle").classList.toggle("on", S.settings.taleFrench !== false);
   const y = S.youtube;
   setHTML($("#ytBox"), y.hasSecret
     ? `${accountRows("yt")}${y.connected ? `<p class="note">Envois aujourd'hui (toutes chaînes) : ${S.upload.today}/${S.settings.maxUploadsPerDay}.</p>` : ""}`
@@ -1440,10 +1443,16 @@ function taleStatus(t) {
   if (t.status === "error" || taleErrors(t).length) return ["err", "Erreur"];
   if (isPub(t)) return ["pub", "Publiée"];
   if (isSched(t)) return ["sched", `Sort ${fmtDate(t.publishAt ?? vOf(t)?.publishAt)}`];
-  if (isRenderedTale(t)) return ["ready", "Rendue · en attente de créneau"];
+  if (isRenderedTale(t)) {
+    const at = t.publishAt ?? vOf(t)?.publishAt;
+    if (awaitingRelease(t)) return ["work", at ? `À valider · sort ${fmtDate(at)}` : "À valider"];
+    return ["ready", at ? `Validée · sort ${fmtDate(at)}` : "Validée · créneau à venir"];
+  }
   return { script: ["todo", "Script à valider"], approved: ["ready", "Validée · voix à venir"], voiced: ["ready", "Voix prête"], composing: ["work", "Composition…"], composed: ["ready", "Composée · rendu à venir"] }[t.status] ?? ["todo", t.status];
 }
-const taleRank = (t) => (t.status === "error" || taleErrors(t).length ? 0 : t.status === "script" ? 1 : !isSched(t) ? 2 : !isPub(t) ? 3 : 4);
+/** Vidéo rendue qui attend ton feu vert (rien ne part sur YouTube avant). */
+const awaitingRelease = (t) => isRenderedTale(t) && !isSched(t) && !t.released && !t.hold;
+const taleRank = (t) => (t.status === "error" || taleErrors(t).length ? 0 : t.status === "script" || awaitingRelease(t) ? 1 : !isSched(t) ? 2 : !isPub(t) ? 3 : 4);
 function storiesUnavailable(el) {
   setHTML(el, TL !== null ? "" : `<div class="alert red">${ic("alert")}<div><b>Le pipeline des stories ne répond pas.</b> <code>/api/tales</code> est introuvable ou en erreur sur ce serveur : relance la plateforme après la mise à jour.</div></div>`);
 }
@@ -1462,11 +1471,13 @@ function renderTalesToday() {
   storiesUnavailable($("#talesAlert"));
 
   const scripts = tales.filter((t) => t.status === "script");
-  const prod = tales.filter((t) => t.status !== "script" && !isSched(t));
-  const sched = tales.filter((t) => isSched(t) && !isPub(t)), pub = tales.filter(isPub);
+  const toWatch = tales.filter(awaitingRelease);
+  const released = (t) => isRenderedTale(t) && t.released && !isSched(t);
+  const prod = tales.filter((t) => t.status !== "script" && !isSched(t) && !awaitingRelease(t) && !released(t));
+  const sched = tales.filter((t) => (isSched(t) || released(t)) && !isPub(t)), pub = tales.filter(isPub);
   const stages = [
     ["ideas", "Idées", "var(--c-todo)", ideas.length, "à trier, sourcées"],
-    ["stories", "À valider", "var(--c-work)", scripts.length, "scripts qui t'attendent"],
+    ["stories", "À valider", "var(--c-work)", scripts.length + toWatch.length, `${scripts.length} script(s), ${toWatch.length} vidéo(s) à regarder`],
     ["stories", "En fabrication", "var(--c-ready)", prod.length, "voix, visuels, rendu"],
     ["calendar", "Programmées", "var(--c-sched)", sched.length, `sortie automatique, partout à la même heure${pub.length ? `<br>${pub.length} déjà publiée(s)` : ""}`],
   ];
@@ -1494,9 +1505,12 @@ function renderTalesToday() {
   const pre = $("#tJobLog"); if (pre) pre.scrollTop = pre.scrollHeight;
 
   // À faire
-  const todo = tales.filter((t) => t.status === "script" || taleRank(t) === 0);
+  // Erreurs, puis vidéos à valider (la plus proche de sa sortie d'abord), puis scripts.
+  const slot = (t) => t.publishAt ?? vOf(t)?.publishAt ?? "9";
+  const todo = tales.filter((t) => taleRank(t) <= 1).sort((a, b) => taleRank(a) - taleRank(b) || (awaitingRelease(b) - awaitingRelease(a)) || slot(a).localeCompare(slot(b)));
+  const why = (t) => taleRank(t) === 0 ? esc(taleErrors(t)[0] ?? "Erreur") : awaitingRelease(t) ? "Regarde la vidéo et valide-la : rien ne part avant ton feu vert" : `Script à relire · ${t.beats.length} phrases · ${t.type === "recent" ? "Récent" : "Insolite"}`;
   setHTML($("#tTodo"), `<div class="card-h"><h3>À faire</h3><span class="spacer"></span><a class="btn sm ghost" href="#stories">Toutes les stories</a></div>
-    ${todo.map((t) => `<a href="#stories" class="row-item"><span class="jobic" style="width:34px;height:34px;border-radius:9px">${ic(taleRank(t) === 0 ? "alert" : "check")}</span><div class="tt"><b>${esc(t.yt?.title || t.slug)}</b><span>${taleRank(t) === 0 ? esc(taleErrors(t)[0] ?? "Erreur") : `${t.beats.length} phrases · ${t.type === "recent" ? "Récent" : "Insolite"}`}</span></div><div class="when">${chip(taleStatus(t))}</div></a>`).join("")}
+    ${todo.map((t) => `<a href="#stories" class="row-item"><span class="jobic" style="width:34px;height:34px;border-radius:9px">${ic(taleRank(t) === 0 ? "alert" : awaitingRelease(t) ? "play" : "check")}</span><div class="tt"><b>${esc(t.yt?.title || t.slug)}</b><span>${why(t)}</span></div><div class="when">${chip(taleStatus(t))}</div></a>`).join("")}
     ${ideas.length ? `<a href="#ideas" class="row-item"><span class="jobic" style="width:34px;height:34px;border-radius:9px">${ic("bulb")}</span><div class="tt"><b>${ideas.length} idée(s) à trier</b><span>Choisis celles qui méritent un script</span></div></a>` : ""}
     ${!todo.length && !ideas.length ? `<div class="empty"><b>Rien à valider</b>Lance « Chercher des histoires » dans Idées.</div>` : ""}`);
 
@@ -1642,14 +1656,15 @@ function taleProduction(t) {
         ${!ytId && rendered && !t.hold ? (t.released
           ? `<div class="note trow" style="margin-top:6px">${ic("check")}Validée : part sur YouTube à son créneau.<button class="btn sm ghost" data-talerelease="${esc(t.slug)}" data-undo="1">Annuler</button></div>`
           : `<div class="alert" style="margin-top:6px">${ic("play")}<div>À valider : regarde la vidéo et retouche les bruitages si besoin. Rien ne part sur YouTube avant ton feu vert.
-            <div style="margin-top:6px"><button class="btn sm" data-talerelease="${esc(t.slug)}" ${composing ? "disabled" : ""}>${ic("check")}Valider pour publication</button></div></div></div>`) : ""}</div>
+            <div style="margin-top:6px"><button class="btn sm" data-talerelease="${esc(t.slug)}" ${composing ? "disabled" : ""}>${ic("check")}Valider pour publication${(t.targets ?? []).some((l) => t.locales?.[l]?.voiced) ? " (EN + FR)" : ""}</button></div></div></div>`) : ""}</div>
+      ${(t.targets ?? []).map((l) => taleLocalePanel(t, l)).join("")}
       ${ytId ? `<div><span class="lbl-up">Retoucher</span>
         <button class="btn sm" data-taleunlink="${esc(t.slug)}">${ic("redo")}Supprimée de YouTube : retoucher</button>
         <div class="note" style="margin-top:4px">Supprime d'abord la vidéo dans YouTube Studio. Les bruitages redeviennent modifiables ; après le remix, tu valides la nouvelle version avant qu'elle reparte.</div></div>` : ""}
       ${sched || !(composedOnce || t.status === "error") ? "" : `<div><span class="lbl-up">Recomposer avec une note</span>
         <textarea data-tnote="${esc(t.slug)}" rows="3" placeholder="Ex. : plus de rythme sur le rebondissement, le graphique de la phrase 3 est illisible…">${esc(noteDraft[t.slug] ?? "")}</textarea>
         <div class="trow" style="margin-top:6px"><button class="btn sm" data-talecompose="${esc(t.slug)}" ${composing || t.status === "approved" ? "disabled" : ""}>${ic("sparkle")}Recomposer</button>
-          <button class="btn sm" data-talerender="${esc(t.id)}" ${composedOnce && !composing ? "" : "disabled"}>${ic("redo")}Re-rendre</button></div>
+          <button class="btn sm" data-talerender="${esc([t.id, ...Object.values(t.locales ?? {}).filter((l) => l.voiced).map((l) => l.id)].join(","))}" ${composedOnce && !composing ? "" : "disabled"}>${ic("redo")}Re-rendre</button></div>
         ${t.compose?.notes?.length ? `<div class="note" style="margin-top:6px">Notes déjà données : ${t.compose.notes.map((n) => `« ${esc(n)} »`).join(" · ")}</div>` : ""}</div>`}
       ${ytId || !composedOnce ? "" : taleSfxPanel(t, composing)}
       ${ytId ? "" : `<div><label class="trow" style="gap:6px;cursor:pointer"><input type="checkbox" data-tf="ad" ${t.product?.off ? "" : "checked"} ${composing ? "disabled" : ""}>Passage pub Where'd Gains Go?</label>
@@ -1659,6 +1674,57 @@ function taleProduction(t) {
       <details><summary>Script validé · ${t.beats.length} phrases</summary><div class="script-ro" style="margin-top:6px">${t.beats.map((b) => `<div class="b"><span class="tag" style="justify-self:start">${ROLES[b.role] ?? b.role}</span><div>${esc(b.text)}<small>${esc(b.visual)}</small></div></div>`).join("")}</div></details>
       <details><summary>Sources (${t.sources?.length ?? 0}) · ${esc(featLabel(t.product?.featureId))}</summary><div style="margin-top:6px">${srcList(t.sources)}</div></details>
     </div></div>`;
+}
+const LANG_LABEL = { fr: "français" };
+/**
+ * Version traduite d'une story (le script anglais est la base) : même visuels et bruitages, voix et textes de sa langue,
+ * publiée à la même heure que la version anglaise sur les comptes de sa langue. Relecture, correction, retraduction.
+ */
+function taleLocalePanel(t, lang) {
+  const loc = t.locales?.[lang], L = lang.toUpperCase(), j = tl().job;
+  const v = S.videos.find((x) => x.id === `tale-${t.slug}-${lang}`), lv = loc?.video ?? {};
+  const working = j && j.slug === t.slug && /traduction|version|voix off|textes|aperçu/i.test(`${j.label} ${j.stage}`) && new RegExp(`\\b${L}\\b`).test(`${j.label} ${j.stage}`);
+  const rendering = v && (S.render.current.id === v.id || S.render.queue.includes(v.id));
+  const ytId = lv.youtubeId ?? v?.youtubeId, at = lv.publishAt ?? v?.publishAt;
+  const locked = !!ytId;
+  const head = `<span class="lbl-up">Version ${L}${loc?.durationSec ? ` · ${loc.durationSec} s` : ""}</span>`;
+  const note = `<textarea data-locnote="${esc(t.slug)}:${lang}" rows="2" placeholder="Facultatif, pour Claude : ex. plus familier, garde « seed phrase » en anglais, raccourcis la phrase 4…">${esc(noteDraft[`loc:${t.slug}:${lang}`] ?? "")}</textarea>`;
+  const trBtn = (label) => `<button class="btn sm" data-taletr="${esc(t.slug)}" data-lang="${lang}" ${working || rendering ? "disabled" : ""}>${ic("sparkle")}${label}</button>`;
+  if (!loc?.beats?.length)
+    return `<div>${head}
+      ${loc?.error ? `<div class="alert red" style="margin:4px 0 6px">${ic("alert")}<div>${esc(loc.error)}</div></div>` : ""}
+      <div class="note">${working ? '<span class="spin" style="display:inline-block;color:var(--accent)"></span> Traduction en cours…' : `Pas encore de version ${LANG_LABEL[lang] ?? L}.`}</div>
+      ${working ? "" : `<div style="margin-top:6px">${note}<div class="trow" style="margin-top:6px">${trBtn(`Traduire en ${LANG_LABEL[lang] ?? L}`)}</div></div>`}</div>`;
+  const thumb = lv.thumb ? `/out/${encodeURIComponent(loc.id)}.jpg?t=${encodeURIComponent(lv.thumb.at)}` : "";
+  const sheet = `/out/tales-preview/${encodeURIComponent(t.slug)}-${lang}/sheet.png${loc.ui?.src ? `?t=${encodeURIComponent(loc.ui.src)}` : ""}`;
+  const state = working ? `<span class="spin" style="display:inline-block;color:var(--accent)"></span> ${esc(j.stage || "En cours…")}`
+    : rendering ? `<span class="spin" style="display:inline-block;color:var(--accent)"></span> Rendu ${L}…`
+    : ytId ? `${platIc("yt")}Envoyée · sort ${fmtDate(at)}`
+    : lv.rendered ? (lv.released ? `${ic("check")}Validée · sort ${fmtDate(at)}` : `Rendue · à valider avec la version EN${at ? ` · sort ${fmtDate(at)}` : ""}`)
+    : loc.voiced ? "Voix prête · rendu à venir" : "Traduite · voix à la validation";
+  return `<div>${head}
+      <div class="note trow">${state}</div>
+      ${loc.error ? `<div class="alert red" style="margin:4px 0 6px">${ic("alert")}<div>${esc(loc.error)}</div></div>` : ""}
+      ${loc.stale ? `<div class="alert" style="margin:4px 0 6px">${ic("alert")}<div>Le script anglais a changé depuis cette traduction : elle sera refaite à la prochaine validation (ou retraduis-la maintenant).</div></div>` : ""}
+      ${loc.warnings?.length ? `<div class="note" style="color:var(--c-err)">${loc.warnings.map(esc).join(" · ")}</div>` : ""}
+      <h4 style="margin:6px 0 2px">${esc(loc.yt?.title ?? "")}</h4><div class="hook muted">${accent(loc.hook ?? "")}</div>
+      ${lv.rendered || thumb ? `<div class="tale-media" style="margin-top:6px">
+        ${thumb ? `<a href="${thumb}" target="_blank"><img src="${thumb}" alt="Miniature ${L}" style="max-width:120px" onerror="this.parentNode.hidden=true"></a>` : ""}
+        ${lv.rendered ? `<video src="/out/${esc(loc.id)}.mp4${v ? bust(v) : ""}" controls preload="metadata" playsinline></video>` : ""}
+      </div>` : ""}
+      ${loc.ui ? `<a class="sheet" href="${sheet}" target="_blank"><img src="${sheet}" alt="Planche ${L}" onerror="this.parentNode.hidden=true"><span class="note">Planche contact ${L} · textes à l'écran traduits</span></a>` : ""}
+      ${ytId ? `<a class="btn sm" style="margin-top:6px" target="_blank" href="https://studio.youtube.com/video/${ytId}/edit">${ic("ext")}YouTube Studio ${L}</a>` : ""}
+      <details data-locopen="${esc(t.slug)}:${lang}" ${openSfx.has(`loc:${t.slug}:${lang}`) ? "open" : ""}><summary>Script ${L} · ${loc.beats.length} phrases${loc.edited ? " · corrigé à la main" : ""}</summary>
+        <div data-locform="${esc(t.slug)}:${lang}" style="margin-top:6px">
+          <div class="field"><label>Titre</label><input data-lf="title" value="${esc(loc.yt?.title ?? "")}" ${locked ? "disabled" : ""}></div>
+          <div class="field"><label>Accroche à l'écran</label><input data-lf="hook" value="${esc(loc.hook ?? "")}" ${locked ? "disabled" : ""}></div>
+          ${t.beats.map((b, i) => `<div class="b" style="margin-bottom:6px"><div class="note"><b>${i + 1}.</b> ${esc(b.text)}</div>
+            <textarea data-lbeat="${esc(b.id)}" rows="2" ${locked ? "disabled" : ""}>${esc(loc.beats.find((x) => x.id === b.id)?.text ?? "")}</textarea></div>`).join("")}
+          ${locked ? "" : `<button class="btn sm" data-talelocsave="${esc(t.slug)}" data-lang="${lang}" ${working || rendering ? "disabled" : ""}>${ic("check")}Enregistrer${t.voice ? ` et refaire la version ${L}` : ""}</button>`}
+        </div></details>
+      ${locked ? `<div class="note">Déjà envoyée sur YouTube : la version ${L} ne se change plus d'ici.</div>` : `<div style="margin-top:6px">${note}<div class="trow" style="margin-top:6px">${trBtn("Retraduire avec Claude")}</div>
+        <div class="note" style="margin-top:4px">Refait la traduction, la voix ${L}, les textes à l'écran et le rendu ${L}. La version anglaise ne bouge pas.</div></div>`}
+    </div>`;
 }
 /** Bruitages d'une story produite : édition à la main ou retravail par Claude, puis remix du son seul (voix et image gardées). */
 function taleSfxPanel(t, composing) {
@@ -1756,10 +1822,14 @@ taleList.addEventListener("input", (e) => {
   if (t.dataset.tnote) noteDraft[t.dataset.tnote] = t.value;
   if (t.dataset.trnote) noteDraft[`rw:${t.dataset.trnote}`] = t.value;
   if (t.dataset.sfxnote) noteDraft[`sfx:${t.dataset.sfxnote}`] = t.value;
+  if (t.dataset.locnote) noteDraft[`loc:${t.dataset.locnote}`] = t.value;
   if (t.dataset.tf === "yttitle") { const c = t.nextElementSibling; c.textContent = `${t.value.length}/${TITLE_MAX}`; c.classList.toggle("over", t.value.length > TITLE_MAX); }
 });
 // « toggle » ne remonte pas : écouté en capture, pour garder l'éditeur de bruitages ouvert entre deux rafraîchissements.
-taleList.addEventListener("toggle", (e) => { const s = e.target.dataset?.sfxopen; if (s) e.target.open ? openSfx.add(s) : openSfx.delete(s); }, true);
+taleList.addEventListener("toggle", (e) => {
+  const s = e.target.dataset?.sfxopen ?? (e.target.dataset?.locopen ? `loc:${e.target.dataset.locopen}` : null);
+  if (s) e.target.open ? openSfx.add(s) : openSfx.delete(s);
+}, true);
 document.body.addEventListener("click", async (e) => {
   const play = e.target.closest("[data-sfxplay]");
   if (play) {
@@ -1769,7 +1839,7 @@ document.body.addEventListener("click", async (e) => {
     a.volume = Math.min(1, Number(play.closest("[data-sfx]")?.querySelector('[data-bf="sfxvol"]')?.value ?? 1) * 0.5);
     return void a.play().catch(() => {});
   }
-  const t = e.target.closest("[data-ideawrite],[data-ideaskip],[data-taleapprove],[data-taledel],[data-talecompose],[data-talerender],[data-talerewrite],[data-talerestore],[data-talereopen],[data-taleunlink],[data-talerelease],[data-talesfx],[data-talesfxai],[data-talesfxundo],[data-beatdel],[data-beatadd],[data-talelog],#taleSearch,#taleTopicGo");
+  const t = e.target.closest("[data-ideawrite],[data-ideaskip],[data-taleapprove],[data-taledel],[data-talecompose],[data-talerender],[data-talerewrite],[data-talerestore],[data-talereopen],[data-taleunlink],[data-talerelease],[data-talesfx],[data-talesfxai],[data-talesfxundo],[data-taletr],[data-talelocsave],[data-beatdel],[data-beatadd],[data-talelog],#taleSearch,#taleTopicGo");
   if (!t) return;
   const d = t.dataset;
   if (t.id === "taleSearch") {
@@ -1829,8 +1899,16 @@ document.body.addEventListener("click", async (e) => {
     if (!r?.error && d.talesfxai) delete noteDraft[`sfx:${slug}`];
   } else if (d.talesfxundo) {
     await taleAct(api(`/api/tales/${encodeURIComponent(d.talesfxundo)}/sfx/undo`, {}));
+  } else if (d.taletr) {
+    const key = `loc:${d.taletr}:${d.lang}`;
+    const r = await taleAct(api(`/api/tales/${encodeURIComponent(d.taletr)}/locales/${d.lang}/translate`, { note: (noteDraft[key] ?? "").trim() }));
+    if (!r?.error) delete noteDraft[key];
+  } else if (d.talelocsave) {
+    const form = t.closest("[data-locform]");
+    const beats = [...form.querySelectorAll("[data-lbeat]")].map((x) => ({ id: x.dataset.lbeat, text: x.value }));
+    await taleAct(api(`/api/tales/${encodeURIComponent(d.talelocsave)}/locales/${d.lang}`, { beats, hook: form.querySelector('[data-lf="hook"]').value, yt: { title: form.querySelector('[data-lf="title"]').value } }, "PATCH"));
   } else if (d.talerender) {
-    await taleAct(api("/api/render", { ids: [d.talerender], force: true }));
+    await taleAct(api("/api/render", { ids: d.talerender.split(","), force: true }));
   } else if (d.beatdel || d.beatadd) {
     const card = t.closest("[data-tale]"), slug = card.dataset.tale;
     let beats = collectBeats(card);
@@ -1846,6 +1924,7 @@ document.body.addEventListener("click", async (e) => {
 });
 $("#taleTopic").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#taleTopicGo").click(); });
 $("#taleTtToggle").onclick = async () => { await api("/api/settings", { taleAutoTikTok: !S.settings.taleAutoTikTok }, "PATCH"); refresh(); };
+$("#taleFrToggle").onclick = async () => { await api("/api/settings", { taleFrench: S.settings.taleFrench === false }, "PATCH"); refresh(); };
 
 /* ------------------------------------------------------------------ Actions globales */
 document.body.addEventListener("click", async (e) => {

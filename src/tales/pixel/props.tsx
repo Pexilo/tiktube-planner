@@ -7,7 +7,7 @@ import { EXTRA_ICONS } from "./icons";
 import { FINE_ICONS } from "./fine";
 import { SAFE_TOP, useTextSlot } from "./layout";
 import { enterSound, Sound } from "../kit/sfx";
-import { drawText, LINE, measure, PixelText, textWidth, TP, wrap } from "./font";
+import { drawText, LINE, measure, PixelText, textWidth, TP, tr, wrap } from "./font";
 
 /*
  * Bibliothèque pixel art des stories : objets, textes et infos (fonds : backdrop.tsx), tous sur la grille de 90 × 160
@@ -433,11 +433,13 @@ export const Screen: React.FC<{ x: number; y: number; w: number; h: number; at?:
   w,
   h,
   at = 0,
-  lines,
+  lines: linesProp,
   color = PAL.lime,
   title,
   speed = 1.2,
 }) => {
+  // Traduites avant l'effet machine à écrire : un début de ligne coupé n'est plus une clé du dictionnaire.
+  const lines = linesProp.map(tr);
   const frame = useCurrentFrame();
   const d = useDrop(at);
   const dy = useTextSlot(d !== null ? { x0: x, y0: y, x1: x + w, y1: y + h } : null);

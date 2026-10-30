@@ -58,7 +58,7 @@ export const TaleThumb: React.FC<TaleVideoProps & { Story: React.FC<StoryProps> 
   const timeline = tale.timeline ?? taleTimeline(tale.beats, tale.voice?.segments);
   const text = thumbText(tale.yt.title);
   return (
-    <ThemeProvider app={app} lang="en">
+    <ThemeProvider app={app} lang={tale.lang ?? "en"}>
       <AbsoluteFill
         style={{
           background: PAL.ink,

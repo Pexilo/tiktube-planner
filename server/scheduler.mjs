@@ -147,6 +147,8 @@ export function generateSchedule({ apps, videos }) {
 /**
  * Voie des stories crypto, indépendante des pubs : `talesPerDay` par jour à partir de `taleTime`
  * (créneaux suivants 4 h plus tôt), les « récentes » d'abord (événement le plus récent en tête), puis les insolites.
+ * Une story a un créneau, partagé par toutes ses langues : la version anglaise (la base) et ses traductions sortent
+ * à la même heure, chacune sur les comptes de sa langue.
  */
 export function scheduleTales({ videos }) {
   const { settings } = getState();
@@ -156,19 +158,33 @@ export function scheduleTales({ videos }) {
   const fixed = (v) => getState().videos[v.id]?.youtubeId || getState().videos[v.id]?.locked;
   const minTs = Date.now() + 3 * 3600 * 1000;
   const localDay = (iso) => new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(iso));
-  const tales = videos.filter((v) => v.kind === "tale");
+  const st = (v) => getState().videos[v.id];
+  // Une story = toutes ses langues (taleSlug) ; la vidéo de base (anglais) mène le groupe.
+  const groups = new Map();
+  for (const v of videos.filter((x) => x.kind === "tale")) groups.set(v.taleSlug ?? v.id, [...(groups.get(v.taleSlug ?? v.id) ?? []), v]);
   const taken = {};
-  for (const v of tales) {
-    const at = getState().videos[v.id]?.publishAt;
-    if (fixed(v) && at) taken[localDay(at)] = (taken[localDay(at)] ?? 0) + 1;
+  // `lead` reçoit un créneau, `rest` en prend la même heure.
+  const pending = [];
+  for (const g of groups.values()) {
+    const loose = g.filter((v) => !fixed(v));
+    // Heure déjà figée par l'une des langues (envoyée sur YouTube, ou verrouillée) : toute la story la garde.
+    const at = g.map((v) => (fixed(v) ? st(v)?.publishAt : null)).find(Boolean) ?? null;
+    if (at) taken[localDay(at)] = (taken[localDay(at)] ?? 0) + 1;
+    if (!loose.length) continue;
+    if (at && new Date(at).getTime() >= minTs) for (const v of loose) video(v.id).publishAt = at;
+    // Pas d'heure, ou heure déjà passée (traduction ajoutée après la sortie) : un nouveau créneau pour les langues restantes.
+    else {
+      const lead = loose.find((v) => v.lang === "en") ?? loose[0];
+      pending.push({ lead, rest: loose.filter((v) => v !== lead) });
+    }
   }
   const rank = (v) => (v.taleType === "recent" ? 0 : 1);
-  const pending = tales.filter((v) => !fixed(v)).sort((a, b) => rank(a) - rank(b) || (b.eventDate ?? "").localeCompare(a.eventDate ?? ""));
+  pending.sort((a, b) => rank(a.lead) - rank(b.lead) || (b.lead.eventDate ?? "").localeCompare(a.lead.eventDate ?? ""));
   const today = localDay(new Date().toISOString());
   let day = startDate > today ? startDate : today;
   let slot = taken[day] ?? 0;
   const [h, m] = taleTime.split(":").map(Number);
-  for (const v of pending) {
+  for (const { lead, rest } of pending) {
     let when;
     do {
       while (slot >= perDay) {
@@ -179,7 +195,7 @@ export function scheduleTales({ videos }) {
       when = zonedToUtc(day, `${hour}:${String(m).padStart(2, "0")}`, timezone);
       slot++;
     } while (when.getTime() < minTs);
-    video(v.id).publishAt = when.toISOString();
+    for (const v of [lead, ...rest]) video(v.id).publishAt = when.toISOString();
   }
   save();
 }

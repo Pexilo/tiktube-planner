@@ -1,6 +1,7 @@
 // Vérifie les visuels d'une story crypto avant de la promouvoir : typecheck isolé, règles du kit,
 // puis une image fixe par beat (rendue avec le JSON de la story) et une planche contact.
-// Usage : node scripts/tale-check.mjs <slug> [--draft | --stories] [--frames=12,140,…]
+// Usage : node scripts/tale-check.mjs <slug> [--draft | --stories] [--frames=12,140,…] [--lang=fr]
+// --lang=fr : la story telle que rendue dans sa traduction (voix, textes à l'écran), images dans tales-preview/<slug>-fr.
 // Sortie : la dernière ligne de stdout est un JSON { ok, errors, stills, sheet, frames }. Code de sortie 0 si ok.
 import { execFile } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
@@ -10,7 +11,7 @@ import { bundle } from "@remotion/bundler";
 import { openBrowser, renderStill, selectComposition } from "@remotion/renderer";
 import { ROOT } from "../shared/catalog.mjs";
 import { outDir as storageOut } from "../shared/storage.mjs";
-import { renderedTale, taleTimeline } from "../shared/tales.mjs";
+import { renderedTale, TALE_BASE_LANG, taleTimeline } from "../shared/tales.mjs";
 
 const run = promisify(execFile);
 const args = process.argv.slice(2);
@@ -34,9 +35,14 @@ if (!existsSync(jsonFile)) errors.push(`JSON introuvable : content/tales/${slug}
 if (!existsSync(storyFile)) errors.push(`Visuels introuvables : ${storyFile.slice(ROOT.length + 1).replaceAll("\\", "/")}`);
 if (errors.length) done();
 
-const tale = renderedTale(JSON.parse(readFileSync(jsonFile, "utf8")));
+const lang = args.find((a) => a.startsWith("--lang="))?.slice(7) || TALE_BASE_LANG;
+const tale = renderedTale(JSON.parse(readFileSync(jsonFile, "utf8")), lang);
+if (!tale) {
+  errors.push(`Pas de traduction ${lang} pour ${slug}`);
+  done();
+}
 const src = readFileSync(storyFile, "utf8");
-const outDir = join(storageOut(), "tales-preview", slug);
+const outDir = join(storageOut(), "tales-preview", lang === TALE_BASE_LANG ? slug : `${slug}-${lang}`);
 rmSync(outDir, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
 
@@ -84,12 +90,18 @@ const publicDir = join(storageOut(), "tales-preview", "_public");
 mkdirSync(join(publicDir, "audio"), { recursive: true });
 mkdirSync(join(ROOT, "public", "audio", "tale-sfx"), { recursive: true });
 for (const d of ["apps", "fx", "audio/tale-sfx"]) if (!existsSync(join(publicDir, d))) symlinkSync(join(ROOT, "public", d), join(publicDir, d), "junction");
+// Traduction : le JSON passé au bundle porte la langue à prévisualiser (src/tales/preview/index.tsx).
+let previewJson = jsonFile;
+if (lang !== TALE_BASE_LANG) {
+  previewJson = join(outDir, "_tale.json");
+  writeFileSync(previewJson, JSON.stringify({ ...JSON.parse(readFileSync(jsonFile, "utf8")), previewLang: lang }));
+}
 let serveUrl;
 try {
   serveUrl = await bundle({
     entryPoint: join(ROOT, "src/tales/preview/index.tsx"),
     publicDir,
-    webpackOverride: (c) => ({ ...c, resolve: { ...c.resolve, alias: { ...(c.resolve?.alias ?? {}), "@tale-story$": storyFile, "@tale-json$": jsonFile } } }),
+    webpackOverride: (c) => ({ ...c, resolve: { ...c.resolve, alias: { ...(c.resolve?.alias ?? {}), "@tale-story$": storyFile, "@tale-json$": previewJson } } }),
   });
 } catch (e) {
   errors.push(`Bundle : ${String(e.message ?? e).slice(0, 800)}`);
@@ -111,6 +123,7 @@ for (const [i, frame] of frames.entries()) {
 }
 
 await browser.close({ silent: true }).catch(() => {});
+if (previewJson !== jsonFile) rmSync(previewJson, { force: true });
 rmSync(serveUrl, { recursive: true, force: true }); // le bundle temporaire de cette vérification
 
 // 4. Planche contact (4 colonnes)

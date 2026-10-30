@@ -2,7 +2,7 @@
 // bande bas-droite assombrie d'un ton, trait sombre contre ce que la pièce recouvre) et les accessoires simples qu'on
 // n'a pas besoin de pixeliser (étiquettes, post-it, bureau, clavier, tasse, carte de forum).
 import { Canvas } from "../pixel/engine";
-import { drawText, LINE, textWidth, wrap } from "../pixel/font";
+import { drawText, LINE, textWidth, tr, wrap } from "../pixel/font";
 import { tone, type RampName } from "./palette";
 
 export type Pt = [number, number];
@@ -110,9 +110,10 @@ export function forumPost(o: { title: string; author: string; date: string; body
   c.rect(0, 0, W, 13, tone("cyan", 1)).rect(0, 12, W, 1, tone("cyan", 0));
   text(c, o.title, 5, 3, tone("stone", 7));
   c.rect(0, 13, W, 10, tone("stone", 5));
-  const meta = `${o.author} · ${o.date}`;
-  text(c, o.author, 5, 15, tone("cyan", 0));
-  text(c, meta.slice(o.author.length), 5 + textWidth(o.author), 15, tone("stone", 2));
+  // Auteur et date traduits d'abord (story traduite) : la fin de `meta` n'est pas une clé du dictionnaire.
+  const [author, date] = [tr(o.author), tr(o.date)];
+  text(c, author, 5, 15, tone("cyan", 0));
+  text(c, ` · ${date}`, 5 + textWidth(author), 15, tone("stone", 2));
   // Avatar : petit portrait de profil (cheveux, peau, lunettes).
   part(c, (m) => m.rect(5, 27, 20, 20, "#000"), o.avatar ?? "cyan", 4, false);
   part(c, (m) => m.circle(15, 37, 6.5, "#000"), "skin", 3, false);

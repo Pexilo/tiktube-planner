@@ -5,11 +5,11 @@
 import { execFile } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, unlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { loadApps, loadTale, loadTales, ROOT, TALE_STORIES, TALES_DIR } from "../shared/catalog.mjs";
 import { execClaude, IS_WIN } from "../shared/platform.mjs";
 import { voiceFor } from "../shared/elevenlabs.mjs";
-import { cleanTitle, TALE_APP, taleId, taleTimeline } from "../shared/tales.mjs";
+import { cleanTitle, localizedTale, TALE_APP, TALE_BASE_LANG, TALE_LANGS, taleId, taleLangs, taleTimeline } from "../shared/tales.mjs";
 import { cleanSfx, MAX_SFX_PER_BEAT, STORY_SFX } from "../shared/tale-sfx.mjs";
 import { ensureTaleSfx } from "../scripts/gen-tale-sfx.mjs";
 import { dur, elevenSegment, pickVoice, systemSegment, wordTimings } from "../scripts/gen-voice.mjs";
@@ -28,6 +28,8 @@ const ROLES = ["hook", "context", "build", "twist", "product", "payoff", "outro"
 const STORY_MODEL = ["--model", "claude-opus-5-5", "--effort", "xhigh"];
 /** Retravail des seuls bruitages : petit prompt sans outils, effort moyen (quelques centimes au lieu d'une recomposition). */
 const SFX_MODEL = ["--model", "claude-opus-5-5", "--effort", "medium"];
+/** Traduction du script et des textes à l'écran : petits prompts sans recherche, effort élevé (le ton et le hook comptent). */
+const TRANSLATE_MODEL = ["--model", "claude-opus-5-5", "--effort", "high"];
 const COMPOSE_TIMEOUT = 45 * 60 * 1000;
 mkdirSync(join(DATA, "tales"), { recursive: true });
 mkdirSync(TALES_DIR, { recursive: true });
@@ -470,35 +472,214 @@ export function restoreScript(slug, index) {
 
 /* ------------------------------------------------------------------ 3. voix */
 
-/** Un segment par beat (ElevenLabs, sinon voix du système) → public/voice/<id>/segN.wav, puis la timeline. */
-async function ensureTaleVoice(slug) {
+/**
+ * Un segment par beat (ElevenLabs, sinon voix du système) → public/voice/<id>/segN.wav, puis la timeline.
+ * `lang` : la base (anglais) dans le script, une traduction dans `locales[lang]` (même beats, sa propre voix et timeline).
+ */
+async function ensureTaleVoice(slug, lang = TALE_BASE_LANG) {
   const tale = loadTale(slug);
-  const el = voiceFor("en");
-  const system = el ? null : pickVoice("en");
-  if (!el && !system) throw new Error("Aucune voix anglaise : configure ElevenLabs (Réglages → Voix off) ou installe une voix système EN.");
-  const lines = tale.beats.map((b) => b.text);
+  const base = lang === TALE_BASE_LANG;
+  const loc = base ? null : tale.locales?.[lang];
+  if (!base && !loc?.beats?.length) throw new Error(`Pas de traduction ${lang.toUpperCase()} : traduis d'abord le script.`);
+  const el = voiceFor(lang);
+  const system = el ? null : pickVoice(lang);
+  const name = { en: "anglaise", fr: "française" }[lang] ?? lang.toUpperCase();
+  if (!el && !system) throw new Error(`Aucune voix ${name} : configure ElevenLabs (Réglages → Voix off) ou installe une voix système ${lang.toUpperCase()}.`);
+  const lines = localizedTale(tale, lang).beats.map((b) => b.text);
   const sig = JSON.stringify([el ? el.sig : system, lines]);
-  const dir = join(ROOT, "public", "voice", tale.id);
-  const fresh = tale.voice?.sig === sig && tale.voice.segments.every((s) => existsSync(join(ROOT, "public", s.file)));
+  const id = taleId(slug, lang);
+  const dir = join(ROOT, "public", "voice", id);
+  const cur = base ? tale.voice : loc.voice;
+  const fresh = cur?.sig === sig && cur.segments.every((s) => existsSync(join(ROOT, "public", s.file)));
+  let voice = cur;
   if (!fresh) {
-    stage(`Voix off (${el ? `ElevenLabs · ${el.name}` : system})`);
+    stage(`Voix off ${lang.toUpperCase()} (${el ? `ElevenLabs · ${el.name}` : system})`);
     mkdirSync(dir, { recursive: true });
     const segments = [];
     for (const [k, text] of lines.entries()) {
       const raw = join(dir, `seg${k}.raw.${el ? "mp3" : IS_WIN ? "wav" : "aiff"}`);
       const out = join(dir, `seg${k}.wav`);
-      const w = el ? await elevenSegment(el, "en", lines, k, raw, out) : systemSegment(system, "en", text, raw, out);
+      const w = el ? await elevenSegment(el, lang, lines, k, raw, out) : systemSegment(system, lang, text, raw, out);
       const d = dur(out);
-      segments.push({ file: `voice/${tale.id}/seg${k}.wav`, dur: +d.toFixed(3), words: w ?? wordTimings(text, d) });
-      log(`Beat ${tale.beats[k].id} : ${d.toFixed(1)} s`);
+      segments.push({ file: `voice/${id}/seg${k}.wav`, dur: +d.toFixed(3), words: w ?? wordTimings(text, d) });
+      log(`Beat ${tale.beats[k].id} (${lang.toUpperCase()}) : ${d.toFixed(1)} s`);
     }
-    tale.voice = { voice: el ? `ElevenLabs · ${el.name}` : system, sig, segments };
+    voice = { voice: el ? `ElevenLabs · ${el.name}` : system, sig, segments };
   }
-  tale.timeline = taleTimeline(tale.beats, tale.voice.segments);
-  tale.status = "voiced";
-  saveTale(tale);
-  log(`Timeline : ${(tale.timeline.totalFrames / 30).toFixed(1)} s`);
-  return tale;
+  const timeline = taleTimeline(tale.beats, voice.segments);
+  const next = patchTale(slug, (t) => {
+    if (base) {
+      t.voice = voice;
+      t.timeline = timeline;
+      t.status = "voiced";
+    } else Object.assign(t.locales[lang], { voice, timeline });
+  });
+  log(`Timeline ${lang.toUpperCase()} : ${(timeline.totalFrames / 30).toFixed(1)} s`);
+  return next;
+}
+
+/* ------------------------------------------------------------------ 3 bis. traductions (l'anglais est la base) */
+
+/** Langues de traduction à produire : toutes celles de TALE_LANGS sauf la base, sauf si désactivées dans les réglages. */
+export const taleTargets = () => (getState().settings.taleFrench === false ? [] : TALE_LANGS.filter((l) => l !== TALE_BASE_LANG));
+
+const LANG_NAMES = { fr: "French" };
+const hash = (x) => createHash("sha1").update(JSON.stringify(x)).digest("hex").slice(0, 16);
+/** Empreinte de ce que la traduction reprend du script anglais : un script modifié se retraduit. */
+const scriptSig = (t) => hash([t.hook, t.summary, t.beats.map((b) => [b.id, b.role, b.text]), t.yt]);
+
+/** Termes laissés en anglais dans les traductions : le vocabulaire que la communauté crypto francophone emploie tel quel. */
+const KEEP_EN = "wallet, cold wallet, hardware wallet, seed phrase, exchange, hack, hacker, staking, airdrop, memecoin, token, stablecoin, smart contract, bridge, rug pull, pump, dump, whale, gas, gas fees, mint, NFT, DeFi, DAO, blockchain, on-chain, P&L, ATH, FOMO, HODL, bull run, bear market, trader, trading, scam, phishing, private key (or « clé privée », both are used), leverage, liquidation, short, long, fork, mining, miner, node, DEX, CEX, KYC, ETF";
+
+function translatePrompt(t, lang, { problems, note } = {}) {
+  const name = LANG_NAMES[lang] ?? lang;
+  const beats = t.beats.map((b) => ({ id: b.id, role: b.role, text: b.text, ...(b.sfx?.length ? { sfxWords: b.sfx.map((x) => x.word).filter(Boolean) } : {}) }));
+  const prev = t.locales?.[lang];
+  return `You adapt a finished "Crypto stories" vertical video script (English voice-over, pixel-art animation, TikTok / YouTube Shorts / Reels) into ${name}, for the channel's ${name}-speaking accounts. The same video (same pictures, same sound design) is published at the same time in both languages, so every beat keeps its meaning and its place.
+
+${skillsBlock([`storytelling-hooks (adapt the hook and the outro → hook loop so they still grab in ${name}: same levers, never a word-for-word copy)`])}
+RULES
+- Native, spoken ${name}, written to be read aloud by a voice-over: short punchy sentences, the same investigative, slightly ironic tone. Casual "tu" when the viewer is addressed. Never a literal translation: rephrase idioms, keep the rhythm.
+- Keep the crypto vocabulary that ${name}-speaking crypto people actually use in English, untranslated: ${KEEP_EN}. Proper names, project names, tickers (BTC, ETH…) and the app name "Where'd Gains Go?" stay as they are.
+- Same facts, same numbers, same attributions ("selon …", "d'après les documents du tribunal …"), same caution ("présumé", "aurait") as the English. Do not add or drop information.
+- Numbers spelled the way they are said in ${name} ("huit mille bitcoins", "quarante et un dollars").
+- One translated beat per English beat, same ids, same order. Each beat about as long to SAY as the English one (${name} runs longer: tighten, aim for at most +10 % words); the product beat stays about 5 seconds (10 to 18 words).
+- The video LOOPS: the outro (last beat) still ends mid-sentence (comma or no final punctuation) and flows straight into the hook's first words. Read outro + hook aloud in a row.
+- "anchors": for each beat that has "sfxWords", map every English sfx word to the ONE word of your ${name} sentence where that sound must land (the word carrying the same meaning, copied exactly from your sentence).
+- "hook": the on-screen hook in ${name}, max 8 words, the key word wrapped in *asterisks*; it is the other half of the curiosity gap, never the spoken first line.
+- "yt.title": 3 to 8 words, ${TITLE_MAX} characters max, no emoji, no hashtag, no quotes, no all caps: the same intrigue as the English title, written to win the click in ${name}. "yt.description": 2 sentences. "yt.hashtags": 5, lowercase, without #, keep "cryptostories", the others what ${name}-speaking crypto viewers search (e.g. "cryptofr", "bitcoinfr").
+- "summary": the English summary in ${name} (3-4 sentences).
+${prev?.beats?.length ? `\nPREVIOUS ${name.toUpperCase()} VERSION (improve on it, keep what works):\n${JSON.stringify({ hook: prev.hook, beats: prev.beats, yt: prev.yt })}\n` : ""}${note ? `\nTHE CREATOR'S NOTE (follow it first): ${note}\n` : ""}${problems ? `\nYOUR PREVIOUS ANSWER WAS REJECTED, FIX THIS:\n${problems}\n` : ""}
+ENGLISH SCRIPT
+${JSON.stringify({ hook: t.hook, summary: t.summary, beats, yt: t.yt }, null, 1)}
+
+Answer ONLY with this JSON:
+{"hook":"…","summary":"…","beats":[{"id":"b1","text":"…","anchors":{"<english sfx word>":"<${name} word>"}}],"yt":{"title":"…","description":"…","hashtags":["…"]}}`;
+}
+
+/** Normalise la traduction de Claude ; renvoie la traduction et ses écarts aux règles. */
+function toLocale(j, t) {
+  const got = new Map((Array.isArray(j.beats) ? j.beats : []).map((b) => [String(b?.id), b]));
+  const beats = t.beats.map((b) => ({ id: b.id, text: String(got.get(b.id)?.text ?? "").trim() }));
+  const anchors = {};
+  for (const b of t.beats) {
+    const said = beats.find((x) => x.id === b.id).text.toLowerCase();
+    const m = Object.entries(got.get(b.id)?.anchors ?? {}).filter(([en, w]) => en && typeof w === "string" && w.trim() && said.includes(w.trim().toLowerCase()));
+    if (m.length) anchors[b.id] = Object.fromEntries(m.map(([en, w]) => [en, w.trim()]));
+  }
+  const loc = {
+    hook: String(j.hook ?? "").trim(),
+    summary: String(j.summary ?? "").trim(),
+    beats,
+    yt: { title: cleanTitle(j.yt?.title).slice(0, 100), description: String(j.yt?.description ?? "").trim(), hashtags: (Array.isArray(j.yt?.hashtags) ? j.yt.hashtags : t.yt.hashtags).map((h) => String(h).replace(/^#/, "").trim()).filter(Boolean) },
+    anchors,
+  };
+  const out = [];
+  const missing = beats.filter((b) => !b.text).map((b) => b.id);
+  if (missing.length) out.push(`Missing beats: ${missing.join(", ")}. Translate every beat.`);
+  const [en, tr] = [t.beats.reduce((a, b) => a + words(b.text), 0), beats.reduce((a, b) => a + words(b.text), 0)];
+  if (tr > en * 1.25) out.push(`${tr} words for ${en} in English: too long to say in the same time, tighten to at most ${Math.round(en * 1.15)}.`);
+  if (/[.!?]["”'»]?\s*$/.test(beats.at(-1)?.text ?? "")) out.push("The outro must end mid-sentence (comma or no final punctuation) so it flows into the hook when the video loops.");
+  if (!loc.hook) out.push("The on-screen hook is missing.");
+  if (!loc.yt.title || loc.yt.title.length > TITLE_MAX || words(loc.yt.title) > 8) out.push(`yt.title "${loc.yt.title}": 3 to 8 words, ${TITLE_MAX} characters max.`);
+  return { loc, problems: out };
+}
+
+/**
+ * Traduit le script anglais (texte des phrases, accroche, résumé, titre, mots des bruitages), 2 essais si le premier sort des
+ * règles. Rien à faire si la traduction suit déjà le script actuel (sauf `force`). La voix et les textes à l'écran de cette
+ * langue sont refaits ensuite (leurs empreintes changent).
+ */
+async function ensureTranslation(slug, lang, { force = false, note = "" } = {}) {
+  const t = loadTale(slug);
+  const sig = scriptSig(t);
+  if (!force && t.locales?.[lang]?.src === sig) return t;
+  const settings = settingsFile("translate", ["Skill"], ["Bash", "Edit", "Write", "Read", "Glob", "Grep", "WebSearch", "WebFetch"]);
+  let problems = null;
+  let result = null;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    stage(attempt === 1 ? `Traduction ${lang.toUpperCase()} (Claude)` : `Correction de la traduction ${lang.toUpperCase()} (Claude)`);
+    const w = await claude([...TRANSLATE_MODEL, "--max-turns", "8", "--settings", settings], translatePrompt(t, lang, { problems, note }), { timeout: 10 * 60 * 1000 });
+    result = toLocale(jsonFrom(w.result), t);
+    if (!result.problems.length) break;
+    problems = result.problems.map((p) => `- ${p}`).join("\n");
+    log(`Traduction hors règles :\n${problems}`);
+  }
+  if (result.loc.beats.some((b) => !b.text)) throw new Error(`Traduction ${lang.toUpperCase()} incomplète : ${result.problems.join(" ")}`);
+  log(`Traduction ${lang.toUpperCase()} : ${result.loc.beats.reduce((a, b) => a + words(b.text), 0)} mots · « ${result.loc.yt.title} »`);
+  return patchTale(slug, (x) => {
+    const prev = x.locales?.[lang] ?? {};
+    x.locales = { ...x.locales, [lang]: { ...prev, ...result.loc, src: sig, at: new Date().toISOString(), notes: [...(prev.notes ?? []), ...(note ? [note] : [])] } };
+    if (result.problems.length) x.locales[lang].warnings = result.problems;
+    else delete x.locales[lang].warnings;
+  });
+}
+
+/** Textes à l'écran et mots-repères (visuels et bruitages) : dépendent des visuels, des bruitages et de la phrase traduite. */
+const uiSig = (src, t, loc) => hash([src, loc.beats, t.beats.map((b) => (b.sfx ?? []).map((x) => x.word ?? ""))]);
+
+function localizeUiPrompt(t, loc, lang, src) {
+  const name = LANG_NAMES[lang] ?? lang;
+  const sfx = (b) => (b.sfx ?? []).map((x) => x.word).filter(Boolean);
+  const rows = t.beats.map((b) => `- ${b.id} [${b.role}]${sfx(b).length ? ` (sound cues on: ${sfx(b).map((w) => `"${w}"`).join(", ")})` : ""}\n  EN: ${b.text}\n  ${lang.toUpperCase()}: ${loc.beats.find((x) => x.id === b.id)?.text ?? ""}`).join("\n");
+  return `The visuals of a "Crypto stories" vertical video are written once, in English, as the React (Remotion) component below. The ${name} version of the video renders the SAME component with a ${name} voice-over. You make it ${name}-ready without touching the code. Do not use any tool.
+
+1. "text": every piece of text the component draws on screen (props such as text, title, body, author, date, label, value, lines, labels, items; strings given to drawing helpers such as text(), priceTag(), stickyNote(), screenPage(), forumPost()), mapped to its ${name} version.
+   - Keys are the English strings exactly as written in the code. In a template literal, write "{}" for each \${…} part, e.g. \`DAY \${day}\` → "DAY {}": "JOUR {}". Skip the hook (tale.hook is already translated) and the beat texts.
+   - Leave out what stays identical: proper names, numbers alone, tickers (BTC), URLs, the app name, and the crypto terms ${name}-speaking crypto people say in English (${KEEP_EN}).
+   - The pixel font is upper-case only and has no accents (they are dropped), so write normal ${name} with accents; keep the same case as the English (all caps stays all caps).
+   - Every translation must fit the same place: at most the English length + 20 %; abbreviate the ${name} way when needed ("18 MAI 2010", "10 000 BTC", "41 $").
+2. "anchors": the code times animations on spoken words with at("word") or at("word", n) inside <Beat id="…">, and the sound cues listed with the beats land on English words too. For every such English word, by beat id, give the ONE word of the ${name} sentence of that beat said at the same moment (the word carrying the same meaning, copied exactly from the ${name} sentence). Numeric at(3) calls need nothing.
+
+BEATS (English, then ${name}):
+${rows}
+
+COMPONENT (src/tales/stories/${t.slug}.tsx):
+\`\`\`tsx
+${src}
+\`\`\`
+
+Answer ONLY with this JSON:
+{"text":{"<English>":"<${name}>"},"anchors":{"b1":{"<English word>":"<${name} word>"}}}`;
+}
+
+/** Après la composition : textes à l'écran et repères des visuels dans la langue `lang` (Claude, sans outils). */
+async function ensureLocalizedUi(slug, lang, { force = false } = {}) {
+  const t = loadTale(slug);
+  const loc = t.locales?.[lang];
+  const file = join(TALE_STORIES, `${slug}.tsx`);
+  if (!loc?.beats?.length || !existsSync(file)) return t;
+  const src = readFileSync(file, "utf8");
+  const sig = uiSig(src, t, loc);
+  if (!force && loc.ui?.src === sig) return t;
+  stage(`Textes à l'écran ${lang.toUpperCase()} (Claude)`);
+  const settings = settingsFile("localize", [], ["Bash", "Edit", "Write", "Read", "Glob", "Grep", "WebSearch", "WebFetch", "Skill"]);
+  const w = await claude([...TRANSLATE_MODEL, "--max-turns", "2", "--settings", settings], localizeUiPrompt(t, loc, lang, src), { timeout: 10 * 60 * 1000 });
+  const j = jsonFrom(w.result);
+  const text = Object.fromEntries(Object.entries(j.text ?? {}).filter(([k, v]) => k.trim() && typeof v === "string" && v.trim()).map(([k, v]) => [k, v.trim()]));
+  const anchors = {};
+  for (const [id, m] of Object.entries(j.anchors ?? {})) {
+    const said = (loc.beats.find((b) => b.id === id)?.text ?? "").toLowerCase();
+    const ok = Object.entries(m ?? {}).filter(([en, w]) => en && typeof w === "string" && w.trim() && said.includes(w.trim().toLowerCase()));
+    if (ok.length) anchors[id] = Object.fromEntries(ok.map(([en, w]) => [en, w.trim()]));
+  }
+  log(`Textes à l'écran ${lang.toUpperCase()} : ${Object.keys(text).length} traduits, ${Object.values(anchors).reduce((a, m) => a + Object.keys(m).length, 0)} repères`);
+  return patchTale(slug, (x) => (x.locales[lang].ui = { src: sig, text, anchors }));
+}
+
+/** Images de contrôle de la version traduite (tales-preview/<slug>-<lang>) : pour l'œil, n'arrête pas la production. */
+function previewLocale(slug, lang) {
+  stage(`Aperçu ${lang.toUpperCase()} (tale-check)`);
+  return new Promise((resolve) => {
+    execFile(process.execPath, [join(ROOT, "scripts", "tale-check.mjs"), slug, "--stories", `--lang=${lang}`], { cwd: ROOT, maxBuffer: 64 * 1024 * 1024, timeout: 10 * 60 * 1000, windowsHide: true }, (_err, stdout) => {
+      let r = null;
+      try {
+        r = JSON.parse(String(stdout).trim().split(/\r?\n/).at(-1));
+      } catch {}
+      log(r?.ok ? `Aperçu ${lang.toUpperCase()} : ${r.stills?.length ?? 0} images` : `Aperçu ${lang.toUpperCase()} indisponible${r?.errors?.length ? ` : ${r.errors.slice(0, 2).join(" | ")}` : ""}`);
+      resolve(r);
+    });
+  });
 }
 
 /* ------------------------------------------------------------------ 4. bruitages (pas de musique) */
@@ -565,8 +746,8 @@ Answer ONLY with this JSON, every beat listed, "sfx" empty when a beat has no cu
 function remixProblem(t) {
   if (!t.voice || !t.timeline || !existsSync(join(TALE_STORIES, `${t.slug}.tsx`))) return "Les bruitages se retravaillent une fois la story composée.";
   if (["script", "approved", "composing"].includes(t.status)) return "Story pas encore produite.";
-  if (getState().videos[t.id]?.youtubeId) return "Déjà envoyée sur YouTube : le son ne se change plus d'ici.";
-  if (tt.posts().some((p) => p.videoId === t.id && ["sent", "sending"].includes(p.status))) return "Déjà envoyée sur TikTok : le son ne se change plus d'ici.";
+  if (allIds(t.slug).some((id) => getState().videos[id]?.youtubeId)) return "Déjà envoyée sur YouTube : le son ne se change plus d'ici.";
+  if (tt.posts().some((p) => allIds(t.slug).includes(p.videoId) && ["sent", "sending"].includes(p.status))) return "Déjà envoyée sur TikTok : le son ne se change plus d'ici.";
   return null;
 }
 
@@ -578,13 +759,9 @@ async function remixSfx(slug) {
   stage("Bruitages");
   await ensureTaleSfx({ log });
   const t = patchTale(slug, (x) => delete x.sfxPending);
-  const v = activeCatalog().videos.find((x) => x.taleSlug === slug);
-  if (!v) throw new Error("Story absente du catalogue (timeline ou visuels manquants)");
-  const audioOnly = isRendered(v.id);
-  video(v.id).rendered = false;
-  save();
-  enqueue([v.id], activeCatalog(), { audioOnly });
-  log(audioOnly ? "Remix du son en file (image gardée telle quelle)" : "Ajoutée à la file de rendu");
+  // Bruitages déplacés sur d'autres mots : leurs repères dans les traductions se refont (petit appel, sans outils).
+  await ensureLocales(slug, "visuals");
+  queueRender(slug, { audioOnly: true });
   return t;
 }
 
@@ -665,26 +842,34 @@ async function composeTale(slug) {
 
 let activeCatalog = null;
 
-/** La story entre dans le catalogue : planning de la voie stories, puis file de rendu. */
-function queueRender(slug) {
+/** Vidéos de la story dans le catalogue : une par langue (la base d'abord). */
+const taleVideos = (slug, c = activeCatalog()) => c.videos.filter((x) => x.taleSlug === slug);
+/** Ids de vidéo de la story dans toutes les langues possibles (rendues ou non). */
+const allIds = (slug) => TALE_LANGS.map((l) => taleId(slug, l));
+
+/** La story entre dans le catalogue : planning de la voie stories (toutes les langues à la même heure), puis file de rendu. */
+function queueRender(slug, { langs = null, audioOnly = false } = {}) {
   const c = activeCatalog();
-  const v = c.videos.find((x) => x.taleSlug === slug);
-  if (!v) throw new Error("Story absente du catalogue (timeline ou visuels manquants)");
+  const vs = taleVideos(slug, c).filter((v) => !langs || langs.includes(v.lang));
+  if (!vs.length) throw new Error("Story absente du catalogue (timeline ou visuels manquants)");
   scheduleTales(c);
-  video(v.id).rendered = false;
+  const keep = vs.filter((v) => audioOnly && isRendered(v.id)).map((v) => v.id);
+  for (const v of vs) video(v.id).rendered = false;
   save();
-  enqueue([v.id], c);
-  log("Ajoutée à la file de rendu");
+  if (keep.length) enqueue(keep, c, { audioOnly: true });
+  const full = vs.map((v) => v.id).filter((id) => !keep.includes(id));
+  if (full.length) enqueue(full, c);
+  log(`${audioOnly && keep.length ? "Remix du son en file (image gardée telle quelle)" : "Ajoutée à la file de rendu"} : ${vs.map((v) => v.lang.toUpperCase()).join(" + ")}`);
 }
 
-/** Brouillon TikTok (EN) d'une story rendue, une seule fois par vidéo. */
+/** Brouillon TikTok d'une story rendue (sur le compte de sa langue), une seule fois par vidéo. */
 export function tiktokDraft(v, c) {
   if (tt.posts().some((p) => p.videoId === v.id)) return null;
   const m = buildMetadata(v, c.apps.find((a) => a.slug === v.slug));
   const p = tt.createPost({ type: "video", ...tiktokCaption(m), videoId: v.id, videoFile: outFile(v.id), publishAt: null, source: "tales" });
-  p.lang = "en"; // pas de devinette FR/EN sur la légende : les stories sont en anglais
+  p.lang = v.lang; // pas de devinette FR/EN sur la légende : la langue de la vidéo
   tt.updatePost(p.id, {}); // enregistre
-  logEvent("info", `TikTok : brouillon créé pour la story ${m.title}`, v.id);
+  logEvent("info", `TikTok : brouillon ${v.lang.toUpperCase()} créé pour la story ${m.title}`, v.id);
   return p;
 }
 
@@ -694,21 +879,86 @@ onRendered.push((v) => {
   delete video(v.id).hold;
   delete video(v.id).released;
   save();
-  patchTale(v.taleSlug, (t) => {
-    t.status = "rendered";
-    t.error = null;
-  });
+  if (v.lang === TALE_BASE_LANG)
+    patchTale(v.taleSlug, (t) => {
+      t.status = "rendered";
+      t.error = null;
+    });
   if (getState().settings.taleAutoTikTok !== false) tiktokDraft(v, activeCatalog());
 });
+
+/**
+ * Traductions de la story : script traduit (Claude), voix de la langue, puis — une fois les visuels composés — textes à
+ * l'écran et repères. Chaque étape ne se refait que si ce dont elle dépend a changé. Une traduction en échec n'arrête pas
+ * la version anglaise : l'erreur s'affiche sur la story (`locales[lang].error`).
+ */
+async function ensureLocales(slug, phase, langs = taleTargets(), opts = {}) {
+  for (const lang of langs) {
+    try {
+      if (phase === "script") {
+        await ensureTranslation(slug, lang, opts);
+        await ensureTaleVoice(slug, lang);
+      } else {
+        const before = loadTale(slug).locales?.[lang]?.ui?.src;
+        const t = await ensureLocalizedUi(slug, lang, opts);
+        if (t.locales?.[lang]?.ui?.src !== before || opts.preview) await previewLocale(slug, lang);
+      }
+      patchTale(slug, (t) => t.locales?.[lang] && delete t.locales[lang].error);
+    } catch (e) {
+      const msg = String(e?.message ?? e).slice(0, 600);
+      log(`Traduction ${lang.toUpperCase()} : ${msg}`);
+      patchTale(slug, (t) => (t.locales = { ...t.locales, [lang]: { ...t.locales?.[lang], error: msg } }));
+      logEvent("error", `Story ${slug} (${lang.toUpperCase()}) : ${msg.slice(0, 160)}`, taleId(slug, lang));
+    }
+  }
+}
+
+/** Une vidéo de la story (une langue au moins) est en cours de rendu ou en file. */
+const inRender = (slug) => allIds(slug).some((id) => renderCurrent.id === id || renderQueue.includes(id));
+
+/** Pourquoi la version `lang` ne se change plus d'ici (déjà partie), sinon null. */
+function localeLocked(t, lang) {
+  const id = taleId(t.slug, lang);
+  if (getState().videos[id]?.youtubeId) return `Version ${lang.toUpperCase()} déjà envoyée sur YouTube : elle ne se change plus d'ici.`;
+  if (tt.posts().some((p) => p.videoId === id && ["sent", "sending"].includes(p.status))) return `Version ${lang.toUpperCase()} déjà envoyée sur TikTok : elle ne se change plus d'ici.`;
+  if (renderCurrent.id === id) return "Rendu en cours : attends la fin du rendu.";
+  return null;
+}
+
+/**
+ * Refait la seule version `lang` : traduction (si `translate`, Claude repart de la version actuelle et de la note), voix,
+ * textes à l'écran, aperçu et rendu. Script pas encore validé : la traduction seulement.
+ */
+async function produceLocale(slug, lang, { translate = false, note = "" } = {}) {
+  try {
+    if (translate) await ensureTranslation(slug, lang, { force: true, note });
+    const t = loadTale(slug);
+    if (!t.voice) return;
+    await ensureTaleVoice(slug, lang);
+    const composed = existsSync(join(TALE_STORIES, `${slug}.tsx`)) && !["script", "approved", "composing"].includes(t.status);
+    if (!composed) return;
+    await ensureLocalizedUi(slug, lang);
+    await previewLocale(slug, lang);
+    patchTale(slug, (x) => delete x.locales[lang].error);
+    queueRender(slug, { langs: [lang] });
+  } catch (e) {
+    const msg = String(e?.message ?? e).slice(0, 600);
+    log(`Erreur : ${msg}`);
+    patchTale(slug, (x) => (x.locales = { ...x.locales, [lang]: { ...x.locales?.[lang], error: msg } }));
+    logEvent("error", `Story ${slug} (${lang.toUpperCase()}) : ${msg.slice(0, 160)}`, taleId(slug, lang));
+  }
+}
 
 /** Validation → voix → bruitages → composition (si besoin) → rendu. Une erreur arrête la chaîne et s'affiche sur la story. */
 async function produce(slug, { recompose = false } = {}) {
   try {
     let tale = await ensureTaleVoice(slug);
+    await ensureLocales(slug, "script");
     tale = await ensureTaleSounds(slug);
     const hasStory = existsSync(join(TALE_STORIES, `${slug}.tsx`));
     if (recompose || !hasStory || tale.compose?.stale) tale = await composeTale(slug);
     else patchTale(slug, (t) => (t.status = "composed"));
+    await ensureLocales(slug, "visuals");
     queueRender(slug);
     logEvent("info", `Stories : ${tale.yt.title} prête pour le rendu`, tale.id);
   } catch (e) {
@@ -733,16 +983,19 @@ const REFERENCE_SLUG = "howells";
  * Refuse si la vidéo est déjà partie sur YouTube ou TikTok, ou si elle est en train d'être rendue.
  */
 function unpublish(t) {
-  if (getState().videos[t.id]?.youtubeId) throw new Error("Déjà envoyée sur YouTube : supprime-la de YouTube et délie-la d'abord.");
-  if (tt.posts().some((p) => p.videoId === t.id && ["sent", "sending"].includes(p.status))) throw new Error("Déjà envoyée sur TikTok : on ne peut plus la retirer d'ici.");
-  if (renderCurrent.id === t.id) throw new Error("Rendu en cours : attends la fin du rendu.");
-  for (const p of tt.posts().filter((p) => p.videoId === t.id)) tt.deletePost(p.id);
-  const qi = renderQueue.indexOf(t.id);
-  if (qi >= 0) renderQueue.splice(qi, 1);
-  delete getState().videos[t.id];
+  const ids = allIds(t.slug);
+  if (ids.some((id) => getState().videos[id]?.youtubeId)) throw new Error("Déjà envoyée sur YouTube : supprime-la de YouTube et délie-la d'abord.");
+  if (tt.posts().some((p) => ids.includes(p.videoId) && ["sent", "sending"].includes(p.status))) throw new Error("Déjà envoyée sur TikTok : on ne peut plus la retirer d'ici.");
+  if (ids.includes(renderCurrent.id)) throw new Error("Rendu en cours : attends la fin du rendu.");
+  for (const id of ids) {
+    for (const p of tt.posts().filter((p) => p.videoId === id)) tt.deletePost(p.id);
+    const qi = renderQueue.indexOf(id);
+    if (qi >= 0) renderQueue.splice(qi, 1);
+    delete getState().videos[id];
+    rmSync(outFile(id), { force: true });
+    rmSync(thumbFile(id), { force: true });
+  }
   save();
-  rmSync(outFile(t.id), { force: true });
-  rmSync(thumbFile(t.id), { force: true });
 }
 
 /**
@@ -758,6 +1011,8 @@ export function reopenScript(slug) {
     x.status = "script";
     x.error = null;
     for (const k of ["voice", "timeline", "musicTrack", "approvedAt"]) delete x[k];
+    // Traductions gardées (elles servent de point de départ) ; leur voix se refait avec le script revalidé.
+    for (const loc of Object.values(x.locales ?? {})) for (const k of ["voice", "timeline", "error"]) delete loc[k];
     if (existsSync(join(TALE_STORIES, `${slug}.tsx`))) x.compose = { ...x.compose, stale: true };
   });
 }
@@ -771,18 +1026,29 @@ export function deleteTale(slug) {
   rmSync(join(TALES_DIR, `${slug}.json`), { force: true });
   rmSync(join(DRAFTS, `${slug}.tsx`), { force: true });
   rmSync(join(TALE_STORIES, `${slug}.tsx`), { force: true });
-  rmSync(join(ROOT, "public", "voice", t.id), { recursive: true, force: true });
+  for (const l of TALE_LANGS) rmSync(join(ROOT, "public", "voice", taleId(slug, l)), { recursive: true, force: true });
   if (t.musicTrack?.file) for (const x of [t.musicTrack.file, `${t.musicTrack.file}.json`]) rmSync(join(ROOT, "public", x), { force: true });
   rmSync(join(OUT, "tales-preview", slug), { recursive: true, force: true });
+  for (const l of TALE_LANGS) rmSync(join(OUT, "tales-preview", `${slug}-${l}`), { recursive: true, force: true });
   logEvent("info", `Stories : story supprimée, ${t.yt?.title ?? slug}`, t.id);
 }
 
 /* ------------------------------------------------------------------ routes */
 
+/** État de publication d'une vidéo de la story (une langue). */
+function videoSummary(id) {
+  const st = getState().videos[id] ?? {};
+  const thumb = st.thumbAt && existsSync(thumbFile(id)) ? { at: st.thumbAt, setAt: st.thumbSet ?? null, error: st.thumbError ?? null } : null;
+  return { rendered: isRendered(id), publishAt: st.publishAt ?? null, youtubeId: st.youtubeId ?? null, hold: !!st.hold, released: !!st.released, thumb };
+}
+
 function taleSummary(t) {
-  const st = getState().videos[t.id] ?? {};
-  const thumb = st.thumbAt && existsSync(thumbFile(t.id)) ? { at: st.thumbAt, setAt: st.thumbSet ?? null, error: st.thumbError ?? null } : null;
-  return { ...t, rendered: isRendered(t.id), publishAt: st.publishAt ?? null, youtubeId: st.youtubeId ?? null, hold: !!st.hold, released: !!st.released, thumb, busy: busyWith(t.slug) };
+  // Traductions : sans la voix (lourde) ; `video` = état de la vidéo de cette langue.
+  const locales = Object.fromEntries(Object.entries(t.locales ?? {}).map(([l, loc]) => {
+    const { voice, timeline, ...rest } = loc;
+    return [l, { ...rest, id: taleId(t.slug, l), voiced: !!timeline, stale: loc.src !== scriptSig(t), durationSec: timeline ? +(timeline.totalFrames / 30).toFixed(1) : null, video: videoSummary(taleId(t.slug, l)) }];
+  }));
+  return { ...t, ...videoSummary(t.id), locales, targets: taleTargets(), busy: busyWith(t.slug) };
 }
 
 /** Story envoyée sur YouTube mais pas encore sortie : on peut encore y changer titre et miniature. */
@@ -831,7 +1097,9 @@ function setThumbBeat(slug, beat) {
   if (b.role === "product") throw new Error("Le moment produit n'est pas un plan de la story : choisis une autre phrase.");
   const next = patchTale(slug, (x) => (x.thumb = { ...x.thumb, beat }));
   const c = activeCatalog();
-  if (c.videos.some((v) => v.id === t.id) && (isRendered(t.id) || getState().videos[t.id]?.cleanedAt)) enqueue([t.id], c, { thumbOnly: true });
+  // Même image dans toutes les langues (chaque miniature porte le titre de sa langue).
+  const ids = taleVideos(slug, c).map((v) => v.id).filter((id) => isRendered(id) || getState().videos[id]?.cleanedAt);
+  if (ids.length) enqueue(ids, c, { thumbOnly: true });
   return next;
 }
 
@@ -957,9 +1225,8 @@ export function setupTaleRoutes(app, opts) {
   app.post("/api/tales/:slug/thumb", (req, res) => {
     const t = loadTale(req.params.slug);
     if (!t) return fail(res, "Story introuvable", 404);
-    if (renderCurrent.id === t.id || renderQueue.includes(t.id)) return fail(res, "Rendu en cours, attends la nouvelle version", 409);
-    const st = getState().videos[t.id];
-    if (st?.youtubeId && !upcomingOnYouTube(st)) return fail(res, "Déjà sortie sur YouTube : la miniature ne se change plus d'ici.", 400);
+    if (inRender(t.slug)) return fail(res, "Rendu en cours, attends la nouvelle version", 409);
+    if (allIds(t.slug).some((id) => getState().videos[id]?.youtubeId && !upcomingOnYouTube(getState().videos[id]))) return fail(res, "Déjà sortie sur YouTube : la miniature ne se change plus d'ici.", 400);
     try {
       res.json(taleSummary(setThumbBeat(t.slug, String(req.body?.beat ?? ""))));
     } catch (e) {
@@ -967,16 +1234,54 @@ export function setupTaleRoutes(app, opts) {
     }
   });
 
-  // Vidéo rendue regardée et jugée bonne : l'autopilote peut l'envoyer sur YouTube à son créneau.
+  // Vidéos rendues regardées et jugées bonnes (toutes les langues d'un coup) : l'autopilote les envoie à leur créneau commun.
   app.post("/api/tales/:slug/release", (req, res) => {
     const t = loadTale(req.params.slug);
     if (!t) return fail(res, "Story introuvable", 404);
     if (!isRendered(t.id)) return fail(res, "Vidéo pas encore rendue", 400);
-    if (busyWith(t.slug) || renderCurrent.id === t.id || renderQueue.includes(t.id)) return fail(res, "Rendu en cours, attends la nouvelle version", 409);
-    const st = video(t.id);
-    st.released = !req.body?.undo;
+    if (busyWith(t.slug) || inRender(t.slug)) return fail(res, "Rendu en cours, attends la nouvelle version", 409);
+    const vs = taleVideos(t.slug).filter((v) => !getState().videos[v.id]?.youtubeId);
+    const late = vs.filter((v) => !isRendered(v.id));
+    if (!req.body?.undo && late.length) return fail(res, `Version ${late.map((v) => v.lang.toUpperCase()).join(", ")} pas encore rendue : attends-la pour valider les langues ensemble.`, 409);
+    for (const v of vs) video(v.id).released = !req.body?.undo;
     save();
-    logEvent("info", `Stories : ${t.yt.title} ${st.released ? "validée pour publication" : "remise en attente de validation"}`, t.id);
+    logEvent("info", `Stories : ${t.yt.title} (${vs.map((v) => v.lang.toUpperCase()).join(" + ")}) ${req.body?.undo ? "remise en attente de validation" : "validée pour publication"}`, t.id);
+    res.json(taleSummary(loadTale(t.slug)));
+  });
+
+  // Traduction refaite par Claude (note facultative), puis voix, textes à l'écran et rendu de cette langue seulement.
+  app.post("/api/tales/:slug/locales/:lang/translate", (req, res) => {
+    const t = loadTale(req.params.slug);
+    const lang = req.params.lang;
+    if (!t) return fail(res, "Story introuvable", 404);
+    if (!taleTargets().includes(lang)) return fail(res, `Langue non traduite : ${lang}`, 400);
+    const why = localeLocked(t, lang);
+    if (why) return fail(res, why, 400);
+    if (busyWith(t.slug)) return fail(res, "Déjà dans la file", 409);
+    const note = String(req.body?.note ?? "").trim().slice(0, 1000);
+    void runJob(t.slug, `Traduction ${lang.toUpperCase()}`, () => produceLocale(t.slug, lang, { translate: true, note }));
+    res.json({ ok: true });
+  });
+
+  // Traduction corrigée à la main (phrases, accroche, titre) : enregistrée, puis voix et rendu de cette langue refaits.
+  app.patch("/api/tales/:slug/locales/:lang", (req, res) => {
+    const t = loadTale(req.params.slug);
+    const lang = req.params.lang;
+    if (!t) return fail(res, "Story introuvable", 404);
+    const loc = t.locales?.[lang];
+    if (!loc) return fail(res, "Pas encore de traduction", 400);
+    const why = localeLocked(t, lang);
+    if (why) return fail(res, why, 400);
+    if (busyWith(t.slug)) return fail(res, "Story en cours de traitement", 409);
+    const b = req.body ?? {};
+    const texts = new Map((Array.isArray(b.beats) ? b.beats : []).map((x) => [String(x?.id), String(x?.text ?? "").trim()]));
+    loc.beats = loc.beats.map((x) => ({ ...x, text: texts.get(x.id) || x.text }));
+    if (typeof b.hook === "string" && b.hook.trim()) loc.hook = b.hook.trim();
+    if (b.yt?.title !== undefined) loc.yt = { ...loc.yt, title: cleanTitle(b.yt.title).slice(0, 100) || loc.yt.title };
+    loc.edited = new Date().toISOString();
+    saveTale(t);
+    // Script pas encore validé : la voix se fera à la validation. Sinon, voix et rendu de cette langue tout de suite.
+    if (t.voice) void runJob(t.slug, `Version ${lang.toUpperCase()}`, () => produceLocale(t.slug, lang));
     res.json(taleSummary(loadTale(t.slug)));
   });
 
@@ -984,7 +1289,7 @@ export function setupTaleRoutes(app, opts) {
     const t = loadTale(req.params.slug);
     if (!t) return fail(res, "Story introuvable", 404);
     if (!t.voice || !t.timeline) return fail(res, "Valide d'abord le script (voix off manquante)", 400);
-    if (getState().videos[t.id]?.youtubeId) return fail(res, "Déjà envoyée sur YouTube : supprime-la de YouTube et délie-la avant de recomposer.", 400);
+    if (allIds(t.slug).some((id) => getState().videos[id]?.youtubeId)) return fail(res, "Déjà envoyée sur YouTube : supprime-la de YouTube et délie-la avant de recomposer.", 400);
     if (busyWith(t.slug)) return fail(res, "Déjà dans la file", 409);
     const note = String(req.body?.note ?? "").trim();
     patchTale(t.slug, (x) => {
@@ -1002,9 +1307,10 @@ export function setupTaleRoutes(app, opts) {
     const off = req.body?.on === false;
     if (!!t.product.off === off) return res.json(taleSummary(t));
     if (t.status !== "script") {
-      if (getState().videos[t.id]?.youtubeId) return fail(res, "Déjà envoyée sur YouTube : la vidéo ne se change plus d'ici.", 400);
-      if (tt.posts().some((p) => p.videoId === t.id && ["sent", "sending"].includes(p.status))) return fail(res, "Déjà envoyée sur TikTok : la vidéo ne se change plus d'ici.", 400);
-      if (busyWith(t.slug) || renderCurrent.id === t.id) return fail(res, "Story en cours de production : attends la fin.", 409);
+      const ids = allIds(t.slug);
+      if (ids.some((id) => getState().videos[id]?.youtubeId)) return fail(res, "Déjà envoyée sur YouTube : la vidéo ne se change plus d'ici.", 400);
+      if (tt.posts().some((p) => ids.includes(p.videoId) && ["sent", "sending"].includes(p.status))) return fail(res, "Déjà envoyée sur TikTok : la vidéo ne se change plus d'ici.", 400);
+      if (busyWith(t.slug) || ids.includes(renderCurrent.id)) return fail(res, "Story en cours de production : attends la fin.", 409);
       if (!off && !t.beats.some((b) => b.id === t.product.beat)) return fail(res, "Pas de phrase produit dans ce script : repasse-le au stade script pour en ajouter une.", 400);
     }
     const next = patchTale(t.slug, (x) => {
@@ -1021,25 +1327,30 @@ export function setupTaleRoutes(app, opts) {
     res.json(taleSummary(loadTale(t.slug)));
   });
 
-  // Vidéo supprimée à la main dans YouTube Studio pour la retoucher : on oublie l'upload et l'ancien post TikTok,
-  // et l'autopilote attend le prochain rendu (remix du son) pour renvoyer la nouvelle version.
+  // Vidéos supprimées à la main dans YouTube Studio pour les retoucher (toutes les langues envoyées) : on oublie l'upload et
+  // l'ancien post TikTok, et l'autopilote attend le prochain rendu (remix du son) pour renvoyer les nouvelles versions.
   app.post("/api/tales/:slug/unlink", (req, res) => {
     const t = loadTale(req.params.slug);
     if (!t) return fail(res, "Story introuvable", 404);
-    const st = video(t.id);
-    if (!st.youtubeId) return fail(res, "Pas envoyée sur YouTube", 400);
-    for (const k of ["youtubeId", "uploadedAt", "uploadError", "thumbError", "thumbSet"]) delete st[k];
-    st.hold = true;
-    // Créneau encore à venir : on le garde, sinon la story reprend le prochain créneau libre.
-    if (st.publishAt && new Date(st.publishAt).getTime() > Date.now() + 30 * 60000) st.locked = true;
-    else {
-      delete st.publishAt;
-      st.locked = false;
-      scheduleTales(activeCatalog());
+    const ids = allIds(t.slug).filter((id) => getState().videos[id]?.youtubeId);
+    if (!ids.length) return fail(res, "Pas envoyée sur YouTube", 400);
+    let reschedule = false;
+    for (const id of ids) {
+      const st = video(id);
+      for (const k of ["youtubeId", "uploadedAt", "uploadError", "thumbError", "thumbSet"]) delete st[k];
+      st.hold = true;
+      // Créneau encore à venir : on le garde, sinon la story reprend le prochain créneau libre.
+      if (st.publishAt && new Date(st.publishAt).getTime() > Date.now() + 30 * 60000) st.locked = true;
+      else {
+        delete st.publishAt;
+        st.locked = false;
+        reschedule = true;
+      }
+      for (const p of tt.posts().filter((x) => x.videoId === id)) tt.deletePost(p.id);
     }
+    if (reschedule) scheduleTales(activeCatalog());
     save();
-    for (const p of tt.posts().filter((x) => x.videoId === t.id)) tt.deletePost(p.id);
-    logEvent("info", `Stories : ${t.yt.title} retirée de YouTube pour retouche`, t.id);
+    logEvent("info", `Stories : ${t.yt.title} retirée de YouTube pour retouche (${ids.map((id) => id.split("-").at(-1).toUpperCase()).join(" + ")})`, t.id);
     res.json(taleSummary(loadTale(t.slug)));
   });
 

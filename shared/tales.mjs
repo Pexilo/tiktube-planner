@@ -13,6 +13,44 @@ export const TALE_VOICE_DELAY = 4;
 
 export const taleId = (slug, lang = "en") => `tale-${slug}-${lang}`;
 
+/**
+ * Langues des stories : l'anglais est la base (script, visuels, bruitages), les autres en sont des traductions
+ * (`tale.locales[lang]` : texte des phrases, accroche, titre, voix, timeline, textes à l'écran) publiées à la même heure.
+ */
+export const TALE_LANGS = ["en", "fr"];
+export const TALE_BASE_LANG = "en";
+
+/** Langues dans lesquelles la story peut être rendue : la base, et chaque traduction qui a sa timeline (voix posée). */
+export const taleLangs = (tale) => [TALE_BASE_LANG, ...TALE_LANGS.filter((l) => l !== TALE_BASE_LANG && tale.locales?.[l]?.timeline)];
+
+/**
+ * Story dans une langue : la base telle quelle, ou la traduction posée sur la base (mêmes beats, mêmes visuels, mêmes
+ * bruitages). `i18n` sert au kit : textes à l'écran traduits, mots-repères anglais → mot de la phrase traduite, et
+ * mots horodatés de la voix anglaise pour caler à la même place relative un repère qui n'a pas d'équivalent.
+ * null si la traduction n'existe pas.
+ */
+export function localizedTale(tale, lang = TALE_BASE_LANG) {
+  if (!lang || lang === TALE_BASE_LANG) return tale;
+  const loc = tale.locales?.[lang];
+  if (!loc) return null;
+  const byId = new Map((loc.beats ?? []).map((b) => [b.id, b]));
+  const anchors = {};
+  for (const src of [loc.anchors, loc.ui?.anchors])
+    for (const [id, m] of Object.entries(src ?? {})) anchors[id] = { ...anchors[id], ...m };
+  return {
+    ...tale,
+    id: taleId(tale.slug, lang),
+    lang,
+    hook: loc.hook || tale.hook,
+    summary: loc.summary || tale.summary,
+    yt: { ...tale.yt, ...loc.yt },
+    beats: tale.beats.map((b) => ({ ...b, text: byId.get(b.id)?.text || b.text })),
+    voice: loc.voice,
+    timeline: loc.timeline,
+    i18n: { lang, text: loc.ui?.text ?? {}, anchors, base: tale.beats.map((b, i) => ({ text: b.text, words: tale.voice?.segments?.[i]?.words ?? null })) },
+  };
+}
+
 /** Durées estimées (s) quand la voix n'existe pas encore : ~2,7 mots/s, minimum 1,6 s. */
 export const estimateDur = (text) => Math.max(1.6, text.split(/\s+/).filter(Boolean).length / 2.7);
 
@@ -37,12 +75,15 @@ export function taleTimeline(beats, segments = null) {
  * Story telle qu'elle est rendue : sans passage pub (`product.off`), le beat produit sort de la vidéo (plan, voix, sous-titres)
  * et la timeline se recale sur les beats restants. Le script le garde : on peut remettre le passage pub sans rien régénérer.
  */
-export function renderedTale(tale) {
+export function renderedTale(base, lang = TALE_BASE_LANG) {
+  const tale = localizedTale(base, lang);
+  if (!tale) return null;
   const i = tale.product?.off ? tale.beats.findIndex((b) => b.id === tale.product.beat) : -1;
   if (i < 0) return tale;
   const beats = tale.beats.filter((_, k) => k !== i);
   const voice = tale.voice ? { ...tale.voice, segments: tale.voice.segments.filter((_, k) => k !== i) } : tale.voice;
-  return { ...tale, beats, voice, timeline: taleTimeline(beats, voice?.segments) };
+  const i18n = tale.i18n ? { ...tale.i18n, base: tale.i18n.base.filter((_, k) => k !== i) } : undefined;
+  return { ...tale, beats, voice, timeline: taleTimeline(beats, voice?.segments), ...(i18n ? { i18n } : {}) };
 }
 
 /**

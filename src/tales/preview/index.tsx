@@ -8,9 +8,11 @@ import app from "../../../content/apps/wheredgainsgo.json";
 import { FORMATS, FPS } from "../../../shared/timeline.mjs";
 import { renderedTale, taleTimeline } from "../../../shared/tales.mjs";
 import type { AppContent } from "../../lib/types";
+import type { TaleLang } from "../types";
 import { makeTaleVideo } from "../TaleVideo";
 
-const tale = renderedTale(json);
+// tale-check --lang=fr : la story telle que rendue dans la traduction (JSON préparé par le script, champ `previewLang`).
+const tale = renderedTale(json, (json as { previewLang?: TaleLang }).previewLang ?? "en")!;
 const Video = makeTaleVideo(Story);
 const frames = (tale.timeline ?? taleTimeline(tale.beats, tale.voice?.segments)).totalFrames;
 
