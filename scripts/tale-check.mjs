@@ -84,12 +84,15 @@ const timeline = tale.timeline ?? taleTimeline(tale.beats, tale.voice?.segments)
 const extra = (args.find((a) => a.startsWith("--frames="))?.slice(9) ?? "").split(",").filter(Boolean).map(Number);
 // + la jointure de la boucle : dernière frame et frame 0 doivent être identiques (loop-end.png / loop-start.png).
 const frames = [...timeline.beats.map((b) => b.from + Math.round(b.dur * 0.66)), timeline.totalFrames - 1, 0, ...extra].filter((f) => f >= 0 && f < timeline.totalFrames);
-// Les images fixes n'ont pas besoin de la voix : un public minimal (liens vers apps/, fx/ et les bruitages, qu'une nappe
-// bouclée doit charger même pour une image fixe) évite de copier tout public/ (plusieurs centaines de Mo) dans chaque bundle.
+// Les images fixes n'ont pas besoin de la voix : un public minimal (liens vers apps/, fx/, les images sourcées des stories HD
+// et les bruitages, qu'une nappe bouclée doit charger même pour une image fixe) évite de copier tout public/ (plusieurs centaines
+// de Mo) dans chaque bundle.
 const publicDir = join(storageOut(), "tales-preview", "_public");
 mkdirSync(join(publicDir, "audio"), { recursive: true });
 mkdirSync(join(ROOT, "public", "audio", "tale-sfx"), { recursive: true });
-for (const d of ["apps", "fx", "audio/tale-sfx"]) if (!existsSync(join(publicDir, d))) symlinkSync(join(ROOT, "public", d), join(publicDir, d), "junction");
+mkdirSync(join(ROOT, "public", "tales", "hd"), { recursive: true });
+mkdirSync(join(publicDir, "tales"), { recursive: true });
+for (const d of ["apps", "fx", "audio/tale-sfx", "tales/hd"]) if (!existsSync(join(publicDir, d))) symlinkSync(join(ROOT, "public", d), join(publicDir, d), "junction");
 // Traduction : le JSON passé au bundle porte la langue à prévisualiser (src/tales/preview/index.tsx).
 let previewJson = jsonFile;
 if (lang !== TALE_BASE_LANG) {

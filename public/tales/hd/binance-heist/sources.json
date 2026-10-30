@@ -1,0 +1,92 @@
+{
+  "binance.png": {
+    "title": "File:Binance Logo.svg",
+    "page": "https://commons.wikimedia.org/wiki/File:Binance_Logo.svg",
+    "author": "Binance",
+    "license": "Public domain",
+    "licenseUrl": "",
+    "credit": "Own work based on: Binance logo.svg",
+    "fetched": "2026-10-30"
+  },
+  "btc.png": {
+    "title": "File:Bitcoin.svg",
+    "page": "https://commons.wikimedia.org/wiki/File:Bitcoin.svg",
+    "author": "Grayliptrot",
+    "license": "Public domain",
+    "licenseUrl": "",
+    "credit": "This file was derived from: Bitcoin logo.svg",
+    "fetched": "2026-10-30"
+  },
+  "eth.png": {
+    "title": "File:Ethereum logo 2014.svg",
+    "page": "https://commons.wikimedia.org/wiki/File:Ethereum_logo_2014.svg",
+    "author": "Ethereum Foundation",
+    "license": "CC BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "credit": "https://camo.githubusercontent.com/1b3d0063d6a8bcd56ca07b0ea2ef0f71b17a0fa8/687474703a2f2f737667706f726e2e636f6d2f6c6f676f732f657468657265756d2e737667",
+    "fetched": "2026-10-30"
+  },
+  "xrp.png": {
+    "title": "File:Xrp-symbol-black-128.png",
+    "page": "https://commons.wikimedia.org/wiki/File:Xrp-symbol-black-128.png",
+    "author": "Alexavier Guzman",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "credit": "https://github.com/xrpsymbol/xrpsymbol.github.io/tree/master/xrp-symbol",
+    "fetched": "2026-10-30"
+  },
+  "tron.png": {
+    "title": "File:TRON-logo-EN-vertical.svg",
+    "page": "https://commons.wikimedia.org/wiki/File:TRON-logo-EN-vertical.svg",
+    "author": "TRON Foundation",
+    "license": "Public domain",
+    "licenseUrl": "",
+    "credit": "https://tron.guide/resources/tron-logo-kit/",
+    "fetched": "2026-10-30"
+  },
+  "usdt.png": {
+    "title": "File:USDT Logo.png",
+    "page": "https://commons.wikimedia.org/wiki/File:USDT_Logo.png",
+    "author": "Blockchain",
+    "license": "Public domain",
+    "licenseUrl": "",
+    "credit": "Logo of various coins",
+    "fetched": "2026-10-30"
+  },
+  "usdc.png": {
+    "title": "File:USD Coin logo (cropped).png",
+    "page": "https://commons.wikimedia.org/wiki/File:USD_Coin_logo_(cropped).png",
+    "author": "Circle",
+    "license": "Public domain",
+    "licenseUrl": "",
+    "credit": "circle.com/usdc",
+    "fetched": "2026-10-30"
+  },
+  "bybit.png": {
+    "title": "File:Bybit Logo.svg",
+    "page": "https://commons.wikimedia.org/wiki/File:Bybit_Logo.svg",
+    "author": "kriptoborsalari.com",
+    "license": "Public domain",
+    "licenseUrl": "",
+    "credit": "https://kriptoborsalari.com/borsalar/bybit",
+    "fetched": "2026-10-30"
+  },
+  "nk-flag.png": {
+    "title": "File:Flag of North Korea.svg",
+    "page": "https://commons.wikimedia.org/wiki/File:Flag_of_North_Korea.svg",
+    "author": "Original: Unknown author Vector: Zscout370",
+    "license": "Public domain",
+    "licenseUrl": "",
+    "credit": "Own work based on:http://naenara.com.kp/main/index/ko/politics?arg_val=leader3 (file link)File:Flag of North Korea (construction sheet).svg",
+    "fetched": "2026-10-30"
+  },
+  "world.png": {
+    "title": "File:World map - low resolution.svg",
+    "page": "https://commons.wikimedia.org/wiki/File:World_map_-_low_resolution.svg",
+    "author": "Al MacDonald [1]/ twitter account @F1LT3R",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "credit": "photosubmission",
+    "fetched": "2026-10-30"
+  }
+}

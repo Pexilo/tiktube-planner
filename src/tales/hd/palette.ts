@@ -50,6 +50,8 @@ export const RAMPS = {
   orange: ramp(PAL.btc, 3, 3),
   lime: ramp(PAL.lime, 3, 1),
   cyan: ramp(PAL.cyan, 3, 1),
+  /** Vert Tether (#26A17B) : logos de stablecoin. */
+  teal: ramp("#26A17B", 3, 1),
   skin: [mixHex(PAL.skin3, SHADOW, 0.45), PAL.skin3, PAL.skin2, PAL.skin1, mixHex(PAL.skin1, LIGHT, 0.5)],
   hair: [mixHex(PAL.hair1, SHADOW, 0.5), PAL.hair1, PAL.hair2, mixHex(PAL.hair2, PAL.hair3, 0.45), PAL.hair3],
   wood: ramp(PAL.skin3, 3, 2, 0.75, 0.55),
