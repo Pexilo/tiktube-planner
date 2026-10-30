@@ -3,13 +3,14 @@
 import React from "react";
 import { Composition, registerRoot } from "remotion";
 import { Story } from "@tale-story";
-import tale from "@tale-json";
+import json from "@tale-json";
 import app from "../../../content/apps/wheredgainsgo.json";
 import { FORMATS, FPS } from "../../../shared/timeline.mjs";
-import { taleTimeline } from "../../../shared/tales.mjs";
+import { renderedTale, taleTimeline } from "../../../shared/tales.mjs";
 import type { AppContent } from "../../lib/types";
 import { makeTaleVideo } from "../TaleVideo";
 
+const tale = renderedTale(json);
 const Video = makeTaleVideo(Story);
 const frames = (tale.timeline ?? taleTimeline(tale.beats, tale.voice?.segments)).totalFrames;
 

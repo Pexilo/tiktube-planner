@@ -37,8 +37,8 @@ export type Tale = {
   sources: { title: string; url: string; date?: string }[];
   facts: string[];
   beats: TaleBeat[];
-  /** Le seul moment produit (~5 s) : feature WGG liée à l'histoire. */
-  product: { featureId: string; beat: string };
+  /** Le seul moment produit (~5 s) : feature WGG liée à l'histoire. `off` = vidéo sans passage pub (shared/tales.mjs → renderedTale). */
+  product: { featureId: string; beat: string; off?: boolean };
   /** Ancien choix de musique (les stories n'ont plus de musique, seulement des bruitages). */
   music?: { style: string; mood: string[] };
   /** Titre court, sans emoji ni hashtag (shared/tales.mjs → cleanTitle). */

@@ -5,7 +5,7 @@ import type { AppContent, Lang, VideoProps, VoiceTrack } from "./lib/types";
 import { Video } from "./compositions/Video";
 import { Thumbnail } from "./compositions/Thumbnail";
 import { KeynoteVideo } from "./keynote/Keynote";
-import { taleTimeline } from "../shared/tales.mjs";
+import { renderedTale, taleTimeline } from "../shared/tales.mjs";
 import { makeTaleVideo } from "./tales/TaleVideo";
 import { makeTaleThumb } from "./tales/TaleThumb";
 import type { StoryProps, Tale } from "./tales/types";
@@ -30,7 +30,7 @@ const TALES = TALE_APP
   ? taleFiles
       .keys()
       .filter((k) => k.startsWith("./"))
-      .map((k) => taleFiles(k) as Tale)
+      .map((k) => renderedTale(taleFiles(k) as Tale))
       .filter((t) => storyFiles.keys().includes(`./${t.slug}.tsx`))
       .map((tale) => {
         const { Story } = storyFiles(`./${tale.slug}.tsx`) as { Story: React.FC<StoryProps> };

@@ -6,5 +6,6 @@ export const TALE_VOICE_DELAY: number;
 export function taleId(slug: string, lang?: string): string;
 export function estimateDur(text: string): number;
 export function taleTimeline(beats: Pick<TaleBeat, "id" | "text">[], segments?: { dur: number }[] | null): TaleTimeline;
+export function renderedTale<T extends Pick<Tale, "beats" | "product" | "voice" | "timeline">>(tale: T): T;
 export function cleanTitle(s: string | null | undefined): string;
 export function taleThumbFrame(tale: Pick<Tale, "beats" | "thumb" | "timeline" | "voice">, timeline?: TaleTimeline): number;

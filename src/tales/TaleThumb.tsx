@@ -5,6 +5,7 @@ import { SfxMute } from "../components/fx";
 import { font, MONO, ThemeProvider } from "../lib/theme";
 import { TaleProvider } from "./kit/core";
 import { Canvas, COLS, P, PAL, PixelArt } from "./pixel/engine";
+import { SAFE_TOP } from "./pixel/layout";
 import { Title, titleHeight, TitleOff } from "./pixel/props";
 import type { TaleVideoProps } from "./TaleVideo";
 import type { StoryProps } from "./types";
@@ -15,8 +16,8 @@ import type { StoryProps } from "./types";
  * nettoyé dans un en-tête encre, le plan décalé dessous. Même police, même grille et même palette que la vidéo (PIXEL.md).
  */
 
-/** Ligne du haut du titre (celle du titre des plans), marge sous le titre, plus grand décalage du plan (cellules). */
-const TITLE_Y = 16;
+/** Ligne du haut du titre (celle du titre des plans, sous la barre du haut de la plateforme), marge sous le titre, plus grand décalage du plan (cellules). */
+const TITLE_Y = SAFE_TOP;
 const BAND_PAD = 3;
 const MAX_SHIFT = 24;
 

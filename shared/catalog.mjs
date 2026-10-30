@@ -3,7 +3,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildTimeline, musicFor, videosFor, FPS } from "./timeline.mjs";
-import { cleanTitle, TALE_APP } from "./tales.mjs";
+import { cleanTitle, renderedTale, TALE_APP } from "./tales.mjs";
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const APP_ORDER = ["hyrox", "sociaflow", "beautyflow", "mrrkit", "decido", "revenuepilot"];
@@ -89,7 +89,7 @@ export function loadCatalog() {
       shortIndex: 0,
       appName: "Crypto stories",
       title: cleanTitle(tale.yt.title),
-      durationSec: tale.timeline.totalFrames / FPS,
+      durationSec: renderedTale(tale).timeline.totalFrames / FPS,
       color: host.brand.primary,
       tale: true,
       taleSlug: tale.slug,

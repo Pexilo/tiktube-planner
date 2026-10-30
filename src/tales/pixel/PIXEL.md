@@ -70,7 +70,7 @@ Notes tirées de Sprite Fusion (générateur pixel art pour jeux), adaptées à 
 ## 7. Texte
 
 - **Une seule police : la police bitmap du kit** (`font.tsx`, lettres de 5 × 7 pixels), dessinée sur la grille : pixels de 6 px
-  pour le texte courant (moitié d'une cellule), 12 px pour les titres, compteurs, tampons et sous-titres. Aucune police système :
+  pour le texte courant (moitié d'une cellule), 12 px pour les titres, compteurs et tampons, 9 px pour les sous-titres (habillage). Aucune police système :
   un caractère absent tomberait sur une police lisse qui casse le pixel art (c'était le cas de `→` et `≈`). Il en manque un ? On
   l'ajoute dans `font.tsx`, on ne le contourne pas.
 - Cadres, bordures et ombres au même pas : bordure de 1 pixel, ombre de 1 pixel décalée en bas à droite, jamais d'épaisseur libre.

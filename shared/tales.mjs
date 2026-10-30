@@ -34,6 +34,18 @@ export function taleTimeline(beats, segments = null) {
 }
 
 /**
+ * Story telle qu'elle est rendue : sans passage pub (`product.off`), le beat produit sort de la vidéo (plan, voix, sous-titres)
+ * et la timeline se recale sur les beats restants. Le script le garde : on peut remettre le passage pub sans rien régénérer.
+ */
+export function renderedTale(tale) {
+  const i = tale.product?.off ? tale.beats.findIndex((b) => b.id === tale.product.beat) : -1;
+  if (i < 0) return tale;
+  const beats = tale.beats.filter((_, k) => k !== i);
+  const voice = tale.voice ? { ...tale.voice, segments: tale.voice.segments.filter((_, k) => k !== i) } : tale.voice;
+  return { ...tale, beats, voice, timeline: taleTimeline(beats, voice?.segments) };
+}
+
+/**
  * Titre de story publiable : sans emoji ni hashtag (#shorts compris, YouTube reconnaît les Shorts au format), espaces
  * resserrés. Appliqué à l'écriture du script et à la construction des titres YouTube, TikTok et Instagram.
  */

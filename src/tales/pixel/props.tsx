@@ -5,7 +5,7 @@ import { Canvas, COLS, GROUND, P, PAL, PixelArt, Sprite, useDrop } from "./engin
 import { useBg } from "./backdrop";
 import { EXTRA_ICONS } from "./icons";
 import { FINE_ICONS } from "./fine";
-import { useTextSlot } from "./layout";
+import { SAFE_TOP, useTextSlot } from "./layout";
 import { enterSound, Sound } from "../kit/sfx";
 import { drawText, LINE, measure, PixelText, textWidth, TP, wrap } from "./font";
 
@@ -281,7 +281,7 @@ function titleLines(text: string) {
 export const titleHeight = (text: string) => cells(titleLines(text).length * TITLE_LINE);
 
 /** Titre en haut de l'écran (lettres de 12 px) : mots qui tombent un par un, *mot* = bloc rose. `y` = ligne du haut. */
-export const Title: React.FC<{ text: string; y?: number; at?: number }> = ({ text, y = 16, at = 0 }) => {
+export const Title: React.FC<{ text: string; y?: number; at?: number }> = ({ text, y = SAFE_TOP, at = 0 }) => {
   const frame = useCurrentFrame();
   const { light } = useBg();
   const off = useContext(TitleOff);

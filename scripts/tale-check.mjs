@@ -10,7 +10,7 @@ import { bundle } from "@remotion/bundler";
 import { openBrowser, renderStill, selectComposition } from "@remotion/renderer";
 import { ROOT } from "../shared/catalog.mjs";
 import { outDir as storageOut } from "../shared/storage.mjs";
-import { taleTimeline } from "../shared/tales.mjs";
+import { renderedTale, taleTimeline } from "../shared/tales.mjs";
 
 const run = promisify(execFile);
 const args = process.argv.slice(2);
@@ -34,7 +34,7 @@ if (!existsSync(jsonFile)) errors.push(`JSON introuvable : content/tales/${slug}
 if (!existsSync(storyFile)) errors.push(`Visuels introuvables : ${storyFile.slice(ROOT.length + 1).replaceAll("\\", "/")}`);
 if (errors.length) done();
 
-const tale = JSON.parse(readFileSync(jsonFile, "utf8"));
+const tale = renderedTale(JSON.parse(readFileSync(jsonFile, "utf8")));
 const src = readFileSync(storyFile, "utf8");
 const outDir = join(storageOut(), "tales-preview", slug);
 rmSync(outDir, { recursive: true, force: true });

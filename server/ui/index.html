@@ -326,6 +326,7 @@
   .lbl-up { display: block; font-size: 11.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 5px; }
   .beat { border: 1px solid var(--line); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
   .beat.product { border-color: color-mix(in srgb, var(--accent) 50%, transparent); }
+  .beat.cut { opacity: .5; border-style: dashed; }
   .beat-h { display: flex; gap: 8px; align-items: center; }
   .beat-h .n { width: 22px; height: 22px; border-radius: 7px; background: var(--surface2); display: grid; place-items: center; font-size: 11.5px; font-weight: 800; color: var(--muted); flex: none; }
   .beat-h select { padding: 4px 8px; font-size: 12.5px; }
@@ -1537,8 +1538,9 @@ function renderIdeas() {
 }
 
 /* --- Stories */
-function beatEdit(b, i) {
-  return `<div class="beat ${b.role === "product" ? "product" : ""}" data-beat="${esc(b.id)}">
+function beatEdit(b, i, t) {
+  const cut = b.role === "product" && t?.product?.off;
+  return `<div class="beat ${b.role === "product" ? "product" : ""} ${cut ? "cut" : ""}" data-beat="${esc(b.id)}" ${cut ? 'title="Retirée de la vidéo : passage pub désactivé"' : ""}>
     <div class="beat-h"><span class="n">${i + 1}</span><select data-bf="role">${Object.entries(ROLES).map(([k, l]) => `<option value="${k}" ${k === b.role ? "selected" : ""}>${l}</option>`).join("")}</select>
       <span class="spacer"></span><span class="note">≈ ${estDur(b.text).toFixed(1)} s</span><button class="btn sm icon ghost" data-beatdel="${esc(b.id)}" title="Supprimer cette phrase">${ic("trash")}</button></div>
     <textarea data-bf="text" rows="2" placeholder="Phrase dite par la voix off (anglais)">${esc(b.text)}</textarea>
@@ -1569,7 +1571,7 @@ function scriptRewrite(t, rewriting) {
     </div>`;
 }
 function scriptEditor(t) {
-  const est = t.beats.reduce((a, b) => a + estDur(b.text), 0);
+  const est = t.beats.reduce((a, b) => a + (b.role === "product" && t.product?.off ? 0 : estDur(b.text)), 0);
   const rewriting = busy.has(`rewrite:${t.slug}`) || tl().job?.slug === t.slug;
   const feats = { ...WGG_FEATURES }; if (t.product?.featureId && !feats[t.product.featureId]) feats[t.product.featureId] = t.product.featureId;
   const title = t.yt?.title ?? "";
@@ -1580,14 +1582,16 @@ function scriptEditor(t) {
     <div class="tale-grid" style="margin-top:6px">
     <div>
       <div class="trow"><span class="lbl-up" style="margin:0">Script · ${t.beats.length} phrases · <span style="color:${est < 30 || est > 60 ? "var(--c-work)" : "inherit"}">≈ ${Math.round(est)} s</span></span><span class="spacer"></span><span class="note">Enregistré automatiquement</span></div>
-      ${t.beats.map(beatEdit).join("")}
+      ${t.beats.map((b, i) => beatEdit(b, i, t)).join("")}
       <button class="btn sm ghost" data-beatadd="${esc(t.slug)}" style="margin-top:8px">${ic("plus")}Ajouter une phrase</button>
     </div>
     <div class="tale-side">
       <div><span class="lbl-up">Titre · YouTube, TikTok, Instagram et miniature</span><input data-tf="yttitle" maxlength="100" value="${esc(title)}"><div class="count ${title.length > tmax ? "over" : ""}" style="margin-top:2px">${title.length}/${tmax}</div>
         <div class="note" style="margin-top:2px">Court et direct, sans emoji ni hashtag (retirés à l'enregistrement). Les hashtags vont dans la description.</div></div>
-      <div><span class="lbl-up">Moment produit</span><select data-tf="feature">${Object.entries(feats).map(([k, l]) => `<option value="${esc(k)}" ${k === t.product?.featureId ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>
-        <div class="note" style="margin-top:4px">Le seul passage produit (~5 s), sur la phrase « Produit ».</div></div>
+      <div><span class="lbl-up">Moment produit</span>
+        <label class="trow" style="gap:6px;margin-bottom:6px;cursor:pointer"><input type="checkbox" data-tf="ad" ${t.product?.off ? "" : "checked"}>Passage pub Where'd Gains Go?</label>
+        ${t.product?.off ? `<div class="note">Vidéo sans passage pub : la phrase « Produit » est gardée dans le script mais retirée de la vidéo (plan, voix, sous-titres).</div>` : `<select data-tf="feature">${Object.entries(feats).map(([k, l]) => `<option value="${esc(k)}" ${k === t.product?.featureId ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>
+        <div class="note" style="margin-top:4px">Le seul passage produit (~5 s), sur la phrase « Produit ».</div>`}</div>
       <div><span class="lbl-up">Résumé</span><div class="note">${esc(t.summary)}</div></div>
       <div><span class="lbl-up">Sources</span>${srcList(t.sources)}</div>
       ${t.facts?.length ? `<details><summary>Faits vérifiés (${t.facts.length})</summary><ul class="note" style="padding-left:18px;margin:6px 0 0">${t.facts.map((f) => `<li>${esc(f)}</li>`).join("")}</ul></details>` : ""}
@@ -1648,6 +1652,8 @@ function taleProduction(t) {
           <button class="btn sm" data-talerender="${esc(t.id)}" ${composedOnce && !composing ? "" : "disabled"}>${ic("redo")}Re-rendre</button></div>
         ${t.compose?.notes?.length ? `<div class="note" style="margin-top:6px">Notes déjà données : ${t.compose.notes.map((n) => `« ${esc(n)} »`).join(" · ")}</div>` : ""}</div>`}
       ${ytId || !composedOnce ? "" : taleSfxPanel(t, composing)}
+      ${ytId ? "" : `<div><label class="trow" style="gap:6px;cursor:pointer"><input type="checkbox" data-tf="ad" ${t.product?.off ? "" : "checked"} ${composing ? "disabled" : ""}>Passage pub Where'd Gains Go?</label>
+        <div class="note" style="margin-top:4px">${t.product?.off ? "Vidéo sans passage pub." : "Le moment produit (~5 s) est dans la vidéo."} Changer relance le rendu.</div></div>`}
       ${ytId ? `<div class="note">Déjà envoyée sur YouTube : le script ne se change plus d'ici.</div>` : `<div><button class="btn sm" data-talereopen="${esc(t.slug)}" ${composing ? "disabled" : ""}>${ic("redo")}Modifier ou régénérer le script</button>
         <div class="note" style="margin-top:4px">Repasse la story au stade script. La vidéo rendue, son créneau et son brouillon TikTok sont retirés ; après la nouvelle validation, voix, bruitages et visuels sont refaits.</div></div>`}
       <details><summary>Script validé · ${t.beats.length} phrases</summary><div class="script-ro" style="margin-top:6px">${t.beats.map((b) => `<div class="b"><span class="tag" style="justify-self:start">${ROLES[b.role] ?? b.role}</span><div>${esc(b.text)}<small>${esc(b.visual)}</small></div></div>`).join("")}</div></details>
@@ -1739,6 +1745,7 @@ taleList.addEventListener("change", async (e) => {
   else if (t.dataset.bf) await patchTale(tale.slug, { beats: collectBeats(card) });
   else if (t.dataset.tf === "yttitle") await patchTale(tale.slug, { yt: { ...tale.yt, title: t.value } });
   else if (t.dataset.tf === "feature") await patchTale(tale.slug, { product: { ...tale.product, featureId: t.value } });
+  else if (t.dataset.tf === "ad") await taleAct(api(`/api/tales/${encodeURIComponent(tale.slug)}/ad`, { on: t.checked }));
   else if (t.dataset.talethumb) await taleAct(api(`/api/tales/${encodeURIComponent(tale.slug)}/thumb`, { beat: t.value }));
   else return;
   if (t.tagName === "SELECT") t.blur();

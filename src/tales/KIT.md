@@ -3,7 +3,7 @@
 Tu écris **uniquement les plans** d'un short narratif crypto en **pixel art** (1 à 2 minutes, 10 à 18 plans, 1080 × 1920, 30 fps).
 Tout le reste est fourni par l'habillage `src/tales/TaleVideo.tsx` et tu n'y touches pas :
 
-- la voix off, les **sous-titres pixel** mot à mot (en bas, lignes 120 à 134) et les **bruitages narratifs** choisis par le script
+- la voix off, les **sous-titres pixel** mot à mot (en bas, lignes 123 à 132, plus petits que les titres) et les **bruitages narratifs** choisis par le script
   (`beat.sfx` : boum, montée, nappe de tension… calés sur un mot). **Pas de musique** ;
 - les **sons d'animation** : chaque composant du kit joue déjà son petit son quand il apparaît (voir « Sons ») ;
 - le **moment produit** (beat `role: "product"`) : un bureau, un écran pixel et la vraie fiche Where'd Gains Go?.
@@ -76,11 +76,14 @@ script : n'en ajoute pas.
 
 - **Grille** : 90 colonnes × 160 lignes (1 cellule = 12 px). Toutes les positions et tailles sont **en cellules**.
 - **Sol** : `GROUND` = ligne 105. Les personnages et objets posés ont leurs pieds / leur base sur cette ligne.
-- **Zones à respecter** :
-  - lignes 0–14 : barre du haut de TikTok / Shorts, rien d'important ;
-  - lignes 120–160 : sous-titres puis texte de la plateforme, rien d'important ;
-  - à droite (colonnes > 73) sous la ligne 58 : boutons like / commentaires, pas d'info importante.
-  - Le cœur de l'image : **colonnes 4–73, lignes 15–118**. Utilise toute cette hauteur (titres en haut, scène au sol).
+- **Zones à respecter** (zone sûre TikTok / Reels / Shorts : 960 × 1280 px, `SAFE_*` dans `pixel/layout.tsx`) :
+  - lignes 0–26 : barre du haut de la plateforme (onglets, recherche), rien d'important ;
+  - lignes 123–132 : sous-titres ; lignes 133–160 : légende, musique et barre du bas de la plateforme, rien d'important ;
+  - à droite (colonnes > 80) : colonne des boutons like / commentaires / partage, pas d'info importante (et rien au-delà
+    de la colonne 73 sous la ligne 58, où les boutons sont les plus gros) ;
+  - le bord gauche (colonnes 0–4) peut être coupé.
+  - Le cœur de l'image : **colonnes 5–80, lignes 27–121**. Utilise toute cette hauteur (titres en haut, scène au sol).
+  Un décor ou un fond peut déborder dans ces zones ; un texte, un visage, un chiffre ou l'action principale, non.
 - **Temps** : dans un `<Beat>`, `useCurrentFrame()` part de 0. `const b = useBeat()` donne `b.at("mot")` (frame où le mot est dit ;
   `b.at("mot", 2)` 2e occurrence, `b.at(3)` 4e mot), `b.dur`, `b.end`, `b.beat.text`, `b.beat.visual`. `useTale()` donne `tale` (hook, facts…).
   **Cale chaque apparition, chaque départ de marche, chaque objet qui vole sur le mot qui le nomme.**

@@ -349,7 +349,9 @@ function scriptProblems(t) {
   const long = t.beats.filter((b) => b.role !== "product" && words(b.text) > 32);
   if (long.length) out.push(`Beats ${long.map((b) => b.id).join(", ")} are too long: 30 words max per beat.`);
   const products = t.beats.filter((b) => b.role === "product");
-  if (products.length !== 1) out.push(`${products.length} product beats: exactly one is required.`);
+  if (t.product?.off && !products.length) {
+    // Vidéo sans passage pub et phrase produit supprimée : rien à vérifier.
+  } else if (products.length !== 1) out.push(`${products.length} product beats: exactly one is required.`);
   else {
     const i = t.beats.indexOf(products[0]);
     if (i < 2 || i === t.beats.length - 1) out.push("The product beat must be in the middle or right before the outro.");
@@ -438,8 +440,10 @@ ${previous}${note ? `\n\nTHE CREATOR'S NOTE FOR THIS VERSION (follow it): ${note
   const cur = loadTale(slug);
   if (cur.status !== "script") throw new Error("La story a été validée pendant la réécriture : script inchangé.");
   cur.versions = [{ at: new Date().toISOString(), ...scriptOf(cur) }, ...(cur.versions ?? [])].slice(0, MAX_VERSIONS);
+  const off = cur.product?.off;
   for (const k of SCRIPT_KEYS) delete cur[k];
   Object.assign(cur, scriptOf(next));
+  if (off) cur.product = { ...cur.product, off }; // choix « sans passage pub » gardé d'une version à l'autre
   if (result.problems.length) cur.warnings = result.problems;
   cur.rewrites = [...(cur.rewrites ?? []), { at: new Date().toISOString(), ...(note ? { note } : {}) }];
   saveTale(cur);
@@ -889,12 +893,17 @@ export function setupTaleRoutes(app, opts) {
       });
       if (new Set(t.beats.map((x) => x.id)).size !== t.beats.length) return fail(res, "beats : ids en double", 400);
     }
-    if (b.product !== undefined) t.product = { featureId: String(b.product.featureId ?? t.product.featureId), beat: String(b.product.beat ?? t.product.beat) };
+    if (b.product !== undefined) {
+      const off = !!(b.product.off ?? t.product.off);
+      t.product = { featureId: String(b.product.featureId ?? t.product.featureId), beat: String(b.product.beat ?? t.product.beat), ...(off ? { off } : {}) };
+    }
     if (b.yt !== undefined) t.yt = { title: cleanTitle(b.yt.title ?? t.yt.title).slice(0, 100), description: String(b.yt.description ?? t.yt.description), hashtags: (Array.isArray(b.yt.hashtags) ? b.yt.hashtags : t.yt.hashtags).map((h) => String(h).replace(/^#/, "")) };
     if (!FEATURES.includes(t.product.featureId)) return fail(res, `Feature inconnue (${FEATURES.join(", ")})`, 400);
-    if (!t.beats.some((x) => x.id === t.product.beat)) return fail(res, "product.beat ne correspond à aucun beat", 400);
+    // Sans passage pub, la phrase produit peut avoir été supprimée : rien à rattacher.
+    if (!t.beats.some((x) => x.id === t.product.beat) && !t.product.off) return fail(res, "product.beat ne correspond à aucun beat", 400);
     for (const x of t.beats) if (x.role === "product" && x.id !== t.product.beat) x.role = "build";
-    t.beats.find((x) => x.id === t.product.beat).role = "product";
+    const pb = t.beats.find((x) => x.id === t.product.beat);
+    if (pb) pb.role = "product";
     t.warnings = scriptProblems(t);
     if (!t.warnings.length) delete t.warnings;
     saveTale(t);
@@ -933,7 +942,7 @@ export function setupTaleRoutes(app, opts) {
     if (!t) return fail(res, "Story introuvable", 404);
     if (!["script", "approved", "error"].includes(t.status)) return fail(res, `Déjà en production (statut ${t.status})`, 400);
     if (busyWith(t.slug)) return fail(res, "Déjà dans la file", 409);
-    if (!t.beats.some((b) => b.id === t.product.beat)) return fail(res, "Choisis le beat produit avant de valider", 400);
+    if (!t.product.off && !t.beats.some((b) => b.id === t.product.beat)) return fail(res, "Choisis le beat produit avant de valider", 400);
     patchTale(t.slug, (x) => {
       x.status = "approved";
       x.approvedAt ??= new Date().toISOString();
@@ -984,6 +993,32 @@ export function setupTaleRoutes(app, opts) {
     });
     void runJob(t.slug, "Recomposition", () => produce(t.slug, { recompose: true }));
     res.json({ ok: true });
+  });
+
+  // Passage pub Where'd Gains Go? présent ou non dans la vidéo. Story déjà produite (pas encore envoyée) : nouveau rendu.
+  app.post("/api/tales/:slug/ad", (req, res) => {
+    const t = loadTale(req.params.slug);
+    if (!t) return fail(res, "Story introuvable", 404);
+    const off = req.body?.on === false;
+    if (!!t.product.off === off) return res.json(taleSummary(t));
+    if (t.status !== "script") {
+      if (getState().videos[t.id]?.youtubeId) return fail(res, "Déjà envoyée sur YouTube : la vidéo ne se change plus d'ici.", 400);
+      if (tt.posts().some((p) => p.videoId === t.id && ["sent", "sending"].includes(p.status))) return fail(res, "Déjà envoyée sur TikTok : la vidéo ne se change plus d'ici.", 400);
+      if (busyWith(t.slug) || renderCurrent.id === t.id) return fail(res, "Story en cours de production : attends la fin.", 409);
+      if (!off && !t.beats.some((b) => b.id === t.product.beat)) return fail(res, "Pas de phrase produit dans ce script : repasse-le au stade script pour en ajouter une.", 400);
+    }
+    const next = patchTale(t.slug, (x) => {
+      x.product = { ...x.product, off };
+      if (!off) delete x.product.off;
+    });
+    if (next.voice && next.timeline && existsSync(join(TALE_STORIES, `${t.slug}.tsx`))) {
+      try {
+        queueRender(t.slug);
+      } catch (e) {
+        return fail(res, e);
+      }
+    }
+    res.json(taleSummary(loadTale(t.slug)));
   });
 
   // Vidéo supprimée à la main dans YouTube Studio pour la retoucher : on oublie l'upload et l'ancien post TikTok,

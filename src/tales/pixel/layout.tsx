@@ -9,9 +9,18 @@ import { useCurrentFrame } from "remotion";
  * Le registre est remis à zéro à chaque passe de rendu : le rendu reste déterministe.
  */
 
-/** Haut de la zone utile (sous la barre de TikTok / Shorts) et haut de la zone des sous-titres, en lignes. */
-export const SAFE_TOP = 14;
-export const SAFE_BOTTOM = 118;
+/**
+ * Zone sûre de TikTok / Reels / Shorts (1080 × 1920) : un cadre de 960 × 1280 px, sous la barre du haut (320 px), au-dessus de la
+ * légende et de la barre du bas (1600 px), à gauche de la colonne des boutons (960 px). En cellules :
+ * colonnes SAFE_LEFT–SAFE_RIGHT, lignes SAFE_TOP–SAFE_END. Les sous-titres occupent le bas de cette zone (CAPTION_ROW).
+ */
+export const SAFE_LEFT = 5;
+export const SAFE_RIGHT = 80;
+export const SAFE_TOP = 27;
+export const SAFE_END = 133;
+/** Haut des sous-titres (lignes) et limite basse des textes des plans, juste au-dessus. */
+export const CAPTION_ROW = 123;
+export const SAFE_BOTTOM = 121;
 /** Marge minimale entre deux textes (cellules). */
 const GAP = 1;
 

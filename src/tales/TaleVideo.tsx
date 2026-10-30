@@ -8,8 +8,9 @@ import { font, MONO, ThemeProvider, useTheme } from "../lib/theme";
 import type { AppContent } from "../lib/types";
 import { loopHoldFrom, TaleProvider, useTale, type Word } from "./kit/core";
 import { Sound } from "./kit/sfx";
-import { Canvas, COLS, P, PAL, PixelArt } from "./pixel/engine";
-import { drawText, PixelText, textWidth, TP } from "./pixel/font";
+import { Canvas, P, PAL, PixelArt } from "./pixel/engine";
+import { CAPTION_ROW, SAFE_LEFT, SAFE_RIGHT, SAFE_TOP } from "./pixel/layout";
+import { drawText, PixelText, textWidth } from "./pixel/font";
 import { Backdrop } from "./pixel/backdrop";
 import { Label } from "./pixel/props";
 import type { StoryProps, Tale } from "./types";
@@ -49,19 +50,23 @@ function duckEnvelope(totalFrames: number, timeline: { beats: { from: number }[]
   }
   return env;
 }
-/** Ligne du haut des sous-titres (cellules) : sous les plans, au-dessus du texte de la plateforme. */
-export const CAPTION_ROW = 120;
+/** Pixel de lettre des sous-titres (px) : 9 px, plus discret que les titres (12 px). Lettres de 45 × 63 px. */
+const CAP_P = 9;
+/** Caractères au plus par groupe : le bloc tient dans la largeur de la zone sûre (≤ 900 px). */
+const CAP_CHARS = 15;
 
-/** Sous-titres pixel : petits groupes de mots (coupés à la ponctuation), mot prononcé en lime, sur un bloc encre. */
+/**
+ * Sous-titres pixel : petits groupes de mots (coupés à la ponctuation), mot prononcé en lime, sur un bloc encre. Dans le bas de la
+ * zone sûre (lignes CAPTION_ROW–SAFE_END), centrés entre le bord gauche et la colonne des boutons de la plateforme.
+ */
 const PixelCaptions: React.FC<{ words: Word[] }> = ({ words }) => {
   const frame = useCurrentFrame();
   const t = (frame - TALE_VOICE_DELAY) / 30;
   const groups: Word[][] = [];
   let cur: Word[] = [];
-  // Groupes de 13 caractères au plus (lettres de 12 px : ~1000 px de large), coupés à la ponctuation.
   for (const w of words) {
     const len = cur.reduce((a, x) => a + x.w.length + 1, 0) + w.w.length;
-    if (cur.length && len > 13) {
+    if (cur.length && len > CAP_CHARS) {
       groups.push(cur);
       cur = [];
     }
@@ -75,32 +80,33 @@ const PixelCaptions: React.FC<{ words: Word[] }> = ({ words }) => {
   const gi = groups.findIndex((g, i) => t >= g[0].s - 0.05 && (i === groups.length - 1 ? t <= g.at(-1)!.e + 0.6 : t < groups[i + 1][0].s - 0.05));
   if (gi < 0) return null;
   const g = groups[gi];
-  // Une seule grille au pas du texte (6 px) : bloc encre, mots en papier, mot prononcé sur un bloc lime. Lettres de 12 px.
-  const k = 2;
-  const sizes = g.map((w) => textWidth(w.w) * k);
-  const gap = 5 * k;
-  const pad = 4;
+  // Une seule grille au pas des lettres (CAP_P) : bloc encre, mots en papier, mot prononcé sur un bloc lime.
+  const sizes = g.map((w) => textWidth(w.w));
+  const gap = 4;
+  const pad = 2;
   const inner = sizes.reduce((a, s) => a + s, 0) + gap * (g.length - 1);
-  const h = 7 * k + pad * 2;
+  const h = 7 + pad * 2;
   const c = new Canvas().rect(1, 1, inner + pad * 2, h, PAL.ink3).rect(0, 0, inner + pad * 2, h, PAL.ink);
   let x = pad;
   g.forEach((w, i) => {
     const active = t >= w.s && t < (g[i + 1]?.s ?? w.e + 0.4);
-    if (active) c.rect(x - 2, 2, sizes[i] + 4, h - 4, PAL.lime);
-    drawText(c, w.w, x, pad, active ? PAL.ink : PAL.paper, k);
+    if (active) c.rect(x - 1, 1, sizes[i] + 2, h - 2, PAL.lime);
+    drawText(c, w.w, x, pad, active ? PAL.ink : PAL.paper);
     x += sizes[i] + gap;
   });
-  const wPx = inner + pad * 2 + 1;
+  const wPx = (inner + pad * 2 + 1) * CAP_P;
+  const mid = ((SAFE_LEFT + SAFE_RIGHT) / 2) * P;
+  const left = Math.max(SAFE_LEFT * P, Math.min(SAFE_RIGHT * P - wPx, mid - wPx / 2));
   return (
-    <div style={{ position: "absolute", left: Math.round((540 - (wPx * TP) / 2) / TP) * TP, top: CAPTION_ROW * P }}>
-      <PixelArt canvas={c} p={TP} />
+    <div style={{ position: "absolute", left: Math.round(left / CAP_P) * CAP_P, top: CAPTION_ROW * P }}>
+      <PixelArt canvas={c} p={CAP_P} />
     </div>
   );
 };
 
-/** Moniteur pixel (cadre, pied) : écran de 70 × 60 cellules en (MON_X + 2, MON_Y + 2). */
-const MON_X = 8;
-const MON_Y = 22;
+/** Moniteur pixel (cadre, pied) : écran de 70 × 60 cellules en (MON_X + 2, MON_Y + 2), centré dans la zone sûre. */
+const MON_X = Math.round((SAFE_LEFT + SAFE_RIGHT) / 2) - 37;
+const MON_Y = SAFE_TOP + 15;
 const monitor = new Canvas().rect(0, 0, 74, 64, PAL.ink3).rect(1, 1, 72, 1, "#3B3948").rect(2, 2, 70, 60, "#0E1A14").rect(33, 64, 8, 5, PAL.grey).rect(24, 69, 26, 3, PAL.grey).set(68, 62, PAL.lime).outline();
 const desk = new Canvas().rect(0, 0, 84, 3, "#8A5A3A").rect(2, 3, 3, 10, "#6E4A30").rect(79, 3, 3, 10, "#6E4A30").outline();
 
@@ -122,7 +128,7 @@ const ProductCameo: React.FC<{ dur: number }> = ({ dur }) => {
       <div style={{ position: "absolute", left: MON_X * P, top: MON_Y * P }}>
         <PixelArt canvas={monitor} />
       </div>
-      <div style={{ position: "absolute", left: (MON_X - 5) * P, top: 94 * P }}>
+      <div style={{ position: "absolute", left: (MON_X - 5) * P, top: (MON_Y + 72) * P }}>
         <PixelArt canvas={desk} />
       </div>
       <div style={{ position: "absolute", left: (MON_X + 2) * P, top: (MON_Y + 2) * P, width: 70 * P, height: 60 * P, overflow: "hidden" }}>
@@ -130,8 +136,8 @@ const ProductCameo: React.FC<{ dur: number }> = ({ dur }) => {
           <FeatureWidget widget={feature.widget} width={800} />
         </div>
       </div>
-      <PixelText text={app.name} x={COLS / 2} y={11} />
-      <Label x={COLS / 2} y={19} text={app.url} color={PAL.lime} />
+      <PixelText text={app.name} x={MON_X + 37} y={SAFE_TOP} />
+      <Label x={MON_X + 37} y={SAFE_TOP + 8} text={app.url} color={PAL.lime} />
     </AbsoluteFill>
   );
 };
