@@ -4,6 +4,7 @@ import { TALE_VOICE_DELAY } from "../../../shared/tales.mjs";
 import { clamp, EASE_IN_OUT, EASE_OUT } from "../../components/fx";
 import { Backdrop, BgCtx, isLight, type Ambient, type Light, type Tone } from "../pixel/backdrop";
 import { LayoutCtx, newRegistry } from "../pixel/layout";
+import { isLightHex, Stage as HDStage, type Scene } from "../hd/stage";
 import { Sound, SoundOff } from "./sfx";
 import type { Tale, TaleTimeline } from "../types";
 
@@ -36,8 +37,9 @@ export const CAPTIONS_Y = 1440;
 
 export type Word = { w: string; s: number; e: number };
 /** Ce que chaque <Beat> déclare (fond + plan), pour que le plan qui boucle puisse rejouer le premier. */
-type BeatLook = { tone: Tone; floor: boolean; light: Light; ambient: Ambient; bg: boolean; children: React.ReactNode };
+type BeatLook = { tone: Tone; floor: boolean; light: Light; ambient: Ambient; bg: boolean; scene?: Scene; children: React.ReactNode };
 type TaleCtx = { tale: Tale; timeline: TaleTimeline; words: Word[][]; looks: Map<string, BeatLook> };
+export type { BeatLook };
 const Ctx = createContext<TaleCtx | null>(null);
 
 /** Mots horodatés estimés (même règle que scripts/gen-voice.mjs) quand la voix n'existe pas encore. */
@@ -112,24 +114,28 @@ export const useBeat = () => {
  * `loop` (dernier beat seulement) : la vidéo boucle sur son début. Le plan reprend le fond du premier beat (couleur, lumière,
  * particules, animation calée pour que sa dernière frame précède la frame 0), joue ses enfants pendant la phrase, puis montre la
  * frame 0 du premier plan jusqu'à la fin : quand TikTok / Shorts relancent la vidéo, l'image ne saute pas.
+ * `scene` (stories HD, src/tales/hd/HD.md) : plateau HD à la place du fond historique (décor, lumière multipliée,
+ * faisceaux, poussière, caméra) ; `bg`, `light`, `ambient` et `floor` sont alors ignorés.
  */
-export const Beat: React.FC<{ id: string; tail?: number; bg?: Tone; floor?: boolean; light?: Light; ambient?: Ambient; loop?: boolean; children?: React.ReactNode }> = ({
+export const Beat: React.FC<{ id: string; tail?: number; bg?: Tone; floor?: boolean; light?: Light; ambient?: Ambient; scene?: Scene; loop?: boolean; children?: React.ReactNode }> = ({
   id,
   tail = 0,
   bg,
   floor = true,
   light = "glow",
   ambient = "none",
+  scene,
   loop = false,
   children,
 }) => {
   const info = useBeatInfo(id);
   const { tale, timeline, looks } = useTale();
   // Les beats se rendent dans l'ordre : le premier est déjà enregistré quand le plan qui boucle le lit.
-  if (!loop) looks.set(id, { tone: bg ?? "ink", floor, light, ambient, bg: !!bg, children });
+  if (!loop) looks.set(id, { tone: bg ?? "ink", floor, light, ambient, bg: !!bg, scene, children });
   const firstId = tale.beats[0].id;
   const first = loop ? looks.get(firstId) : undefined;
-  const look = first ?? { tone: bg ?? "ink", floor, light, ambient, bg: !!bg, children };
+  const look = first ?? { tone: bg ?? "ink", floor, light, ambient, bg: !!bg, scene, children };
+  const lightBg = look.scene ? isLightHex(look.scene.wall) : isLight(look.tone);
   // Garde-fou : registre des textes du plan (aucun texte ne chevauche un autre, cf. pixel/layout.tsx).
   const registry = useMemo(newRegistry, []);
   const firstRegistry = useMemo(newRegistry, []);
@@ -138,19 +144,33 @@ export const Beat: React.FC<{ id: string; tail?: number; bg?: Tone; floor?: bool
   return (
     <Sequence from={info.from} durationInFrames={len} name={`beat ${id} · ${info.beat.role}${loop ? " · boucle" : ""}`} layout="none">
       <BeatCtx.Provider value={info}>
-        <BgCtx.Provider value={{ tone: look.tone, light: isLight(look.tone) }}>
+        <BgCtx.Provider value={{ tone: look.scene ? (lightBg ? "paper" : "ink") : look.tone, light: lightBg }}>
           <LayoutCtx.Provider value={registry}>
             {/* Coupe vers un nouveau plan : un souffle très discret (pas sur le premier plan, qui ouvre la vidéo). */}
             {info.index > 0 ? <Sound name="a-cut" volume={0.6} /> : null}
-            {look.bg ? (
-              <Backdrop tone={look.tone} floor={look.floor} light={look.light} ambient={look.ambient} seed={loop ? firstId : id} offset={loop ? -len : 0} />
-            ) : null}
-            {loop && first ? (
-              <LoopBody hold={loopHoldFrom(len, info.end)} first={first.children} firstInfo={firstInfo} firstRegistry={firstRegistry}>
-                {children}
-              </LoopBody>
+            {look.scene ? (
+              <HDStage scene={look.scene} offset={loop ? -len : 0}>
+                {loop && first ? (
+                  <LoopBody hold={loopHoldFrom(len, info.end)} first={first.children} firstInfo={firstInfo} firstRegistry={firstRegistry}>
+                    {children}
+                  </LoopBody>
+                ) : (
+                  children
+                )}
+              </HDStage>
             ) : (
-              children
+              <>
+                {look.bg ? (
+                  <Backdrop tone={look.tone} floor={look.floor} light={look.light} ambient={look.ambient} seed={loop ? firstId : id} offset={loop ? -len : 0} />
+                ) : null}
+                {loop && first ? (
+                  <LoopBody hold={loopHoldFrom(len, info.end)} first={first.children} firstInfo={firstInfo} firstRegistry={firstRegistry}>
+                    {children}
+                  </LoopBody>
+                ) : (
+                  children
+                )}
+              </>
             )}
           </LayoutCtx.Provider>
         </BgCtx.Provider>

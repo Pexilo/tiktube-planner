@@ -42,15 +42,19 @@ mkdirSync(outDir, { recursive: true });
 
 // 1. Règles du kit (cf. src/tales/KIT.md)
 if (!/export\s+const\s+Story\b/.test(src)) errors.push("Le fichier doit exporter `export const Story: React.FC<StoryProps>`.");
+// Story HD (src/tales/hd/HD.md) : les sources SVG passent par le pixeliseur, une rotation y devient du pixel art ; les vraies
+// images sont des chemins de public/tales/hd/ donnés à <Pix src>, jamais des URL.
+const hd = /from\s+["']\.\.\/hd["']/.test(src);
 for (const [re, why] of [
   [/<Audio\b|<Video\b|<OffthreadVideo\b/, "Pas d'<Audio>/<Video> : la voix, la musique et les sons sont gérés par l'habillage et le kit."],
-  [/staticFile\s*\(|<Img\b|<img\b|https?:\/\//, "Pas d'images ni de fichiers externes : tout est dessiné avec le kit (SVG, CSS)."],
+  [/staticFile\s*\(|<Img\b|<img\b|https?:\/\//, hd ? "Pas d'URL ni de staticFile : une vraie image est un chemin de public/tales/hd/ donné à <Pix src>." : "Pas d'images ni de fichiers externes : tout est dessiné avec le kit (SVG, CSS)."],
   [/\brequire\s*\(|\bfetch\s*\(|Math\.random\s*\(|Date\.now\s*\(/, "Interdit : require, fetch, Math.random, Date.now (le rendu doit être déterministe)."],
-  [/blur\(|rotate\(|filter\s*:/, "Pixel art : pas de flou, pas de rotation, pas de filtre CSS (cf. src/tales/pixel/PIXEL.md)."],
+  [hd ? /blur\(|filter\s*:/ : /blur\(|rotate\(|filter\s*:/, "Pixel art : pas de flou, pas de rotation, pas de filtre CSS (cf. src/tales/pixel/PIXEL.md)."],
+  ...(hd ? [[/from\s+["']\.\.\/kit["']/, "Story HD : tout vient de \"../hd\" (ne pas mélanger avec l'ancien kit \"../kit\")."]] : []),
 ])
   if (re.test(src)) errors.push(why);
 const imports = [...src.matchAll(/from\s+["']([^"']+)["']/g)].map((m) => m[1]);
-const ALLOWED = ["react", "remotion", "../kit", "../types"];
+const ALLOWED = ["react", "remotion", "../kit", "../hd", "../types"];
 for (const i of imports) if (!ALLOWED.includes(i)) errors.push(`Import non autorisé : "${i}" (autorisés : ${ALLOWED.join(", ")}).`);
 const ids = new Set(tale.beats.map((b) => b.id));
 for (const m of src.matchAll(/<Beat\s+id=["']([^"']+)["']/g)) if (!ids.has(m[1])) errors.push(`<Beat id="${m[1]}"> : beat inconnu (ids : ${[...ids].join(", ")}).`);

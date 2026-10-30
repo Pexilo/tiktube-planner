@@ -1,4 +1,6 @@
-# Direction pixel art des stories : règles de cohérence
+# Direction pixel art des stories : règles de cohérence (grille historique)
+
+> Stories historiques sur la grille 90 × 160 (`"../kit"`). Les nouvelles stories suivent le style HD : `src/tales/hd/HD.md`.
 
 À lire avant de dessiner ou d'animer quoi que ce soit en pixel art pour une story. Une vidéo réussie, c'est
 **un seul univers** : même grille, même palette, mêmes proportions, du premier au dernier plan.

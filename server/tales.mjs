@@ -627,7 +627,7 @@ async function composeTale(slug) {
   const abs = `//${DRAFTS.replaceAll("\\", "/").replace(/^\/+/, "")}/**`;
   const settings = settingsFile(
     "compose",
-    ["Read", "Glob", "Grep", "Skill", `Write(${rel})`, `Edit(${rel})`, `Write(${abs})`, `Edit(${abs})`, "Bash(node scripts/tale-check.mjs:*)"],
+    ["Read", "Glob", "Grep", "Skill", `Write(${rel})`, `Edit(${rel})`, `Write(${abs})`, `Edit(${abs})`, "Bash(node scripts/tale-check.mjs:*)", "Bash(node scripts/hd-source.mjs:*)"],
     ["WebSearch", "WebFetch"],
   );
   // Dossier de stockage hors du projet : les images de tale-check y sont, Claude doit pouvoir les lire.

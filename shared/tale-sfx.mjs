@@ -3,7 +3,8 @@
 //
 // Deux familles :
 // - "anim" : petits sons liés à l'animation (une tuile qui tombe, un tampon, un compteur, une pièce qui vole), joués par
-//   les composants du kit eux-mêmes. Synthétisés (doux, courts, dans l'esprit pixel), très bas sous la voix.
+//   les composants du kit eux-mêmes. Synthétisés : bruitages physiques doux (carton, papier, bois, métal, verre), sans bip
+//   ni arpège de jeu vidéo, très bas sous la voix.
 // - "story" : sons narratifs choisis par le script selon ce qui est dit (suspense, révélation, tension), calés sur un mot.
 //   Générés une fois par ElevenLabs (sound effects), réutilisés par toutes les stories.
 

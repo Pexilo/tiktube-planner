@@ -1,5 +1,5 @@
 // Bruitages des stories crypto (shared/tale-sfx.mjs) : crée ceux qui manquent dans public/audio/tale-sfx/.
-// - Sons d'animation : synthétisés ici (doux, courts, esprit pixel), sans dépendance.
+// - Sons d'animation : synthétisés ici (bruitages physiques doux : carton, papier, bois, métal, verre), sans dépendance.
 // - Sons narratifs : ElevenLabs (sound effects) si une clé est enregistrée, sinon une version synthétisée de secours
 //   (refaite par ElevenLabs dès qu'une clé existe). Un fichier <nom>.wav.json garde la recette : prompt changé → son refait.
 // Usage : node scripts/gen-tale-sfx.mjs [--force] [nom…]
@@ -13,7 +13,7 @@ import { ANIM_SFX, STORY_SFX, sfxFile } from "../shared/tale-sfx.mjs";
 
 const SR = 44100;
 /** Version des recettes synthétisées : à incrémenter quand une recette change (les fichiers sont refaits). */
-const SYNTH_VERSION = 1;
+const SYNTH_VERSION = 2;
 
 /* ------------------------------------------------------------------ synthèse */
 
@@ -114,83 +114,129 @@ function fadeOut(x, sec = 0.03) {
 const glide = (a, b, sec) => (t) => a * Math.pow(b / a, Math.min(1, t / sec));
 const bell = (len) => (t) => Math.sin(Math.PI * Math.min(1, t / len)) ** 2;
 
-/** Recettes des sons d'animation : doux, secs, au pitch « pixel ». */
+/**
+ * Résonance modale : sinus amortis à des rapports inharmoniques (bois, métal, verre), attaque quasi nulle.
+ * `ratios`, `decays` (s) et `amps` décrivent chaque mode.
+ */
+function modal(out, { at = 0, f0, ratios, decays, amps, amp = 1, a = 0.0006 }) {
+  ratios.forEach((r, k) => tone(out, { at, len: decays[k] * 7, f: () => f0 * r, amp: amp * amps[k], a, d: decays[k] }));
+}
+/** Petit bruit de contact (grain de papier, clic) : bruit filtré très court. */
+const tap = (out, { at = 0, f, q = 1, amp = 1, d = 0.004, seed = 1 }) => noise(out, { at, len: d * 8, f: () => f, q, amp, shape: (t) => env(t, 0.0003, d), seed });
+
+/**
+ * Recettes des sons d'animation : des bruitages doux et physiques, accordés au pixel art HD (objets réels pixelisés) :
+ * carton, papier, bois, métal, verre. Pas de bip, pas d'oscillateur carré, pas d'arpège « jeu vidéo » : ces sons passent
+ * des dizaines de fois par vidéo, très bas sous la voix, ils doivent se fondre dans l'image.
+ */
 const ANIM = {
+  // Une carte ou une étiquette posée : petit claquement de carton et son corps.
   "a-pop": () => {
     const x = buf(ANIM_SFX["a-pop"]);
-    tone(x, { len: 0.2, f: glide(820, 360, 0.07), amp: 0.9, d: 0.05 });
-    tone(x, { len: 0.12, f: glide(1640, 720, 0.07), type: "tri", amp: 0.15, d: 0.03 });
-    return reverb(lowpass(x, 3200), 0.12);
+    tap(x, { f: 1200, q: 0.9, amp: 0.55, d: 0.01, seed: 2 });
+    tap(x, { f: 3000, q: 0.7, amp: 0.1, d: 0.005, seed: 4 });
+    tone(x, { len: 0.14, f: glide(220, 150, 0.04), amp: 0.9, d: 0.04 });
+    return reverb(lowpass(lowpass(x, 4200), 6000), 0.08, 0.6);
   },
+  // Un objet qui se pose (boîte, pile) : coup sourd de carton sur une table, léger frémissement.
   "a-thud": () => {
     const x = buf(ANIM_SFX["a-thud"]);
-    tone(x, { len: 0.3, f: glide(170, 70, 0.12), amp: 1, d: 0.09 });
-    noise(x, { len: 0.06, f: () => 500, q: 0.8, amp: 0.5, shape: (t) => env(t, 0.001, 0.015), seed: 3 });
-    return lowpass(x, 1800);
+    tone(x, { len: 0.3, f: glide(118, 56, 0.09), amp: 1, d: 0.08 });
+    tap(x, { f: 260, q: 1, amp: 0.7, d: 0.035, seed: 3 });
+    tap(x, { at: 0.012, f: 900, q: 2.2, amp: 0.18, d: 0.02, seed: 6 });
+    return reverb(lowpass(x, 1600), 0.06, 0.5);
   },
+  // Une réponse, un détail qui apparaît : un « toc » de bois léger.
   "a-blip": () => {
     const x = buf(ANIM_SFX["a-blip"]);
-    tone(x, { len: 0.05, f: () => 880, type: "square", amp: 0.5, d: 0.03 });
-    tone(x, { at: 0.045, len: 0.07, f: () => 1320, type: "square", amp: 0.5, d: 0.035 });
-    return lowpass(x, 2600);
+    modal(x, { f0: 1250, ratios: [1, 2.57, 4.2], decays: [0.025, 0.012, 0.007], amps: [1, 0.35, 0.15], amp: 0.5 });
+    tap(x, { f: 3000, amp: 0.25, d: 0.003, seed: 5 });
+    return lowpass(x, 6000);
   },
+  // Un tampon encreur qui s'abat sur le papier : coup sourd, claque du papier, résonance du bureau.
   "a-stamp": () => {
     const x = buf(ANIM_SFX["a-stamp"]);
-    tone(x, { len: 0.4, f: glide(130, 52, 0.2), amp: 1, d: 0.13 });
-    noise(x, { len: 0.08, f: () => 1100, q: 0.7, amp: 0.8, shape: (t) => env(t, 0.001, 0.02), seed: 5 });
-    return reverb(lowpass(x, 2400), 0.18, 1.3);
+    tone(x, { len: 0.45, f: glide(95, 45, 0.12), amp: 1, d: 0.12 });
+    tap(x, { f: 1400, q: 0.6, amp: 0.9, d: 0.025, seed: 7 });
+    tap(x, { f: 180, q: 1.5, amp: 0.4, d: 0.08, seed: 8 });
+    return reverb(lowpass(x, 3500), 0.14, 1);
   },
+  // Un compteur qui défile : cliquetis mécanique régulier (bouclable), sans montée de note.
   "a-count": () => {
     const x = buf(ANIM_SFX["a-count"]);
-    for (let i = 0; i < 12; i++) tone(x, { at: i / 12, len: 0.03, f: () => 520 * Math.pow(2, i / 12), type: "square", amp: i === 11 ? 0.6 : 0.32, d: 0.012 });
-    return lowpass(x, 2800);
+    const r = rng(19);
+    const n = 16;
+    for (let i = 0; i < n; i++) {
+      const at = (i * ANIM_SFX["a-count"]) / n + r() * 0.006;
+      tap(x, { at, f: 1500 + r() * 300, q: 1.6, amp: i % 4 === 0 ? 0.6 : 0.42, d: 0.004, seed: 40 + i });
+      modal(x, { at, f0: 520, ratios: [1, 2.3], decays: [0.012, 0.006], amps: [1, 0.4], amp: 0.26 });
+    }
+    return lowpass(lowpass(x, 4000), 4000);
   },
+  // Une vraie pièce qui tombe : tintement métallique inharmonique, petit rebond. (Plus de « pièce de jeu vidéo ».)
   "a-coin": () => {
     const x = buf(ANIM_SFX["a-coin"]);
-    tone(x, { len: 0.06, f: () => 988, type: "square", amp: 0.4, d: 0.05 });
-    tone(x, { at: 0.055, len: 0.24, f: () => 1319, type: "square", amp: 0.4, d: 0.08 });
-    tone(x, { at: 0.055, len: 0.24, f: () => 2638, amp: 0.12, d: 0.05 });
-    return reverb(lowpass(x, 3600), 0.12);
+    const coin = { ratios: [1, 1.52, 2.35, 3.08], decays: [0.1, 0.07, 0.045, 0.03], amps: [1, 0.55, 0.3, 0.15] };
+    tap(x, { f: 4000, q: 0.8, amp: 0.15, d: 0.003, seed: 9 });
+    modal(x, { f0: 1450, ...coin, amp: 0.5 });
+    modal(x, { at: 0.07, f0: 1530, ...coin, decays: coin.decays.map((d) => d * 0.6), amp: 0.2 });
+    return reverb(lowpass(lowpass(x, 5500), 5500), 0.1, 0.5);
   },
+  // Un objet qui file (voiture, couvercle) : souffle d'air, grave et feutré.
   "a-swish": () => {
     const x = buf(ANIM_SFX["a-swish"]);
-    noise(x, { len: 0.4, f: (t) => 500 + 2200 * Math.sin(Math.PI * Math.min(1, t / 0.38)), q: 1.6, amp: 0.9, shape: bell(0.38), seed: 7 });
-    return lowpass(x, 5000);
+    noise(x, { len: 0.4, f: (t) => 250 + 1100 * Math.sin(Math.PI * Math.min(1, t / 0.38)), q: 0.8, amp: 0.9, shape: bell(0.38), seed: 7 });
+    noise(x, { len: 0.4, f: () => 120, q: 0.7, amp: 0.35, shape: bell(0.38), seed: 21 });
+    return lowpass(x, 3500);
   },
+  // Frappe au clavier mécanique (bouclable) : clic de la touche, fond de course, une barre d'espace de temps en temps.
   "a-type": () => {
     const x = buf(ANIM_SFX["a-type"]);
     const r = rng(11);
-    for (let t = 0.01; t < 1.95; t += 0.055 + r() * 0.06) {
-      noise(x, { at: t, len: 0.02, f: () => 2600 + r() * 1400, q: 1.1, amp: 0.55 + r() * 0.3, shape: (u) => env(u, 0.0005, 0.004), seed: Math.floor(t * 1000) });
-      tone(x, { at: t, len: 0.02, f: () => 180, amp: 0.25, d: 0.006 });
+    let k = 0;
+    for (let t = 0.01; t < 1.93; t += 0.07 + r() * 0.1, k++) {
+      const space = k % 9 === 8;
+      tap(x, { at: t, f: 3800 + r() * 1200, q: 1.2, amp: 0.35, d: 0.0025, seed: 100 + k });
+      tap(x, { at: t + 0.004, f: space ? 420 : 700 + r() * 240, q: 1.6, amp: space ? 0.8 : 0.55, d: space ? 0.02 : 0.014, seed: 300 + k });
+      tone(x, { at: t, len: 0.03, f: () => 150, amp: 0.15, d: 0.01 });
     }
-    return lowpass(x, 6000);
+    return reverb(lowpass(x, 7000), 0.05, 0.4);
   },
+  // Une courbe qui monte : souffle qui s'ouvre et grimpe, sans notes.
   "a-rise": () => {
     const x = buf(ANIM_SFX["a-rise"]);
-    for (let i = 0; i < 8; i++) tone(x, { at: i * 0.11, len: 0.12, f: () => 392 * Math.pow(2, (i * 2) / 12), type: "tri", amp: 0.5, d: 0.06 });
-    return reverb(lowpass(x, 3000), 0.15);
+    const L = ANIM_SFX["a-rise"];
+    noise(x, { len: L, f: (t) => 200 * Math.pow(7, Math.min(1, t / (L * 0.9))), q: 1.2, amp: 0.9, shape: (t) => Math.min(1, t / (L * 0.9)) ** 1.5 * Math.min(1, (L - t) / 0.06), seed: 23 });
+    tone(x, { len: L, f: glide(80, 110, L), amp: 0.25, a: L * 0.8, d: 0.1 });
+    return reverb(lowpass(lowpass(x, 3500), 3500), 0.15);
   },
+  // Une pulsation, un signal : tintement de verre doux.
   "a-ping": () => {
     const x = buf(ANIM_SFX["a-ping"]);
-    tone(x, { len: 0.7, f: () => 1480, amp: 0.6, d: 0.16 });
-    tone(x, { len: 0.5, f: () => 2220, amp: 0.15, d: 0.08 });
-    return fadeOut(reverb(x, 0.3, 1.6), 0.1);
+    modal(x, { f0: 1180, ratios: [1, 2.76, 5.4], decays: [0.35, 0.12, 0.05], amps: [1, 0.25, 0.08], amp: 0.5, a: 0.002 });
+    tap(x, { f: 2500, amp: 0.1, d: 0.002, seed: 27 });
+    return fadeOut(reverb(lowpass(x, 6000), 0.25, 1.2), 0.1);
   },
+  // Un éclat : quelques reflets de verre minuscules, au hasard, très bas.
   "a-twinkle": () => {
     const x = buf(ANIM_SFX["a-twinkle"]);
-    [2093, 2637, 3136].forEach((hz, i) => tone(x, { at: i * 0.06, len: 0.25, f: () => hz, amp: 0.4, d: 0.06 }));
-    return fadeOut(reverb(x, 0.3), 0.08);
+    const r = rng(29);
+    for (let i = 0; i < 5; i++)
+      modal(x, { at: r() * 0.25, f0: 2600 + r() * 1600, ratios: [1, 2.4], decays: [0.05 + r() * 0.04, 0.02], amps: [1, 0.3], amp: 0.25 * (1 - i * 0.12) });
+    return fadeOut(reverb(lowpass(x, 8000), 0.3), 0.08);
   },
+  // Coupe de plan (à chaque changement de plan) : souffle d'air grave, presque sous le seuil.
   "a-cut": () => {
     const x = buf(ANIM_SFX["a-cut"]);
-    noise(x, { len: 0.45, f: (t) => 300 + 1200 * Math.min(1, t / 0.25), q: 0.9, amp: 0.8, shape: bell(0.42), seed: 13 });
-    return lowpass(x, 2500);
+    noise(x, { len: 0.45, f: (t) => 140 + 500 * Math.sin(Math.PI * Math.min(1, t / 0.42)), q: 0.7, amp: 0.8, shape: bell(0.42), seed: 13 });
+    return lowpass(x, 1800);
   },
+  // Un tic d'horloge, un jour qui passe : petit clic de bois.
   "a-tick": () => {
     const x = buf(ANIM_SFX["a-tick"]);
-    noise(x, { len: 0.03, f: () => 3200, q: 1.4, amp: 0.8, shape: (t) => env(t, 0.0003, 0.004), seed: 17 });
-    return x;
+    modal(x, { f0: 1900, ratios: [1, 2.9], decays: [0.008, 0.004], amps: [1, 0.3], amp: 0.7 });
+    tap(x, { f: 4000, amp: 0.3, d: 0.002, seed: 17 });
+    return lowpass(x, 7000);
   },
 };
 
