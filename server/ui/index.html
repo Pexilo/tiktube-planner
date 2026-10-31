@@ -289,15 +289,13 @@
   .ttsep::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 
   /* ---------------------------------------------------------------- Réglages */
-  .settings { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; align-items: start; }
+  /* Bento : rangées de 1 px, chaque carte s'étend sur sa hauteur (voir bento()), les petites cartes comblent les trous */
+  .settings { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); grid-auto-rows: 1px; grid-auto-flow: row dense; column-gap: 16px; align-items: start; }
   .field { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
   .field:first-of-type { border-top: 0; }
   .field label { color: var(--muted); }
 
   /* ---------------------------------------------------------------- Stories */
-  .mode { display: flex; flex: none; margin: 0 0 12px; flex-wrap: nowrap; }
-  .mode button { flex: 1; justify-content: center; }
-  body:not(.m-stories) [data-only="stories"], body.m-stories [data-only="pubs"] { display: none !important; }
   .acc { color: var(--accent); }
   .topic { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 12px 14px; margin-bottom: 16px; }
   .topic input { flex: 1; min-width: 200px; }
@@ -374,7 +372,6 @@
     .pipe { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pipe .stage .arrow { display: none; }
     .ev-row { grid-template-columns: 46px 20px minmax(0, 1fr) auto; } .ev-row .th, .ev-row .acts { display: none; }
     .ttlist { grid-template-columns: 1fr; }
-    .mode { margin: 0 8px 0 0; }
     .ideas { grid-template-columns: 1fr; }
     .tale { padding: 14px; }
     .tale-media video, .tale-media .thumbbox { width: 100%; max-width: 280px; }
@@ -387,10 +384,8 @@
 <div class="app">
   <aside>
     <div class="brand"><span class="logo"><svg class="i" viewBox="0 0 24 24" style="fill:#fff;stroke:none"><path d="M8 5.5v13l10.5-6.5z"/></svg></span><div>Studio<small>YouTube · TikTok · Instagram</small></div></div>
-    <div class="seg mode" id="modeSeg"><button data-v="pubs">Pubs</button><button data-v="stories">Stories</button></div>
     <nav class="nav" id="nav"></nav>
     <div class="side-foot">
-      <div class="conn" data-only="pubs" title="Pubs en pause : rien n'est envoyé sur YouTube ni TikTok pour les vidéos des apps (rien n'est supprimé, les stories continuent)">Envoi des pubs<div class="toggle" id="pubsToggle" style="margin-left:auto"></div></div>
       <div id="sideConn"></div>
       <div class="side-row">
         <button class="btn sm" id="themeBtn" style="flex:1" title="Thème"></button>
@@ -403,38 +398,23 @@
   <main>
     <div id="alerts"></div>
 
-    <!-- ============================================================ Aujourd'hui -->
-    <section id="tab-today">
-      <div class="page-head"><div><h1 id="hello">Aujourd'hui</h1><p id="todayDate"></p></div></div>
-      <div class="card hero" id="hero"></div>
-      <div class="pipe" id="pipe"></div>
-      <div class="overview">
-        <div class="col">
-          <div class="card pad" id="pNow"></div>
-          <div class="card pad" id="pNext"></div>
-        </div>
-        <div class="col">
-          <div class="card pad" id="pRecent"></div>
-          <div class="card pad" id="pApps"></div>
-          <div class="card pad" id="pAuto"></div>
-          <div class="card pad" id="pLog"></div>
-        </div>
-      </div>
-    </section>
-
     <!-- ============================================================ Stories : Aujourd'hui -->
     <section id="tab-tales" hidden>
       <div class="page-head"><div><h1>Stories crypto</h1><p id="talesDate"></p></div><div class="spacer"></div><a class="btn" href="#ideas" id="talesIdeasBtn">Idées</a></div>
       <div id="talesAlert"></div>
+      <div class="card hero" id="hero"></div>
       <div class="pipe" id="tPipe"></div>
       <div class="overview">
         <div class="col">
           <div class="card pad" id="tNow"></div>
           <div class="card pad" id="tTodo"></div>
+          <div class="card pad" id="tNext"></div>
         </div>
         <div class="col">
-          <div class="card pad" id="tNext"></div>
           <div class="card pad" id="tRecent"></div>
+          <div class="card pad" id="pApps"></div>
+          <div class="card pad" id="pAuto"></div>
+          <div class="card pad" id="pLog"></div>
         </div>
       </div>
     </section>
@@ -475,61 +455,28 @@
       <div id="agenda"></div>
     </section>
 
-    <!-- ============================================================ Bibliothèque -->
-    <section id="tab-library" hidden>
-      <div class="page-head">
-        <div><h1>Vidéos</h1><p>Toutes les vidéos du catalogue et où elles en sont.</p></div>
-        <div class="spacer"></div>
-        <button class="btn primary" id="renderAll"><svg class="i" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Rendre tout ce qui manque</button>
-      </div>
-      <div class="toolbar"><div class="seg" id="fStatus"></div></div>
-      <div class="toolbar">
-        <div class="appchips" id="appFilter"></div>
-        <div class="spacer"></div>
-        <input type="search" id="fSearch" placeholder="Rechercher…" style="width:180px" />
-        <select id="fKind"><option value="">Tous formats</option><option value="short">Shorts motion</option><option value="story">Shorts narrés</option><option value="keynote">Série Keynote</option><option value="long">Vidéos 16:9</option><option value="external">Vidéos importées</option></select>
-        <div class="seg" id="fLang"><button data-v="" class="on">FR + EN</button><button data-v="fr">FR</button><button data-v="en">EN</button></div>
-      </div>
-      <div class="grid" id="grid"></div>
-      <div class="bulk" id="bulk" hidden>
-        <span id="bulkN"></span>
-        <button class="btn sm" id="selAll">Tout le filtre</button>
-        <button class="btn sm" id="renderSel">Rendre</button>
-        <button class="btn sm yt" id="uploadSel">Programmer sur YouTube</button>
-        <button class="btn sm ghost" id="selNone">Annuler</button>
-      </div>
-    </section>
-
-    <!-- ============================================================ TikTok -->
-    <section id="tab-tiktok" hidden>
-      <div class="page-head">
-        <div><h1>TikTok</h1><p>Carrousels et vidéos envoyés en brouillon dans ta boîte TikTok, à l'heure prévue.</p></div>
-        <div class="spacer"></div>
-        <div id="ttStatus"></div>
-      </div>
-      <div id="ttAlert"></div>
-      <div class="card pad" id="ttWatch" style="margin-bottom:16px"></div>
-      <div class="ttbar">
-        <label class="drop" id="mdDrop"><input type="file" multiple hidden id="mdInput" />
-          <span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg></span>
-          <span><b>Glisse un dossier, des .md et des images, en vrac</b><span class="note">Je lis le texte des slides, je remets les carrousels dans l'ordre et je les associe à la bonne légende. Rien ne part sans date.</span><br><span id="importProgress" style="font-weight:600"></span></span>
-        </label>
-        <div class="card ttactions">
-          <button class="btn primary" id="ttNewPhoto"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Nouveau carrousel</button>
-          <div class="r"><select id="ttVideoSel"></select><button class="btn" id="ttNewVideo">Ajouter</button></div>
-          <button class="btn" id="ttAuto">${ic("cal")}Programmer tous les brouillons</button>
-          <div class="note" id="ttSlots"></div>
-        </div>
-      </div>
-      <div id="ttReport"></div>
-      <div class="toolbar"><div class="seg" id="ttFilter"></div><span class="spacer"></span><span class="note">Les modifications sont enregistrées automatiquement.</span></div>
-      <div id="ttPosts" class="ttlist"></div>
-    </section>
-
     <!-- ============================================================ Réglages -->
     <section id="tab-settings" hidden>
       <div class="page-head"><div><h1>Réglages</h1><p>Rythme de publication, autopilote et connexions.</p></div></div>
       <div class="settings">
+        <div class="card pad">
+          <div class="card-h"><h3>Stories crypto</h3></div>
+          <div class="field"><label>Heure de sortie</label><input type="time" data-s="taleTime" /></div>
+          <div class="field"><label>Stories par jour</label><input type="number" min="0" max="4" data-s="talesPerDay" style="width:80px" /></div>
+          <div class="field"><label>Aussi sur TikTok (auto)</label><div class="toggle" id="taleTtToggle"></div></div>
+          <div class="field"><label>Version française</label><div class="toggle" id="taleFrToggle"></div></div>
+          <p class="note">Une story validée est fabriquée puis programmée sur YouTube au prochain créneau libre. Avec TikTok auto, elle part aussi en brouillon dans ta boîte TikTok. Avec la version française, le script anglais est traduit par Claude (termes crypto gardés en anglais), voisé avec la voix FR, et sort à la même heure sur tes comptes FR.</p>
+        </div>
+        <div class="card pad">
+          <div class="card-h"><h3>Autopilote</h3></div>
+          <div class="field"><label>Activé</label><div class="toggle" id="autoToggle"></div></div>
+          <div class="field"><label>Horizon d'envoi (jours)</label><input type="number" min="1" max="90" data-s="uploadHorizonDays" style="width:80px" /></div>
+          <div class="field"><label>Envois max / jour (quota API)</label><input type="number" min="1" max="50" data-s="maxUploadsPerDay" style="width:80px" /></div>
+          <p class="note">Toutes les 10 minutes, tant que la plateforme tourne : rend les vidéos qui sortent dans l'horizon puis les envoie sur YouTube en privé programmé. C'est YouTube qui publie à l'heure prévue, ton Mac peut être éteint à ce moment-là.</p>
+        </div>
+        <div class="card pad"><div class="card-h"><h3>YouTube</h3></div><div id="ytBox"></div></div>
+        <div class="card pad"><div class="card-h"><h3>TikTok</h3></div><div id="ttBox"></div></div>
+        <div class="card pad"><div class="card-h"><h3>Instagram</h3></div><div id="igBox"></div></div>
         <div class="card pad">
           <div class="card-h"><h3>Apparence</h3></div>
           <div class="field"><label>Thème</label><div class="seg" id="themeSeg"><button data-v="system">Auto</button><button data-v="light">Clair</button><button data-v="dark">Sombre</button></div></div>
@@ -541,37 +488,6 @@
           <p class="note" id="storageInfo"></p>
           <p class="note">Vidéos rendues, miniatures et fichiers temporaires (Remotion, Chrome, ffmpeg) vont dans ce dossier : pratique pour un disque plus grand. Les vidéos déjà rendues y sont déplacées. Vide = dossier du projet. Tes clés et réglages (<code>data/</code>) ne bougent pas.</p>
         </div>
-        <div class="card pad" data-only="stories">
-          <div class="card-h"><h3>Stories crypto</h3></div>
-          <div class="field"><label>Heure de sortie</label><input type="time" data-s="taleTime" /></div>
-          <div class="field"><label>Stories par jour</label><input type="number" min="0" max="4" data-s="talesPerDay" style="width:80px" /></div>
-          <div class="field"><label>Aussi sur TikTok (auto)</label><div class="toggle" id="taleTtToggle"></div></div>
-          <div class="field"><label>Version française</label><div class="toggle" id="taleFrToggle"></div></div>
-          <p class="note">Une story validée est fabriquée puis programmée sur YouTube au prochain créneau libre. Avec TikTok auto, elle part aussi en brouillon dans ta boîte TikTok. Avec la version française, le script anglais est traduit par Claude (termes crypto gardés en anglais), voisé avec la voix FR, et sort à la même heure sur tes comptes FR.</p>
-        </div>
-        <div class="card pad" data-only="pubs">
-          <div class="card-h"><h3>Rythme YouTube</h3></div>
-          <div class="field"><label>Début du planning</label><input type="date" data-s="startDate" /></div>
-          <div class="field"><label>Fuseau horaire</label><input data-s="timezone" /></div>
-          <div class="field"><label>Shorts par jour</label><input type="number" min="1" max="4" data-s="shortsPerDay" style="width:80px" /></div>
-          <div class="field"><label>Heure du 1er Short</label><input type="time" data-s="shortTime" /></div>
-          <div class="field"><label>Heure du 2e Short</label><input type="time" data-s="shortTime2" /></div>
-          <div class="field"><label>Jour de la vidéo 16:9</label>
-            <select data-s="longWeekday"><option value="1">Lundi</option><option value="2">Mardi</option><option value="3">Mercredi</option><option value="4">Jeudi</option><option value="5">Vendredi</option><option value="6">Samedi</option><option value="0">Dimanche</option></select></div>
-          <div class="field"><label>Heure de la vidéo 16:9</label><input type="time" data-s="longTime" /></div>
-          <p class="note">Après un changement, clique « Recalculer le planning » dans le Calendrier.</p>
-        </div>
-        <div class="card pad">
-          <div class="card-h"><h3>Autopilote</h3></div>
-          <div class="field"><label>Activé</label><div class="toggle" id="autoToggle"></div></div>
-          <div class="field"><label>Envoi des pubs (YouTube, TikTok ; les stories continuent)</label><div class="toggle" id="pubsToggle2"></div></div>
-          <div class="field"><label>Horizon d'envoi (jours)</label><input type="number" min="1" max="90" data-s="uploadHorizonDays" style="width:80px" /></div>
-          <div class="field"><label>Envois max / jour (quota API)</label><input type="number" min="1" max="50" data-s="maxUploadsPerDay" style="width:80px" /></div>
-          <p class="note">Toutes les 10 minutes, tant que la plateforme tourne : rend les vidéos qui sortent dans l'horizon puis les envoie sur YouTube en privé programmé. C'est YouTube qui publie à l'heure prévue, ton Mac peut être éteint à ce moment-là.</p>
-        </div>
-        <div class="card pad"><div class="card-h"><h3>YouTube</h3></div><div id="ytBox"></div></div>
-        <div class="card pad"><div class="card-h"><h3>TikTok</h3></div><div id="ttBox"></div></div>
-        <div class="card pad"><div class="card-h"><h3>Instagram</h3></div><div id="igBox"></div></div>
       </div>
     </section>
   </main>
@@ -631,10 +547,10 @@ const NETS = {
     title: (a) => a.channel?.title ?? "Chaîne YouTube", img: (a) => a.channel?.thumb, open: () => "https://studio.youtube.com", connect: (l) => `/api/youtube/auth?lang=${l}`,
     hint: "Google te demande quel compte et quelle chaîne utiliser : choisis celle de cette langue." },
   tt: { name: "TikTok", key: "tiktok", accounts: () => TT?.status.accounts, ready: () => !!TT?.status.configured, ok: (a) => !!a?.connected, live: () => true,
-    title: (a) => a.user?.display_name ?? "Compte TikTok", img: (a) => a.user?.avatar_url, open: () => "#tiktok", connect: (l) => `/api/tiktok/auth?lang=${l}`,
+    title: (a) => a.user?.display_name ?? "Compte TikTok", img: (a) => a.user?.avatar_url, open: () => "#settings", connect: (l) => `/api/tiktok/auth?lang=${l}`,
     hint: "TikTok connecte le compte ouvert dans ton navigateur : pour le 2e compte, change d'abord de compte sur tiktok.com. Ajoute aussi les deux comptes dans les Target users du Sandbox." },
-  ig: { name: "Instagram", key: "instagram", accounts: () => TT?.instagram.status.accounts, ready: () => true, ok: (a) => !!a?.configured, live: (a) => !!a.user && !!TT.instagram.settings.enabled, offTitle: "publication auto désactivée",
-    title: (a) => (a.user ? `@${a.user.username}` : "Token refusé"), img: (a) => a.user?.profile_picture_url, open: (a) => (a.user ? `https://www.instagram.com/${encodeURIComponent(a.user.username)}/` : "#settings"), connect: () => "/setup.html#7",
+  ig: { name: "Instagram", key: "instagram", accounts: () => TT?.instagram.status.accounts, ready: () => true, ok: (a) => !!a?.configured, live: (a) => !!a.user && !!TT.instagram.settings.enabled, offTitle: "autopilote désactivé",
+    title: (a) => (a.user ? `@${a.user.username}` : "Token refusé"), img: (a) => a.user?.profile_picture_url, open: (a) => (a.user ? `https://www.instagram.com/${encodeURIComponent(a.user.username)}/` : "#settings"), connect: () => "/setup.html#5",
     hint: "Chaque compte Instagram doit être testeur de ton app Meta, avec son propre token (guide d'installation, étape Instagram)." },
 };
 const usedTag = (a) => `<span class="tag">${a.usedFor.map((l) => l.toUpperCase()).join(" · ")}</span>`;
@@ -696,13 +612,10 @@ const toLocalInput = (iso) => { if (!iso) return ""; const d = new Date(iso); re
 
 /* ------------------------------------------------------------------ État */
 let S = null, TT = null;
-/** Réponses brutes du serveur : S et TT n'en gardent que ce qui concerne le mode affiché (Pubs ou Stories). */
+/** Réponses brutes du serveur : S et TT n'en gardent que les stories. */
 let RAW = null, TTRAW = null, TL; // TL : undefined = pas encore chargé, null = /api/tales en erreur
-const sel = new Set();
-const filters = { app: "", kind: "", lang: "", status: "", q: "" };
 const cal = { plat: "", range: "future" };
-let ttFilterVal = "";
-let tab = "today";
+let tab = "tales";
 
 const kindLabel = (v) => v.external ? (v.format === "long" ? "Importée 16:9" : "Importée") : v.kind === "tale" ? "Story" : v.kind === "keynote" ? `Keynote ${v.format === "long" ? "16:9" : "9:16"}` : v.kind === "short" ? "Short" : v.kind === "story" ? "Short narré" : "16:9";
 const isWide = (v) => v.format === "long" || v.kind === "long";
@@ -747,13 +660,6 @@ function timeline() {
 
 /* ------------------------------------------------------------------ Navigation */
 const TABS = [
-  ["today", "Aujourd'hui", "home"],
-  ["calendar", "Calendrier", "cal"],
-  ["library", "Vidéos", "grid"],
-  ["tiktok", "TikTok", "tiktok"],
-  ["settings", "Réglages", "gear"],
-];
-const TABS_ST = [
   ["tales", "Aujourd'hui", "home"],
   ["ideas", "Idées", "bulb"],
   ["stories", "Stories", "film"],
@@ -761,38 +667,16 @@ const TABS_ST = [
   ["settings", "Réglages", "gear"],
 ];
 
-/* ------------------------------------------------------------------ Mode Pubs / Stories (gardé par navigateur) */
-let mode = (() => { try { return localStorage.getItem("mode") === "stories" ? "stories" : "pubs"; } catch { return "pubs"; } })();
-const tabsOf = (m = mode) => (m === "stories" ? TABS_ST : TABS);
+/* ------------------------------------------------------------------ Stories uniquement */
 const isTaleId = (id) => /^tale-/.test(id ?? "");
-/** S et TT filtrés sur le mode : les stories n'apparaissent jamais côté Pubs, et inversement. */
-function applyMode() {
-  const st = mode === "stories";
-  document.body.classList.toggle("m-stories", st);
-  document.querySelectorAll("#modeSeg button").forEach((b) => b.classList.toggle("on", b.dataset.v === mode));
-  if (RAW) S = { ...RAW, videos: RAW.videos.filter((v) => (v.kind === "tale" || isTaleId(v.id)) === st) };
-  if (TTRAW) TT = { ...TTRAW, posts: TTRAW.posts.filter((p) => isTaleId(p.videoId) === st), videos: TTRAW.videos.filter((v) => isTaleId(v.id) === st) };
+/** S et TT filtrés sur les stories : les anciennes vidéos des apps (pubs) restent sur le serveur mais n'apparaissent plus. */
+function applyStories() {
+  if (RAW) S = { ...RAW, videos: RAW.videos.filter((v) => v.kind === "tale" || isTaleId(v.id)) };
+  if (TTRAW) TT = { ...TTRAW, posts: TTRAW.posts.filter((p) => isTaleId(p.videoId)), videos: TTRAW.videos.filter((v) => isTaleId(v.id)) };
 }
-function setMode(m) {
-  if (m === mode) return;
-  mode = m;
-  try { localStorage.setItem("mode", m); } catch {}
-  applyMode();
-  go(tabsOf().some((x) => x[0] === tab) ? tab : tabsOf()[0][0]);
-  refresh();
-}
-$("#modeSeg").onclick = (e) => { const b = e.target.closest("button"); if (b) setMode(b.dataset.v); };
 
 function go(t) {
-  // Un lien vers une page de l'autre mode (#today, #ideas…) bascule de mode
-  const other = mode === "stories" ? "pubs" : "stories";
-  if (!tabsOf().some((x) => x[0] === t) && tabsOf(other).some((x) => x[0] === t)) {
-    mode = other;
-    try { localStorage.setItem("mode", mode); } catch {}
-    applyMode();
-    if (S) refresh();
-  }
-  tab = tabsOf().some((x) => x[0] === t) ? t : tabsOf()[0][0];
+  tab = TABS.some((x) => x[0] === t) ? t : TABS[0][0];
   document.querySelectorAll("main > section").forEach((s) => (s.hidden = s.id !== `tab-${tab}`));
   if (location.hash.slice(1) !== tab) history.replaceState(null, "", `#${tab}`);
   renderAll();
@@ -801,11 +685,8 @@ function go(t) {
 window.addEventListener("hashchange", () => go(location.hash.slice(1)));
 function renderNav() {
   const week = timeline().filter((x) => !x.done && new Date(x.at) > Date.now() && new Date(x.at) < Date.now() + 7 * 864e5).length;
-  const drafts = (TT?.posts ?? []).filter((p) => p.status === "draft" || p.status === "error").length;
-  const counts = mode === "stories"
-    ? { calendar: week, ideas: TL?.ideas.length || "", stories: (TL?.tales ?? []).filter((t) => t.status === "script" || t.status === "error").length || "" }
-    : { calendar: week, library: S.videos.length, tiktok: drafts || "" };
-  setHTML($("#nav"), tabsOf().map(([k, l, i]) => `<a data-go="${k}" class="${tab === k ? "on" : ""}">${ic(i)}${l}${counts[k] ? `<span class="n">${counts[k]}</span>` : ""}</a>`).join(""));
+  const counts = { calendar: week, ideas: TL?.ideas.length || "", stories: (TL?.tales ?? []).filter((t) => t.status === "script" || t.status === "error").length || "" };
+  setHTML($("#nav"), TABS.map(([k, l, i]) => `<a data-go="${k}" class="${tab === k ? "on" : ""}">${ic(i)}${l}${counts[k] ? `<span class="n">${counts[k]}</span>` : ""}</a>`).join(""));
   // Un compte par langue et par réseau ; l'étiquette dit pour quelles langues il publie (« FR · EN » s'il sert aux deux).
   const rows = [];
   for (const [p, n] of Object.entries(NETS)) {
@@ -845,110 +726,14 @@ function renderAlerts() {
   if (!y.hasSecret) a += `<div class="alert">${ic("alert")}<div><b>YouTube n'est pas encore configuré.</b> Suis <code>docs/YOUTUBE_SETUP.md</code> puis place <code>client_secret.json</code> à la racine du projet. Tu peux déjà rendre les vidéos.</div></div>`;
   else if (!y.connected) a += `<div class="alert">${ic("alert")}<div><b>YouTube est déconnecté</b> : les envois sont en pause. <a href="/api/youtube/auth" style="text-decoration:underline">Reconnecter</a></div></div>`;
   if (S.upload.lastError) a += transient(S.upload.lastError) ? `<div class="alert">${ic("clock")}<div>${esc(/quota/i.test(S.upload.lastError) ? S.upload.lastError : "Un envoi YouTube a été interrompu : nouvel essai automatique au prochain passage de l'autopilote.")}</div></div>` : `<div class="alert red">${ic("alert")}<div>${esc(S.upload.lastError)}</div></div>`;
-  if (S.settings.pubsEnabled === false && mode === "pubs") {
-    // Déjà envoyées sur YouTube en privé programmé : c'est YouTube qui les publie, la pause ne les retient pas.
-    const onYt = S.videos.filter((v) => v.youtubeId && !v.published && v.publishAt && new Date(v.publishAt) > Date.now());
-    a += `<div class="alert">${ic("alert")}<div><b>Pubs en pause</b> : rien ne part sur YouTube ni TikTok tant que tu ne les réactives pas (rien n'est supprimé, les stories continuent). À la réactivation, les créneaux passés sont replanifiés.${onYt.length ? ` <b>${onYt.length} pub(s) déjà envoyée(s) sur YouTube sortiront quand même à leur heure</b> (c'est YouTube qui publie) : passe-les en privé dans YouTube Studio pour les retenir.` : ""} <a href="#" data-pubstoggle style="text-decoration:underline">Réactiver les pubs</a></div></div>`;
-  }
   setHTML($("#alerts"), a);
 }
 
-/* ------------------------------------------------------------------ Aujourd'hui */
+/* ------------------------------------------------------------------ Progression d'un rendu */
 function jobProgress(c) {
   if (c.stageIndex < 3) return 0.02 * (c.stageIndex + 1);
   if (c.stageIndex === 3) return 0.06 + c.progress * 0.86;
   return c.stageIndex === 4 ? 0.94 : 0.98;
-}
-
-function renderToday() {
-  const now = Date.now();
-  const d = new Date().toLocaleDateString(LOCALE, { weekday: "long", day: "numeric", month: "long" });
-  $("#todayDate").textContent = d[0].toUpperCase() + d.slice(1);
-  const h = new Date().getHours();
-  const who = S.profile?.ownerName ? ` ${S.profile.ownerName}` : "";
-  $("#hello").textContent = (h < 6 ? "Bonne nuit" : h < 18 ? "Bonjour" : "Bonsoir") + who;
-
-  const all = lots(timeline()); // une sortie = une ligne, même quand elle part sur plusieurs réseaux
-  const upcoming = all.filter((x) => !x.done && new Date(x.at) > now);
-  const week = upcoming.filter((x) => new Date(x.at) < now + 7 * 864e5);
-  const errors = S.videos.filter(isErr).length + (TT?.posts ?? []).filter((p) => p.status === "error").length;
-  const next = upcoming[0];
-  const nextName = next ? (next.plat === "yt" ? next.v.appName : ttTitle(next.p)) : "";
-  const warn = errors || !S.youtube.connected;
-  setHTML($("#hero"), `<div class="ic">${ic(warn ? "alert" : "check")}</div><div><b>${warn ? (errors ? `${errors} élément(s) en erreur à regarder` : "YouTube est déconnecté") : "Tout roule."}</b>
-    <div class="muted">${week.length} sortie(s) prévue(s) ces 7 prochains jours${next ? ` · prochaine : <b style="font-size:inherit">${esc(nextName)}</b> ${rel(next.at)} (${fmtDate(next.at)})` : ""}.</div></div>
-    <div class="spacer"></div><a class="btn sm" href="#calendar">${ic("cal")}Voir le calendrier</a>`);
-  $("#hero").classList.toggle("warn", !!warn);
-
-  // Parcours des vidéos
-  const n = { todo: 0, ready: 0, sched: 0, pub: 0 };
-  S.videos.forEach((v) => n[stageOf(v)]++);
-  const ttSent = (TT?.posts ?? []).filter((p) => p.status === "sent").length;
-  const ttSched = (TT?.posts ?? []).filter((p) => p.status === "scheduled").length;
-  const extra = { sched: ttSched ? `+ ${ttSched} TikTok programmé(s)` : "", pub: ttSent ? `+ ${ttSent} TikTok envoyé(s)` : "" };
-  setHTML($("#pipe"), ["todo", "ready", "sched", "pub"].map((k, i) => `<div class="card stage" data-stage="${k}">
-      <div class="top"><span class="dot" style="background:${STAGE[k].color}"></span>${STAGE[k].label}${k === "pub" ? "s" : k === "sched" ? "s" : k === "ready" ? "s" : ""}</div>
-      <div class="num">${n[k]}</div><div class="desc">${STAGE[k].desc}${extra[k] ? `<br>${extra[k]}` : ""}</div>
-      ${i < 3 ? `<span class="arrow"><svg class="i" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></span>` : ""}</div>`).join(""));
-
-  // En ce moment
-  const c = S.render.current, q = S.render.queue, u = S.upload, avg = S.render.avgSec;
-  const byId = Object.fromEntries(S.videos.map((v) => [v.id, v]));
-  let html = `<div class="card-h"><span class="live ${c.id || u.id ? "" : "off"}"></span><h3>En ce moment</h3><span class="spacer"></span>${q.length ? `<span class="sub">${q.length} en file</span><button class="btn sm ghost" id="cancelQ">Vider la file</button>` : ""}</div>`;
-  if (c.id && byId[c.id]) {
-    const v = byId[c.id], p = jobProgress(c), elapsed = (now - c.startedAt) / 1000;
-    const left = p > 0.1 ? elapsed / p - elapsed : Math.max(0, (avg[v.kind] ?? 150) - elapsed);
-    html += `<div class="job"><img src="${appOf(v.slug).icon}"><div style="min-width:0"><div class="t">Rendu · ${esc(v.title)}</div><div class="note">${esc(v.appName)} · ${kindLabel(v)} · ${v.lang.toUpperCase()} · ${Math.round(v.durationSec)} s</div></div></div>
-      <div class="steps">${S.render.stages.map((st, i) => `<span class="step ${i < c.stageIndex ? "done" : i === c.stageIndex ? "act" : ""}">${i < c.stageIndex ? ic("check", 'style="width:12px;height:12px"') : i === c.stageIndex ? '<span class="spin"></span>' : ""}${st}${i === 3 && i === c.stageIndex ? ` ${Math.round(c.progress * 100)} %` : ""}</span>`).join("")}</div>
-      <div class="bar lg"><i style="width:${p * 100}%;background:var(--accent)"></i></div>
-      <div class="prow"><span>${Math.round(p * 100)} % · depuis ${fmtDur(elapsed)}</span><span>reste ~${fmtDur(left)} · fini vers ${hhmm(now + left * 1000)}</span></div>`;
-  }
-  if (u.id && byId[u.id]) {
-    const v = byId[u.id], done = (u.total ?? 1) - u.queue.length;
-    html += `<div class="job" style="margin-top:${c.id ? 18 : 0}px"><img src="${appOf(v.slug).icon}"><div style="min-width:0"><div class="t">Envoi YouTube · ${esc(v.title)}</div><div class="note">Sortira ${fmtDate(v.publishAt)} · ${done + 1}/${u.total ?? 1} de ce lot</div></div></div>
-      <div class="bar lg"><i style="width:${u.progress * 100}%;background:var(--yt)"></i></div><div class="prow"><span>${Math.round(u.progress * 100)} % envoyé</span><span>${u.queue.length > 1 ? `${u.queue.length - 1} autre(s) après` : "dernière du lot"}</span></div>`;
-  }
-  if (!byId[c.id] && !byId[u.id]) html += `<div class="empty" style="padding:18px 0 8px"><b>Rien ne tourne</b>${S.settings.autopilot ? `L'autopilote repasse ${rel(new Date(S.autopilot.nextRun).toISOString())}.` : "L'autopilote est désactivé (Réglages)."}</div>`;
-  if (q.length) {
-    let t = now + (c.id && byId[c.id] ? Math.max(0, (avg[byId[c.id].kind] ?? 150) - (now - c.startedAt) / 1000) * 1000 : 0);
-    const items = q.map((id) => { const v = byId[id]; t += (avg[v?.kind] ?? 150) * 1000; return { v, end: t }; }).filter((x) => x.v);
-    html += `<div style="margin-top:16px"><div class="card-h" style="margin-bottom:4px"><h3 style="font-size:13px">File de rendu</h3><span class="sub">tout fini vers ${hhmm(t)}${dayKey(t) !== dayKey(now) ? " (demain)" : ""}</span></div>
-      ${items.slice(0, 5).map(({ v, end }) => `<div class="row-item"><img class="appic" src="${appOf(v.slug).icon}"><div class="tt"><b>${esc(v.title)}</b><span>${esc(v.appName)} · ${kindLabel(v)} ${v.lang.toUpperCase()}</span></div><div class="when">~${hhmm(end)}</div></div>`).join("")}
-      ${items.length > 5 ? `<div class="note" style="margin-top:6px">+ ${items.length - 5} autre(s)</div>` : ""}</div>`;
-  }
-  setHTML($("#pNow"), html);
-
-  // Prochaines sorties
-  setHTML($("#pNext"), `<div class="card-h"><h3>Prochaines sorties</h3><span class="spacer"></span><a class="btn sm ghost" href="#calendar">Tout voir</a></div>
-    ${upcoming.slice(0, 8).map(itemRow).join("") || `<div class="empty"><b>Rien de prévu</b>Recalcule le planning dans le Calendrier.</div>`}`);
-
-  // Récemment publiées
-  const recent = all.filter((x) => x.done).reverse().slice(0, 6);
-  setHTML($("#pRecent"), `<div class="card-h"><h3>Déjà publié</h3><span class="spacer"></span><a class="btn sm ghost" data-calpast>Historique</a></div>
-    ${recent.map(itemRow).join("") || `<div class="empty"><b>Encore rien de publié</b>Les premières sorties apparaîtront ici.</div>`}`);
-
-  // Par app
-  setHTML($("#pApps"), `<div class="card-h"><h3>Par app</h3><span class="sub">publiées / total</span></div>
-    ${S.apps.map((a) => {
-      const vs = S.videos.filter((v) => v.slug === a.slug); const N = vs.length || 1;
-      const k = { pub: 0, sched: 0, ready: 0 }; vs.forEach((v) => { const s = stageOf(v); if (s in k) k[s]++; });
-      return `<div class="approw"><img class="appic" src="${a.icon}"><span style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(a.name)}</span>
-        <div class="bar thin"><i style="width:${(k.pub / N) * 100}%;background:var(--c-pub)"></i><i style="width:${(k.sched / N) * 100}%;background:var(--c-sched)"></i><i style="width:${(k.ready / N) * 100}%;background:var(--c-ready)"></i></div><span>${k.pub}/${vs.length}</span></div>`;
-    }).join("")}
-    <div class="legend"><span><i style="background:var(--c-pub)"></i>Publiées</span><span><i style="background:var(--c-sched)"></i>Programmées</span><span><i style="background:var(--c-ready)"></i>Prêtes</span><span><i style="background:var(--track)"></i>À rendre</span></div>`);
-
-  // Autopilote
-  const quota = S.settings.maxUploadsPerDay;
-  setHTML($("#pAuto"), `<div class="card-h"><span class="live ${S.settings.autopilot ? "" : "off"}"></span><h3>Autopilote</h3><span class="spacer"></span><div class="toggle ${S.settings.autopilot ? "on" : ""}" data-autotoggle></div></div>
-    <div class="note">${S.autopilot.lastRun ? `Dernier passage à ${hhmm(S.autopilot.lastRun)}` : "Pas encore passé"} · prochain ${rel(new Date(S.autopilot.nextRun).toISOString())}${S.autopilot.lastSummary ? `<br>${esc(S.autopilot.lastSummary)}` : ""}</div>
-    <div class="prow" style="margin-top:12px"><span style="color:var(--text);font-weight:600">Envois YouTube aujourd'hui</span><span>${S.upload.today}/${quota}</span></div>
-    <div class="bar thin" style="margin-top:6px"><i style="width:${Math.min(1, S.upload.today / quota) * 100}%;background:var(--yt)"></i></div>
-    <div class="note" style="margin-top:6px">${S.upload.today >= quota ? "Quota atteint, reprise demain." : `${quota - S.upload.today} envoi(s) encore possible(s) aujourd'hui.`}</div>`);
-
-  // Journal
-  setHTML($("#pLog"), `<div class="card-h"><h3>Journal</h3></div>` + (S.events.length
-    ? S.events.slice(0, 10).map((e) => `<div class="ev ${e.type}"><span class="t">${hhmm(e.at)}</span><span>${esc(e.msg)}</span></div>`).join("")
-    : `<div class="note">Les événements apparaîtront ici.</div>`));
 }
 
 /** « Aujourd'hui · 18:00 », « Demain · 20:00 », « ven. 30 oct. · 20:00 ». */
@@ -973,7 +758,7 @@ function itemRow(x) {
       <div class="when"><b>${whenLabel(x.at)}</b><span class="rel">${rel(x.at)}</span>${attn(statusOf(v))}</div></${link ? "a" : "div"}>`;
   }
   const p = x.p, th = ttThumb(p);
-  return `<a href="#tiktok" class="row-item">${th ? `<img class="mini" src="${th}">` : `<span class="mini"></span>`}
+  return `<a href="#calendar" class="row-item">${th ? `<img class="mini" src="${th}">` : `<span class="mini"></span>`}
     <div class="tt"><b>${esc(ttTitle(p))}</b><span>${p.type === "photo" ? `Carrousel · ${p.images.length} images` : "Vidéo"}${p.lang ? ` · ${p.lang.toUpperCase()}` : ""}</span></div>
     <div class="when"><b>${whenLabel(x.at)}</b><span class="rel">${rel(x.at)}</span>${attn(TT_ST[p.status] ?? ["todo", p.status])}</div></a>`;
 }
@@ -981,7 +766,6 @@ function itemRow(x) {
 /* ------------------------------------------------------------------ Calendrier */
 function renderCalendar() {
   if ($("#tab-calendar").contains(document.activeElement) && document.activeElement.tagName === "INPUT") return;
-  $("#calSub").textContent = mode === "stories" ? "Les stories qui sortent, sur YouTube, TikTok et Instagram, jour par jour." : "Tout ce qui sort, sur YouTube, TikTok et Instagram, jour par jour.";
   const now = Date.now();
   const all = lots(timeline()).filter((x) => !cal.plat || x.plat === cal.plat || (x.tt && cal.plat === "tt") || (cal.plat === "ig" && igOf(x.tt?.p ?? x.p)));
   // Bandeau 14 jours
@@ -1046,77 +830,21 @@ function calRow(x) {
   return `<div class="ev-row"><span class="time">${hhmm(x.at)}</span>${ig ? `<span class="lot-ic">${platIc("tt")}<i></i>${platIc("ig")}</span>` : platIc("tt")}${th ? `<img class="th v" src="${th}">` : `<span class="th"></span>`}
     <div class="tt"><b>${esc(ttTitle(p))}</b><div class="s">TikTok <span class="tag">${p.type === "photo" ? `Carrousel ${p.images.length}` : "Vidéo"}</span>${p.source ? `<span>${esc(p.source)}</span>` : ""}</div></div>
     ${ig ? `<div class="lot-st"><span class="chip ${ttCls}">${esc(ttLabel)}<span>· TikTok</span></span>${igChip(ig)}</div>` : chip([ttCls, ttLabel])}
-    <div class="acts"><a class="btn sm ghost" href="#tiktok">Modifier</a></div></div>`;
+    <div class="acts"></div></div>`;
 }
 $("#calPlat").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; cal.plat = b.dataset.v; segOn("#calPlat", cal.plat); renderCalendar(); };
 $("#calRange").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; cal.range = b.dataset.v; segOn("#calRange", cal.range); renderCalendar(); };
 const segOn = (sel, v) => document.querySelectorAll(`${sel} button`).forEach((b) => b.classList.toggle("on", b.dataset.v === v));
 
-/* ------------------------------------------------------------------ Bibliothèque */
-function matchKind(v) {
-  if (!filters.kind) return true;
-  if (filters.kind === "external") return !!v.external;
-  if (filters.kind === "long") return v.kind === "long" && !v.external;
-  return v.kind === filters.kind && !v.external;
-}
-function baseFiltered() {
-  const q = filters.q.trim().toLowerCase();
-  return S.videos.filter((v) => (!filters.app || v.slug === filters.app) && matchKind(v) && (!filters.lang || v.lang === filters.lang) && (!q || `${v.title} ${v.appName}`.toLowerCase().includes(q)));
-}
 /** Coupure réseau / quota : l'autopilote retente tout seul, ce n'est pas une vraie erreur. */
 const transient = (msg) => /quota|EPIPE|ECONNRESET|ETIMEDOUT|socket|network|uploadLimitExceeded|rateLimit/i.test(msg ?? "");
 const isErr = (v) => (v.renderError && !v.rendered) || (v.uploadError && !v.youtubeId && !transient(v.uploadError));
-function filtered() {
-  return baseFiltered().filter((v) => !filters.status || (filters.status === "err" ? isErr(v) : stageOf(v) === filters.status));
-}
-function vcard(v) {
-  const app = appOf(v.slug), st = statusOf(v);
-  const prog = S.render.current.id === v.id ? jobProgress(S.render.current) : S.upload.id === v.id ? S.upload.progress : 0;
-  const cover = v.thumb ? `<img class="cover" loading="lazy" src="/out/${v.id}.jpg${bust(v)}" onerror="this.remove()">`
-    : `<div class="ph"><img src="${app.icon}">${kindLabel(v)} · ${Math.round(v.durationSec)} s</div>`;
-  const date = v.published ? `${ic("check")}Publiée ${fmtDate(v.publishAt)}` : v.youtubeId ? `${ic("clock")}Sort ${fmtDate(v.publishAt)}` : v.publishAt ? `${ic("cal")}Créneau prévu ${fmtDate(v.publishAt)}` : `${ic("cal")}Pas encore planifiée`;
-  return `<div class="vc ${v.paused ? "paused" : ""} ${isWide(v) ? "wide" : ""} ${sel.has(v.id) ? "sel" : ""}">
-    <div class="th" data-play="${v.rendered ? v.id : ""}" style="${v.rendered ? "" : `background:radial-gradient(circle at 50% 40%, ${v.color}66, #0b0b0e 75%)`}">${cover}${v.rendered ? `<div class="play"><svg class="i" viewBox="0 0 24 24">${P.play}</svg></div>` : ""}
-      <div class="tl">${chip(st)}<span class="lang">${v.lang.toUpperCase()}</span></div>
-      <input type="checkbox" class="chk" data-sel="${v.id}" ${sel.has(v.id) ? "checked" : ""} onclick="event.stopPropagation()">
-      ${prog ? `<div class="prog" style="width:${prog * 100}%"></div>` : ""}
-    </div>
-    <div class="body">
-      <div class="vapp"><img src="${app.icon}">${esc(v.appName)}<span class="tag">${kindLabel(v)}</span></div>
-      <div class="title">${esc(v.title)}</div>
-      <div class="date">${date}</div>
-      ${isErr(v) ? `<div class="errtxt">${esc((v.renderError || v.uploadError).slice(0, 140))}</div>` : ""}
-      <div class="acts">
-        ${!v.rendered && !v.youtubeId ? `<button class="btn sm" data-render="${v.id}">${ic("bolt")}Rendre</button>` : ""}
-        ${v.rendered && !v.youtubeId ? `<button class="btn sm yt" data-upload="${v.id}" ${S.youtube.connected ? "" : "disabled"}>${ic("up")}YouTube</button>` : ""}
-        ${v.youtubeId ? `<a class="btn sm" target="_blank" href="${v.published ? `https://youtu.be/${v.youtubeId}` : `https://studio.youtube.com/video/${v.youtubeId}/edit`}">${ic("ext")}${v.published ? "Voir" : "Studio"}</a>` : ""}
-        <span class="spacer"></span>
-        ${v.rendered && !v.youtubeId ? `<button class="btn sm icon ghost" data-render="${v.id}" title="Re-rendre">${ic("redo")}</button>` : ""}
-        ${v.youtubeId ? `<button class="btn sm icon ghost" data-unlink="${v.id}" title="Supprimée dans YouTube Studio ? La plateforme la re-rend et la reprogramme.">${ic("trash")}</button>` : ""}
-      </div>
-    </div></div>`;
-}
-function renderLibrary() {
-  const base = baseFiltered();
-  const cnt = { "": base.length, todo: 0, ready: 0, sched: 0, pub: 0, err: 0 };
-  base.forEach((v) => { cnt[stageOf(v)]++; if (isErr(v)) cnt.err++; });
-  setHTML($("#fStatus"), [["", "Toutes"], ["todo", "À rendre"], ["ready", "Prêtes"], ["sched", "Programmées"], ["pub", "Publiées"], ["err", "Erreurs"]]
-    .filter(([k]) => k !== "err" || cnt.err).map(([k, l]) => `<button data-v="${k}" class="${filters.status === k ? "on" : ""}">${k && k !== "err" ? `<span class="chip ${STAGE[k].cls}" style="padding:0;background:none"></span>` : ""}${l}<span class="n">${cnt[k]}</span></button>`).join(""));
-  setHTML($("#appFilter"), `<button class="all ${filters.app ? "" : "on"}" data-app="" style="--c:var(--accent)">Toutes les apps</button>` +
-    S.apps.map((a) => `<button class="${filters.app === a.slug ? "on" : ""}" data-app="${a.slug}" style="--c:${a.color}"><img src="${a.icon}">${esc(a.name)}</button>`).join(""));
-  const list = filtered();
-  setHTML($("#grid"), list.map(vcard).join("") || `<div class="card empty" style="grid-column:1/-1"><b>Aucune vidéo</b>Change les filtres.</div>`);
-  $("#grid").classList.toggle("selecting", sel.size > 0);
-  $("#bulk").hidden = sel.size === 0;
-  $("#bulkN").textContent = `${sel.size} sélectionnée(s)`;
-  $("#uploadSel").disabled = !S.youtube.connected;
-}
-$("#fStatus").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; filters.status = b.dataset.v; renderLibrary(); };
-$("#fLang").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; filters.lang = b.dataset.v; segOn("#fLang", filters.lang); renderLibrary(); };
-$("#fKind").onchange = (e) => { filters.kind = e.target.value; renderLibrary(); };
-$("#fSearch").oninput = (e) => { filters.q = e.target.value; renderLibrary(); };
-
 /* ------------------------------------------------------------------ Réglages */
+/** Bento : chaque carte occupe autant de rangées de 1 px que sa hauteur (+ 16 px d'écart), recalculé dès qu'elle change de taille. */
+const bentoRO = new ResizeObserver((entries) => {
+  for (const e of entries) e.target.style.gridRowEnd = `span ${Math.ceil(e.target.getBoundingClientRect().height) + 16}`;
+});
+document.querySelectorAll(".settings > .card").forEach((c) => bentoRO.observe(c));
 let STO = null;
 const renderStorage = (msg) => {
   if (!STO) return;
@@ -1141,7 +869,6 @@ void loadStorage();
 function renderSettings() {
   document.querySelectorAll("[data-s]").forEach((el) => { if (document.activeElement !== el) el.value = S.settings[el.dataset.s]; });
   $("#autoToggle").classList.toggle("on", !!S.settings.autopilot);
-  for (const id of ["#pubsToggle", "#pubsToggle2"]) $(id).classList.toggle("on", S.settings.pubsEnabled !== false);
   $("#taleTtToggle").classList.toggle("on", !!S.settings.taleAutoTikTok);
   $("#taleFrToggle").classList.toggle("on", S.settings.taleFrench !== false);
   const y = S.youtube;
@@ -1157,216 +884,36 @@ function renderSettings() {
     ${t.configured ? "" : `<p class="note">Remplis <code>data/tiktok-config.json</code> (guide : <code>docs/TIKTOK_SETUP.md</code>).</p>`}`);
   const g = TT?.instagram;
   if (g) {
-    const s = g.status, on = (v) => (g.settings.scope === v ? "on" : "");
+    const s = g.status;
     setHTML($("#igBox"), `${s.accounts ? accountRows("ig") : ""}
       ${s.lastError ? `<p class="note" style="color:var(--c-err)">${esc(s.lastError)}</p>` : ""}
-      <div class="field"><label>Publier les Reels (auto)</label><div class="toggle ${g.settings.enabled ? "on" : ""}" data-igtoggle></div></div>
-      <div class="field"><label>Quels posts</label><div class="seg" data-igscope><button data-v="tales" class="${on("tales")}">Stories</button><button data-v="all" class="${on("all")}">Tout</button></div></div>
-      <p class="note">Chaque post vidéo TikTok concerné est publié en Reel à la même heure, directement (pas de brouillon). La plateforme doit tourner à ce moment-là. Seuls les posts prévus après l'activation partent. Les carrousels photo restent sur TikTok.</p>
-      ${s.configured ? `<button class="btn sm" data-igrefresh style="margin-top:8px">Vérifier la connexion</button>` : `<p class="note">Ajoute ton compte depuis le <a href="/setup.html#7" style="text-decoration:underline">guide d'installation</a> (étape Instagram).</p>`}`);
+      <p class="note">Avec l'autopilote, chaque story part aussi en Reel à la même heure que sur TikTok, directement (pas de brouillon). La plateforme doit tourner à ce moment-là.</p>
+      ${s.configured ? `<button class="btn sm" data-igrefresh style="margin-top:8px">Vérifier la connexion</button>` : `<p class="note">Ajoute ton compte depuis le <a href="/setup.html#5" style="text-decoration:underline">guide d'installation</a> (étape Instagram).</p>`}`);
   }
 }
 
-/** Ligne Instagram d'un post vidéo TikTok : publié, en attente, erreur… */
-function igLine(p) {
-  const g = TT.instagram;
-  if (p.type !== "video" || !g?.status.configured) return "";
-  const it = g.items[p.id], btn = (label) => `<button class="btn sm ghost" data-igpub="${p.id}">${label}</button>`;
-  const line =
-    it?.status === "published" ? `${chip(["pub", it.manual ? "Publié à la main" : "Reel publié"])}${it.permalink ? `<a href="${esc(it.permalink)}" target="_blank" rel="noopener" style="text-decoration:underline">Voir</a>` : ""}`
-    : it?.status === "publishing" ? `<span class="spin"></span>Publication en cours…`
-    : it?.status === "waiting" ? `${chip(["work", "En attente"])}<span class="note">${esc(it.error ?? "")} Nouvel essai ${rel(it.retryAt)}.</span>`
-    : it?.status === "error" ? `${chip(["err", "Erreur"])}${btn("Réessayer")}<button class="btn sm ghost" data-igskip="${p.id}">Ignorer</button>`
-    : it?.status === "skipped" ? `${chip(["todo", "Ignoré"])}${btn("Publier quand même")}`
-    : g.pending.includes(p.id) ? `${chip(["sched", "Reel à la même heure"])}`
-    : g.status.connected ? btn("Publier sur Instagram") : "";
-  if (!line) return "";
-  return `<div class="igline">${platIc("ig")}${line}</div>${it?.status === "error" ? `<div class="note" style="color:var(--c-err)">Instagram : ${esc(it.error)}</div>` : ""}`;
-}
 document.body.addEventListener("click", async (e) => {
-  const t = e.target.closest("[data-igtoggle],[data-igscope] button,[data-igrefresh],[data-igpub],[data-igskip]"); if (!t) return;
-  const g = TT.instagram.settings;
-  if (t.matches("[data-igtoggle]")) {
-    if (!g.enabled && !confirm("Publier automatiquement les Reels sur Instagram ? Chaque post vidéo TikTok concerné sera publié publiquement à son heure, sans validation dans l'app.")) return;
-    await api("/api/instagram/settings", { enabled: !g.enabled }, "PATCH");
-  }
-  if (t.closest("[data-igscope]")) await api("/api/instagram/settings", { scope: t.dataset.v }, "PATCH");
-  if (t.dataset.igrefresh !== undefined) { t.innerHTML = `<span class="spin"></span>Vérification…`; await api("/api/instagram/refresh", {}); }
-  if (t.dataset.igpub) {
-    if (!confirm("Publier ce Reel sur Instagram maintenant ? Il sera public tout de suite.")) return;
-    const r = await api(`/api/instagram/posts/${t.dataset.igpub}/publish`, {});
-    if (r.error) alert(r.error);
-  }
-  if (t.dataset.igskip) await api(`/api/instagram/posts/${t.dataset.igskip}/skip`, {});
+  const t = e.target.closest("[data-igrefresh]"); if (!t) return;
+  t.innerHTML = `<span class="spin"></span>Vérification…`;
+  await api("/api/instagram/refresh", {});
   refreshTikTok();
 });
 
 /* ------------------------------------------------------------------ Dock (progression hors page Aujourd'hui) */
 function renderDock() {
-  const c = S.render.current, q = S.render.queue, u = S.upload, j = mode === "stories" ? TL?.job : null;
-  if ((!c.id && !q.length && !u.id && !j) || tab === "today" || tab === "tales") { $("#dock").style.display = "none"; return; }
+  const c = S.render.current, q = S.render.queue, u = S.upload, j = TL?.job;
+  if ((!c.id && !q.length && !u.id && !j) || tab === "tales") { $("#dock").style.display = "none"; return; }
   $("#dock").style.display = "block";
   const v = S.videos.find((x) => x.id === c.id), uv = S.videos.find((x) => x.id === u.id);
   setHTML($("#dock"), `
     ${j ? `<div style="display:flex;gap:8px;align-items:center;font-weight:600;font-size:13px"><span class="spin" style="color:var(--accent)"></span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(jobTitle(j))}</span></div><div class="note" style="margin-bottom:${c.id || q.length || u.id ? 12 : 0}px">${esc(j.stage ?? "")}</div>` : ""}
     ${v ? `<div style="display:flex;gap:8px;align-items:center;font-weight:600;font-size:13px"><span class="spin" style="color:var(--accent)"></span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(v.title)}</span><span class="note">${Math.round(jobProgress(c) * 100)} %</span></div><div class="bar thin" style="margin:8px 0 4px"><i style="width:${jobProgress(c) * 100}%;background:var(--accent)"></i></div><div class="note">${esc(c.stage)}${q.length ? ` · ${q.length} en file` : ""}</div>` : q.length ? `<div class="note">${q.length} vidéo(s) en file de rendu</div>` : ""}
     ${uv ? `<div style="margin-top:${v ? 12 : 0}px;font-weight:600;font-size:13px">Envoi YouTube · ${esc(uv.title)}</div><div class="bar thin" style="margin-top:8px"><i style="width:${u.progress * 100}%;background:var(--yt)"></i></div>` : ""}
-    <a class="btn sm ghost" href="#${mode === "stories" ? "tales" : "today"}" style="margin-top:8px">Détails</a>`);
+    <a class="btn sm ghost" href="#tales" style="margin-top:8px">Détails</a>`);
 }
 
 /* ------------------------------------------------------------------ TikTok */
-const CONF = { high: ["pub", "Association sûre"], medium: ["work", "À jeter un œil"], low: ["err", "À vérifier"], none: ["err", "Sans légende"] };
-
-function renderTikTokStatus() {
-  const st = TT.status;
-  setHTML($("#ttStatus"), st.connected
-    ? `<div class="conn">${avatar(st.user?.avatar_url, "tt")}<span class="lbl">${esc(st.user?.display_name ?? "Compte connecté")}</span><span class="st ${st.hosting ? "" : "off"}" title="${st.hosting ? "Hébergement des images OK" : "Hébergement des images non configuré"}"></span></div>`
-    : st.configured ? `<a class="btn primary" href="/api/tiktok/auth">Connecter mon TikTok</a>` : `<a class="btn" href="#settings">Configurer TikTok</a>`);
-  setHTML($("#ttAlert"), st.lastError ? `<div class="alert red">${ic("alert")}<div>${esc(st.lastError)}</div></div>` : "");
-  const s = $("#ttVideoSel");
-  if (document.activeElement !== s) setHTML(s, `<option value="">Ajouter une vidéo rendue…</option>` + TT.videos.map((v) => `<option value="${v.id}">${esc(v.appName)} · ${v.lang.toUpperCase()} · ${esc(v.title.slice(0, 60))}</option>`).join(""));
-  const cnt = { "": TT.posts.length, draft: 0, scheduled: 0, sent: 0, error: 0 };
-  TT.posts.forEach((p) => { if (p.status in cnt) cnt[p.status]++; });
-  setHTML($("#ttFilter"), [["", "Tous"], ["draft", "Brouillons"], ["scheduled", "Programmés"], ["sent", "Envoyés"], ["error", "Erreurs"]]
-    .filter(([k]) => k !== "error" || cnt.error).map(([k, l]) => `<button data-v="${k}" class="${ttFilterVal === k ? "on" : ""}">${l}<span class="n">${cnt[k]}</span></button>`).join(""));
-}
-
-function ttCard(p) {
-  const locked = p.status === "sent" || p.status === "sending";
-  const media = p.type === "photo"
-    ? `<div class="imgs">${p.images.map((im, i) => `<div class="im"><img src="/tiktok-media/${p.id}/${im}"><span class="n">${i + 1}</span>${locked ? "" : `<button data-ttdelimg="${p.id}" data-name="${im}" title="Retirer">×</button>`}</div>`).join("")}
-        ${locked || p.images.length >= 35 ? "" : `<label class="imgdrop" data-ttimgdrop="${p.id}"><input type="file" accept="image/*" multiple hidden data-ttimginput="${p.id}">＋<br>Glisse tes images</label>`}</div>
-       <div class="note">${p.images.length}/35 images · la 1re sert de couverture</div>`
-    : !p.videoId && p.videoFile ? `<video src="/tiktok-media/${p.id}/${p.videoFile.split("/").pop()}" muted controls preload="metadata" style="width:150px;border-radius:10px;background:#000"></video>`
-    : `<select data-ttvideo="${p.id}" ${locked ? "disabled" : ""}>${TT.videos.map((v) => `<option value="${v.id}" ${v.id === p.videoId ? "selected" : ""}>${esc(v.appName)} · ${v.lang.toUpperCase()} · ${esc(v.title.slice(0, 50))}</option>`).join("")}</select>
-       ${p.videoId ? `<video src="/out/${p.videoId}.mp4" muted controls preload="metadata" style="width:150px;border-radius:10px;background:#000"></video>` : ""}`;
-  return `<div class="card ttcard ${p.status === "sent" ? "done" : ""}" data-ttid="${p.id}">
-    <div class="row"><span class="tag">${p.type === "photo" ? "Carrousel" : "Vidéo"}</span>${p.lang ? `<span class="tag">${p.lang.toUpperCase()}</span>` : ""}${chip(TT_ST[p.status] ?? ["todo", p.status])}${p.match ? `<span class="chip ${CONF[p.match.confidence][0]}" title="${esc(p.match.reasons.join(" · "))}">${CONF[p.match.confidence][1]}</span>` : ""}<span class="spacer"></span><button class="btn sm icon ghost" data-ttdel="${p.id}" title="Supprimer">${ic("trash")}</button></div>
-    ${p.source ? `<div class="note" style="margin-top:-4px">${esc(p.source)}</div>` : ""}
-    <input type="text" placeholder="Titre (90 caractères max)" value="${esc(p.title)}" data-ttfield="title" maxlength="90" ${locked ? "disabled" : ""}>
-    <div class="count ${p.title.length > 90 ? "over" : ""}">${p.title.length}/90</div>
-    <textarea placeholder="Description + hashtags" data-ttfield="description" ${locked ? "disabled" : ""}>${esc(p.description)}</textarea>
-    <div class="count ${p.description.length > 4000 ? "over" : ""}">${p.description.length}/4000</div>
-    ${media}
-    <div class="row">${ic("cal")}<input type="datetime-local" value="${toLocalInput(p.publishAt)}" data-ttdate="${p.id}" ${locked ? "disabled" : ""}>
-      <span class="spacer"></span>${locked ? "" : `<button class="btn sm" data-ttsend="${p.id}" ${TT.status.connected ? "" : "disabled"}>${ic("send")}Envoyer maintenant</button>`}</div>
-    ${p.waiting ? `<div class="note" style="color:var(--c-work)">${esc(p.waiting)} Nouvel essai ${rel(p.retryAt)}.</div>` : ""}
-    ${p.error ? `<div class="note" style="color:var(--c-err)">${esc(p.error)}</div>` : ""}
-    ${p.sentAt ? `<div class="note">Envoyé ${fmtDate(p.sentAt)} : termine la publication dans l'app TikTok.</div>` : ""}
-    ${igLine(p)}
-  </div>`;
-}
-
-function renderTikTok() {
-  if (!TT) return;
-  renderTikTokStatus();
-  renderWatch();
-  setHTML($("#ttSlots"), slotsTxt());
-  if ($("#tab-tiktok").contains(document.activeElement) && document.activeElement.closest(".ttcard")) return; // ne pas écraser une saisie
-  const list = TT.posts.filter((p) => !ttFilterVal || p.status === ttFilterVal);
-  // À venir en haut (erreurs puis prochain envoi d'abord), déjà envoyés en bas, grisés, du plus récent au plus ancien
-  const rank = (p) => (p.status === "error" ? 0 : p.status === "sending" ? 1 : p.status === "scheduled" ? 2 : 3);
-  const todo = list.filter((p) => p.status !== "sent").sort((a, b) => rank(a) - rank(b) || (a.publishAt ?? "9").localeCompare(b.publishAt ?? "9"));
-  const done = list.filter((p) => p.status === "sent").sort((a, b) => (b.sentAt ?? "").localeCompare(a.sentAt ?? ""));
-  const html = todo.map(ttCard).join("") + (done.length ? `<div class="ttsep">${ic("check")}Déjà envoyés · ${done.length}</div>${done.map(ttCard).join("")}` : "");
-  setHTML($("#ttPosts"), html || `<div class="card empty" style="grid-column:1/-1"><b>Aucun post</b>Glisse un dossier ou des fichiers .md ci-dessus, ou crée un carrousel.</div>`);
-}
-$("#ttFilter").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; ttFilterVal = b.dataset.v; renderTikTok(); };
-
-async function refreshTikTok() { TTRAW = await ttApi("/api/tiktok"); applyMode(); renderTikTok(); if (S) { renderNav(); renderSettings(); } }
-
-/** Parcourt les dossiers déposés (glisser-déposer) et renvoie [{file, path}]. */
-async function collectEntries(dt) {
-  const out = [];
-  const walk = (entry, prefix) => new Promise((resolve) => {
-    if (entry.isFile) entry.file((f) => { out.push({ file: f, path: prefix + f.name }); resolve(); });
-    else if (entry.isDirectory) {
-      const r = entry.createReader();
-      const all = [];
-      const read = () => r.readEntries(async (ents) => { if (!ents.length) { for (const e of all) await walk(e, prefix + entry.name + "/"); resolve(); } else { all.push(...ents); read(); } });
-      read();
-    } else resolve();
-  });
-  const items = [...(dt.items ?? [])].map((i) => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean);
-  if (items.length) { for (const e of items) await walk(e, ""); }
-  else for (const f of dt.files) out.push({ file: f, path: f.webkitRelativePath || f.name });
-  return out.filter((x) => /\.(md|markdown|txt|png|jpe?g|webp|heic)$/i.test(x.path) && !x.path.split("/").some((p) => p.startsWith(".")));
-}
-function renderReport(r) {
-  if (!r) { $("#ttReport").innerHTML = ""; return; }
-  $("#ttReport").innerHTML = `<div class="card pad report"><div class="card-h">${ic("sparkle")}<h3>Rapport d'import</h3><span class="sub">${r.report.length} carrousel(s) · ${r.captions} légende(s)${r.order?.length ? ` · ordre conseillé ${r.order.join(" → ")}` : ""}</span><span class="spacer"></span><button class="btn sm ghost" onclick="renderReport(null)">Fermer</button></div>
-    ${r.report.map((x) => `<div class="row-item">${chip(CONF[x.confidence])}<div class="tt"><b>${x.images} image(s) → ${esc(x.caption ?? "aucune légende trouvée")}</b><span title="${esc(x.reasons.join(" · "))}">${esc((x.reasons[0] ?? "").slice(0, 120))}</span></div></div>`).join("")}
-    ${r.unusedCaptions?.length ? `<div class="note" style="margin-top:8px">Légendes sans images : ${r.unusedCaptions.map(esc).join(", ")}</div>` : ""}
-    <div class="note" style="margin-top:8px">Les carrousels sont créés en brouillon : vérifie ceux marqués « À vérifier », puis programme-les.</div></div>`;
-}
-async function importMdFiles(files) {
-  const list = files.map((f) => (f.file ? f : { file: f, path: f.webkitRelativePath || f.name }));
-  if (!list.length) return alert("Aucun .md ni image dans ce dépôt.");
-  const nImg = list.filter((x) => !/\.(md|markdown|txt)$/i.test(x.path)).length;
-  $("#importProgress").innerHTML = `<span class="spin" style="display:inline-block;vertical-align:-2px;color:var(--accent)"></span> Analyse de ${nImg} image(s) et ${list.length - nImg} texte(s)… (jusqu'à 1 min si l'IA doit trancher)`;
-  const fd = new FormData();
-  list.forEach((x) => fd.append("files", x.file, x.file.name));
-  fd.append("paths", JSON.stringify(list.map((x) => x.path)));
-  const r = await fetch("/api/tiktok/smart-import", { method: "POST", body: fd }).then((x) => x.json());
-  $("#importProgress").textContent = r.error ? `Erreur : ${r.error}` : `${r.report.length} carrousel(s) créé(s)`;
-  renderReport(r.error ? null : r);
-  refreshTikTok();
-}
-async function uploadImages(id, files) {
-  const fd = new FormData();
-  [...files].filter((f) => f.type.startsWith("image/")).forEach((f) => fd.append("images", f));
-  await fetch(`/api/tiktok/posts/${id}/images`, { method: "POST", body: fd });
-  refreshTikTok();
-}
-
-const mdDrop = $("#mdDrop");
-mdDrop.addEventListener("dragover", (e) => { e.preventDefault(); mdDrop.classList.add("over"); });
-mdDrop.addEventListener("dragleave", () => mdDrop.classList.remove("over"));
-mdDrop.addEventListener("drop", async (e) => { e.preventDefault(); mdDrop.classList.remove("over"); importMdFiles(await collectEntries(e.dataTransfer)); });
-$("#mdInput").addEventListener("change", (e) => importMdFiles([...e.target.files]));
-$("#ttAuto").innerHTML = `${ic("cal")}Programmer tous les brouillons`;
-$("#ttAuto").onclick = async () => { const r = await ttApi("/api/tiktok/auto-schedule", {}); alert(`${r.scheduled} brouillon(s) programmé(s) sur les prochains créneaux libres.`); refreshTikTok(); };
-const slotsTxt = () => `Créneaux : FR ${TT.settings.frTimes.join(" · ")} — EN ${TT.settings.enTimes.join(" · ")} (Réglages)`;
-function renderWatch() {
-  const w = TT.watch, st = TT.settings;
-  const r = w.lastResult;
-  setHTML($("#ttWatch"), `<div class="card-h"><span class="live ${st.watch ? "" : "off"}"></span><h3>Dossier surveillé</h3><span class="sub"><code>${esc(w.dir.replace(/^\/Users\/[^/]+/, "~"))}</code></span><span class="spacer"></span>
-      <div class="toggle ${st.watch ? "on" : ""}" data-ttwatch title="Analyse automatique toutes les 2 minutes"></div>
-      <button class="btn sm" id="ttScan" ${w.running ? "disabled" : ""}>${w.running ? '<span class="spin"></span>Analyse…' : `${ic("redo")}Analyser maintenant`}</button></div>
-    <div class="note">Dépose un dossier (images en sous-dossiers <code>fr/</code> <code>en/</code>, vidéos, fichier de légendes) : il est analysé, chaque carrousel reçoit sa légende (celle du fichier, sinon écrite par l'IA), tout est programmé sur les créneaux libres et le dossier part dans <b>Programmés</b>.</div>
-    <div class="note" style="margin-top:6px">💡 Tu peux demander à Claude de créer tes carrousels <b>et de les déposer directement dans ce dossier</b> — <a href="/setup.html#6" style="color:var(--accent)">prompt prêt à copier</a> · <a href="#" data-openwatch style="color:var(--accent)">ouvrir le dossier</a></div>
-    ${w.running ? `<div class="row-item" style="margin-top:10px"><span class="spin" style="color:var(--accent)"></span><div class="tt"><b>${esc(w.current ?? "")}</b><span>${esc(w.step)}</span></div></div>` : ""}
-    ${w.pending.length ? w.pending.map((b) => `<div class="row-item">${ic("folder")}<div class="tt"><b>${esc(b.name)}</b><span>${b.media} fichier(s)</span></div>${chip(b.stable ? ["work", "Prêt à analyser"] : ["todo", "Copie en cours…"])}</div>`).join("") : ""}
-    ${r ? `<div class="note" style="margin-top:10px">Dernière analyse ${rel(r.at)} : ${r.results.map((x) => x.error ? `<span style="color:var(--c-err)">${esc(x.batch)} : ${esc(x.error)}</span>` : `<b>${esc(x.batch)}</b> → ${x.posts} post(s)${x.ai ? ` (${x.ai} légende(s) IA)` : ""}`).join(" · ")}</div>` : ""}`);
-}
-document.body.addEventListener("click", async (e) => {
-  if (e.target.closest("#ttScan")) { await ttApi("/api/tiktok/watch/scan", {}); setTimeout(refreshTikTok, 500); }
-  if (e.target.closest("[data-openwatch]")) { e.preventDefault(); await ttApi("/api/setup/watch-folder", {}); await ttApi("/api/setup/open-folder", {}); }
-  if (e.target.closest("[data-ttwatch]")) { await ttApi("/api/tiktok/settings", { watch: !TT.settings.watch }, "PATCH"); refreshTikTok(); }
-});
-$("#ttNewPhoto").onclick = async () => { await ttApi("/api/tiktok/posts", { type: "photo", title: "", description: "" }); ttFilterVal = ""; refreshTikTok(); };
-$("#ttNewVideo").onclick = async () => { const id = $("#ttVideoSel").value; if (!id) return alert("Choisis d'abord une vidéo."); await ttApi("/api/tiktok/from-video", { videoId: id }); refreshTikTok(); };
-const ttPosts = $("#ttPosts");
-ttPosts.addEventListener("dragover", (e) => { const z = e.target.closest("[data-ttimgdrop]"); if (z) { e.preventDefault(); z.classList.add("over"); } });
-ttPosts.addEventListener("dragleave", (e) => { const z = e.target.closest("[data-ttimgdrop]"); if (z) z.classList.remove("over"); });
-ttPosts.addEventListener("drop", (e) => { const z = e.target.closest("[data-ttimgdrop]"); if (z) { e.preventDefault(); uploadImages(z.dataset.ttimgdrop, e.dataTransfer.files); } });
-ttPosts.addEventListener("change", async (e) => {
-  const t = e.target, card = t.closest(".ttcard"); if (!card) return;
-  const id = card.dataset.ttid;
-  if (t.dataset.ttimginput) return uploadImages(id, t.files);
-  if (t.dataset.ttfield) await ttApi(`/api/tiktok/posts/${id}`, { [t.dataset.ttfield]: t.value }, "PATCH");
-  if (t.dataset.ttdate) await ttApi(`/api/tiktok/posts/${id}`, { publishAt: t.value ? new Date(t.value).toISOString() : null }, "PATCH");
-  if (t.dataset.ttvideo) await ttApi(`/api/tiktok/posts/${id}`, { videoId: t.value, videoFile: null }, "PATCH");
-  t.blur(); refreshTikTok();
-});
-ttPosts.addEventListener("input", (e) => { const t = e.target; if (t.dataset.ttfield) { const c = t.nextElementSibling; const max = t.dataset.ttfield === "title" ? 90 : 4000; c.textContent = `${t.value.length}/${max}`; c.classList.toggle("over", t.value.length > max); } });
-ttPosts.addEventListener("click", async (e) => {
-  const t = e.target.closest("[data-ttdel],[data-ttsend],[data-ttdelimg]"); if (!t) return;
-  if (t.dataset.ttdel) { if (!confirm("Supprimer ce post TikTok ?")) return; await ttApi(`/api/tiktok/posts/${t.dataset.ttdel}`, null, "DELETE"); }
-  if (t.dataset.ttsend) { if (!confirm("Envoyer ce brouillon dans ta boîte TikTok maintenant ?")) return; await ttApi(`/api/tiktok/posts/${t.dataset.ttsend}/send`, {}); }
-  if (t.dataset.ttdelimg) { const p = TT.posts.find((x) => x.id === t.dataset.ttdelimg); await ttApi(`/api/tiktok/posts/${p.id}`, { images: p.images.filter((x) => x !== t.dataset.name) }, "PATCH"); }
-  refreshTikTok();
-});
+async function refreshTikTok() { TTRAW = await ttApi("/api/tiktok"); applyStories(); if (S) renderAll(); }
 
 /* ------------------------------------------------------------------ Lecteur */
 function openPlayer(id) {
@@ -1518,8 +1065,43 @@ function renderTalesToday() {
   setHTML($("#tNext"), `<div class="card-h"><h3>Prochaines sorties</h3><span class="spacer"></span><a class="btn sm ghost" href="#calendar">Calendrier</a></div>
     ${upcoming.slice(0, 8).map(itemRow).join("") || `<div class="empty"><b>Aucune story programmée</b>Les stories validées et rendues prennent le prochain créneau.</div>`}`);
   const recent = all.filter((x) => x.done).reverse().slice(0, 6);
-  setHTML($("#tRecent"), `<div class="card-h"><h3>Déjà publié</h3></div>
+  setHTML($("#tRecent"), `<div class="card-h"><h3>Déjà publié</h3><span class="spacer"></span><a class="btn sm ghost" data-calpast>Historique</a></div>
     ${recent.map(itemRow).join("") || `<div class="empty"><b>Encore rien de publié</b>Les premières stories apparaîtront ici.</div>`}`);
+
+  // Bilan : tout roule, ou ce qui demande un coup d'œil
+  const week = upcoming.filter((x) => new Date(x.at) < now + 7 * 864e5);
+  const errors = S.videos.filter(isErr).length + (TT?.posts ?? []).filter((p) => p.status === "error").length;
+  const next = upcoming[0];
+  const nextName = next ? (next.plat === "yt" ? next.v.title : ttTitle(next.p)) : "";
+  const warn = errors || !S.youtube.connected;
+  setHTML($("#hero"), `<div class="ic">${ic(warn ? "alert" : "check")}</div><div><b>${warn ? (errors ? `${errors} élément(s) en erreur à regarder` : "YouTube est déconnecté") : "Tout roule."}</b>
+    <div class="muted">${week.length} sortie(s) prévue(s) ces 7 prochains jours${next ? ` · prochaine : <b style="font-size:inherit">${esc(nextName)}</b> ${rel(next.at)} (${fmtDate(next.at)})` : ""}.</div></div>
+    <div class="spacer"></div><a class="btn sm" href="#calendar">${ic("cal")}Voir le calendrier</a>`);
+  $("#hero").classList.toggle("warn", !!warn);
+
+  // Par app (les stories sont rattachées à Where'd Gains Go?)
+  const apps = S.apps.filter((a) => S.videos.some((v) => v.slug === a.slug));
+  setHTML($("#pApps"), `<div class="card-h"><h3>Par app</h3><span class="sub">publiées / total</span></div>
+    ${apps.map((a) => {
+      const vs = S.videos.filter((v) => v.slug === a.slug); const N = vs.length || 1;
+      const k = { pub: 0, sched: 0, ready: 0 }; vs.forEach((v) => { const s = stageOf(v); if (s in k) k[s]++; });
+      return `<div class="approw"><img class="appic" src="${a.icon}"><span style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(a.name)}</span>
+        <div class="bar thin"><i style="width:${(k.pub / N) * 100}%;background:var(--c-pub)"></i><i style="width:${(k.sched / N) * 100}%;background:var(--c-sched)"></i><i style="width:${(k.ready / N) * 100}%;background:var(--c-ready)"></i></div><span>${k.pub}/${vs.length}</span></div>`;
+    }).join("") || `<div class="note">Aucune story rendue pour l'instant.</div>`}
+    <div class="legend"><span><i style="background:var(--c-pub)"></i>Publiées</span><span><i style="background:var(--c-sched)"></i>Programmées</span><span><i style="background:var(--c-ready)"></i>Prêtes</span><span><i style="background:var(--track)"></i>À rendre</span></div>`);
+
+  // Autopilote
+  const quota = S.settings.maxUploadsPerDay;
+  setHTML($("#pAuto"), `<div class="card-h"><span class="live ${S.settings.autopilot ? "" : "off"}"></span><h3>Autopilote</h3><span class="spacer"></span><div class="toggle ${S.settings.autopilot ? "on" : ""}" data-autotoggle></div></div>
+    <div class="note">${S.autopilot.lastRun ? `Dernier passage à ${hhmm(S.autopilot.lastRun)}` : "Pas encore passé"} · prochain ${rel(new Date(S.autopilot.nextRun).toISOString())}${S.autopilot.lastSummary ? `<br>${esc(S.autopilot.lastSummary)}` : ""}</div>
+    <div class="prow" style="margin-top:12px"><span style="color:var(--text);font-weight:600">Envois YouTube aujourd'hui</span><span>${S.upload.today}/${quota}</span></div>
+    <div class="bar thin" style="margin-top:6px"><i style="width:${Math.min(1, S.upload.today / quota) * 100}%;background:var(--yt)"></i></div>
+    <div class="note" style="margin-top:6px">${S.upload.today >= quota ? "Quota atteint, reprise demain." : `${quota - S.upload.today} envoi(s) encore possible(s) aujourd'hui.`}</div>`);
+
+  // Journal
+  setHTML($("#pLog"), `<div class="card-h"><h3>Journal</h3></div>` + (S.events.length
+    ? S.events.slice(0, 10).map((e) => `<div class="ev ${e.type}"><span class="t">${hhmm(e.at)}</span><span>${esc(e.msg)}</span></div>`).join("")
+    : `<div class="note">Les événements apparaîtront ici.</div>`));
 }
 
 /* --- Idées */
@@ -1926,29 +1508,16 @@ $("#taleFrToggle").onclick = async () => { await api("/api/settings", { taleFren
 
 /* ------------------------------------------------------------------ Actions globales */
 document.body.addEventListener("click", async (e) => {
-  const t = e.target.closest("[data-go],[data-render],[data-upload],[data-play],[data-app],[data-unlink],[data-stage],[data-jump],[data-calpast],[data-autotoggle],#cancelQ");
+  const t = e.target.closest("[data-go],[data-play],[data-jump],[data-calpast],[data-autotoggle]");
   if (!t) return;
   if (t.dataset.go) { e.preventDefault(); location.hash = t.dataset.go; }
-  else if (t.dataset.render) { await api("/api/render", { ids: [t.dataset.render], force: true }); refresh(); }
-  else if (t.dataset.upload) { await api("/api/upload", { ids: [t.dataset.upload] }); refresh(); }
   else if (t.dataset.play) openPlayer(t.dataset.play);
-  else if (t.dataset.stage) { filters.status = t.dataset.stage; location.hash = "library"; }
   else if (t.dataset.jump) document.getElementById(`day-${t.dataset.jump}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
   else if (t.dataset.calpast !== undefined) { cal.range = "past"; segOn("#calRange", "past"); location.hash = "calendar"; }
   else if (t.dataset.autotoggle !== undefined) { await api("/api/settings", { autopilot: !S.settings.autopilot }, "PATCH"); refresh(); }
-  else if (t.dataset.unlink) {
-    if (!confirm("Confirme que tu as supprimé cette vidéo dans YouTube Studio. Elle sera re-rendue et reprogrammée sur un nouveau créneau.")) return;
-    await api(`/api/videos/${t.dataset.unlink}/unlink`, {});
-    await api("/api/schedule/generate", {});
-    await api("/api/render", { ids: [t.dataset.unlink], force: true });
-    refresh();
-  }
-  else if (t.dataset.app !== undefined) { filters.app = t.dataset.app; renderLibrary(); }
-  else if (t.id === "cancelQ") { await api("/api/render/cancel", {}); refresh(); }
 });
 document.body.addEventListener("change", async (e) => {
   const t = e.target;
-  if (t.dataset.sel) { t.checked ? sel.add(t.dataset.sel) : sel.delete(t.dataset.sel); renderLibrary(); }
   if (t.dataset.date) {
     if (!t.value || (t.dataset.onyt && !confirm(`Déjà programmée sur YouTube : reprogrammer au ${new Date(t.value).toLocaleString(LOCALE, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} ? La date change aussi dans YouTube, et le TikTok de la story suit.`))) { t.blur(); return refresh(); }
     const r = await api(`/api/videos/${t.dataset.date}`, { publishAt: new Date(t.value).toISOString() }, "PATCH");
@@ -1961,23 +1530,7 @@ Reconnecter maintenant ?`)) location.href = "/api/youtube/auth"; }
   if (t.dataset.tts) { const list = t.value.split(/[ ,;]+/).map((x) => x.trim()).filter((x) => /^\d{1,2}:\d{2}$/.test(x)).map((x) => x.padStart(5, "0")); await api("/api/tiktok/settings", { [t.dataset.tts]: list }, "PATCH"); t.blur(); refreshTikTok(); }
   if (t.dataset.s) { const val = t.type === "number" ? Number(t.value) : t.value; await api("/api/settings", { [t.dataset.s]: val }, "PATCH"); refresh(); }
 });
-$("#renderAll").onclick = async () => { const r = await api("/api/render", { all: true }); alert(`${r.queued} vidéo(s) ajoutée(s) à la file de rendu (~${Math.round(r.queued * 2.2)} min).`); refresh(); };
-$("#renderSel").onclick = async () => { await api("/api/render", { ids: [...sel], force: true }); sel.clear(); refresh(); };
-$("#uploadSel").onclick = async () => {
-  if (!confirm(`Programmer ${sel.size} vidéo(s) sur YouTube aux dates du planning ?`)) return;
-  const r = await api("/api/upload", { ids: [...sel] }); alert(`${r.queued} vidéo(s) rendue(s) ajoutée(s) à la file d'envoi.`); sel.clear(); refresh();
-};
-$("#selAll").onclick = () => { filtered().forEach((v) => sel.add(v.id)); renderLibrary(); };
-$("#selNone").onclick = () => { sel.clear(); renderLibrary(); };
 $("#regen").onclick = async () => { await api("/api/schedule/generate", {}); refresh(); };
-const togglePubs = async (e) => {
-  e?.preventDefault();
-  const on = S.settings.pubsEnabled === false;
-  if (!on && !confirm("Mettre les pubs en pause ? Plus rien ne part sur YouTube ni TikTok pour les vidéos des apps tant que tu ne les réactives pas. Les stories continuent.")) return;
-  await api("/api/settings", { pubsEnabled: on }, "PATCH"); refresh(); refreshTikTok();
-};
-$("#pubsToggle").onclick = $("#pubsToggle2").onclick = togglePubs;
-document.body.addEventListener("click", (e) => { if (e.target.closest("[data-pubstoggle]")) togglePubs(e); });
 $("#autoToggle").onclick = async () => { await api("/api/settings", { autopilot: !S.settings.autopilot }, "PATCH"); refresh(); };
 $("#studioBtn").onclick = async () => { const r = await api("/api/studio", {}); $("#studioBtn").innerHTML = `<span class="spin"></span>Ouverture…`; setTimeout(() => { window.open(r.url, "_blank"); $("#studioBtn").innerHTML = `${ic("sliders")}Studio`; }, 4000); };
 
@@ -1985,27 +1538,24 @@ $("#studioBtn").onclick = async () => { const r = await api("/api/studio", {}); 
 function renderAll() {
   if (!S) return;
   renderNav(); renderAlerts(); renderDock(); renderSettings();
-  if (tab === "today") renderToday();
   if (tab === "calendar") renderCalendar();
-  if (tab === "library") renderLibrary();
-  if (tab === "tiktok") renderTikTok();
   if (tab === "tales") renderTalesToday();
   if (tab === "ideas") renderIdeas();
   if (tab === "stories") renderStories();
 }
 async function refresh() {
-  const [st, tales] = await Promise.all([api("/api/state"), mode === "stories" ? api("/api/tales").catch(() => null) : null]);
+  const [st, tales] = await Promise.all([api("/api/state"), api("/api/tales").catch(() => null)]);
   RAW = st;
-  if (mode === "stories") TL = Array.isArray(tales?.tales) ? { ideas: [], job: null, ...tales } : null;
+  TL = Array.isArray(tales?.tales) ? { ideas: [], job: null, ...tales } : null;
   if (RAW.profile && !RAW.profile.setupDone && !sessionStorage.getItem("skipSetup")) { location.href = "/setup.html"; return; } // premier lancement → guide
-  applyMode();
+  applyStories();
   renderAll();
 }
 
 renderTheme();
-applyMode();
+applyStories();
 (async () => {
-  const start = location.hash.slice(1) || tabsOf()[0][0];
+  const start = location.hash.slice(1) || TABS[0][0];
   await Promise.all([refresh(), refreshTikTok()]);
   go(start);
 })();

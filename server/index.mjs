@@ -150,6 +150,7 @@ app.patch("/api/videos/:id", async (req, res) => {
 
 app.patch("/api/settings", (req, res) => {
   delete req.body.storagePath; // changé uniquement via /api/settings/storage (déplacement des fichiers)
+  if (req.body.autopilot && !getState().settings.autopilot) ig.restartFromNow();
   updateSettings(req.body);
   if (req.body.accountShare !== undefined) dropPausedFromQueue(); // une langue peut perdre son dernier compte
   if (req.body.pubsEnabled !== undefined) {
@@ -300,7 +301,7 @@ app.get("/api/tiktok/auth", (req, res) => {
 app.get("/tiktok/callback/", async (req, res) => {
   try {
     await tt.handleCallback(req.query);
-    res.redirect(loadProfile().setupDone ? "/?tiktok=1#tiktok" : "/setup.html#4");
+    res.redirect(loadProfile().setupDone ? "/?tiktok=1#settings" : "/setup.html#4");
   } catch (e) {
     res.status(500).send(`Erreur TikTok : ${e.message}`);
   }
@@ -404,7 +405,6 @@ app.post("/api/accounts/:net/:lang/forget", (req, res) => {
 });
 
 // ---------------------------------------------------------------- Instagram (Reels publiés à l'heure du post TikTok)
-app.patch("/api/instagram/settings", (req, res) => res.json(ig.updateIgSettings(req.body)));
 app.post("/api/instagram/refresh", async (_req, res) => {
   await ig.refreshUser();
   const linked = ig.status().connected ? await ig.syncExisting().catch(() => 0) : 0;
