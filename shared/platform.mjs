@@ -9,6 +9,13 @@ import { promisify } from "node:util";
 import { ROOT } from "./catalog.mjs";
 
 export const IS_WIN = process.platform === "win32";
+
+/**
+ * Chrome des rendus Remotion : dessin par la carte graphique (ANGLE) au lieu du rendu logiciel. Les stories (flou plein cadre,
+ * mélanges multiply / screen, canvas agrandis) se rendent ~7 fois plus vite, à l'image près. `REMOTION_GL=swiftshader` (ou
+ * autre moteur Remotion) force un autre moteur, par exemple sur une machine sans carte graphique.
+ */
+export const CHROMIUM = { gl: process.env.REMOTION_GL ?? "angle" };
 const run = promisify(execFile);
 const WIN_PS = join(ROOT, "tools/win.ps1");
 const ps = (args, opts = {}) => run("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", WIN_PS, ...args], { maxBuffer: 64 * 1024 * 1024, windowsHide: true, ...opts });

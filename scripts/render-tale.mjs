@@ -5,6 +5,7 @@ import { renderMedia, renderStill, selectComposition } from "@remotion/renderer"
 import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { CHROMIUM } from "../shared/platform.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const [slug, outArg] = process.argv.slice(2);
@@ -13,16 +14,17 @@ const out = outArg ?? join(ROOT, "out", "tales");
 mkdirSync(out, { recursive: true });
 const serveUrl = await bundle({ entryPoint: join(ROOT, "src/index.ts"), publicDir: join(ROOT, "public") });
 const id = `tale-${slug}-en`;
-const thumb = await selectComposition({ serveUrl, id: `${id}-thumb` });
-await renderStill({ composition: thumb, serveUrl, output: join(out, `${slug}-thumb.jpg`), imageFormat: "jpeg", jpegQuality: 92 });
+const thumb = await selectComposition({ serveUrl, id: `${id}-thumb`, chromiumOptions: CHROMIUM });
+await renderStill({ composition: thumb, serveUrl, output: join(out, `${slug}-thumb.jpg`), imageFormat: "jpeg", jpegQuality: 92, chromiumOptions: CHROMIUM });
 console.log(join(out, `${slug}-thumb.jpg`));
-const composition = await selectComposition({ serveUrl, id });
+const composition = await selectComposition({ serveUrl, id, chromiumOptions: CHROMIUM });
 let last = -1;
 await renderMedia({
   composition,
   serveUrl,
   codec: "h264",
   crf: 17,
+  chromiumOptions: CHROMIUM,
   outputLocation: join(out, `${slug}.mp4`),
   onProgress: ({ progress }) => {
     const p = Math.floor(progress * 10);

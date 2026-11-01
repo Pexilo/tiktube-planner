@@ -7,6 +7,7 @@ import { promisify } from "node:util";
 import { bundle } from "@remotion/bundler";
 import { renderMedia, renderStill, selectComposition } from "@remotion/renderer";
 import { ROOT } from "../shared/catalog.mjs";
+import { CHROMIUM } from "../shared/platform.mjs";
 import { ensureMusic, ensureSfx } from "../scripts/gen-all-audio.mjs";
 import { ensureTaleSfx } from "../scripts/gen-tale-sfx.mjs";
 import { ensureVoices } from "../scripts/gen-voice.mjs";
@@ -183,11 +184,11 @@ async function work() {
         continue;
       }
       stage(3);
-      const composition = await selectComposition({ serveUrl: url, id });
+      const composition = await selectComposition({ serveUrl: url, id, chromiumOptions: CHROMIUM });
       if (audioOnly.delete(id) && v.kind === "tale" && existsSync(outFile(id))) {
         // Remix : seul le son est rendu (pas de capture d'images), puis remonté sur la piste vidéo existante, copiée sans réencodage.
         const wav = join(OUT, `${id}.remix.wav`);
-        await renderMedia({ composition, serveUrl: url, codec: "wav", outputLocation: wav, onProgress: ({ progress }) => (current.progress = progress) });
+        await renderMedia({ composition, serveUrl: url, codec: "wav", chromiumOptions: CHROMIUM, outputLocation: wav, onProgress: ({ progress }) => (current.progress = progress) });
         stage(4);
         const tmp = join(OUT, `${id}.tmp.mp4`);
         await master(["-i", outFile(id), "-i", wav], ["-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy"], null, tmp);
@@ -206,6 +207,7 @@ async function work() {
         serveUrl: url,
         codec: "h264",
         crf: 17,
+        chromiumOptions: CHROMIUM,
         audioBitrate: "320k",
         outputLocation: raw,
         onProgress: ({ progress }) => {
@@ -219,8 +221,8 @@ async function work() {
       unlinkSync(raw);
       stage(5);
       if (v.kind === "long") {
-        const thumbComp = await selectComposition({ serveUrl: url, id: `${v.slug}-thumb-${v.lang}` });
-        await renderStill({ composition: thumbComp, serveUrl: url, output: thumbFile(id), imageFormat: "jpeg", jpegQuality: 92 });
+        const thumbComp = await selectComposition({ serveUrl: url, id: `${v.slug}-thumb-${v.lang}`, chromiumOptions: CHROMIUM });
+        await renderStill({ composition: thumbComp, serveUrl: url, output: thumbFile(id), imageFormat: "jpeg", jpegQuality: 92, chromiumOptions: CHROMIUM });
       } else if (v.kind === "tale") {
         await renderTaleThumb(url, id, st);
       } else if (v.format === "long") {
@@ -253,8 +255,8 @@ async function work() {
  */
 async function renderTaleThumb(url, id, st) {
   for (const variant of [null, ...THUMB_EXTRA]) {
-    const composition = await selectComposition({ serveUrl: url, id: variant ? `${id}-thumb-${variant}` : `${id}-thumb` });
-    await renderStill({ composition, serveUrl: url, output: thumbFile(id, variant), imageFormat: "jpeg", jpegQuality: 92 });
+    const composition = await selectComposition({ serveUrl: url, id: variant ? `${id}-thumb-${variant}` : `${id}-thumb`, chromiumOptions: CHROMIUM });
+    await renderStill({ composition, serveUrl: url, output: thumbFile(id, variant), imageFormat: "jpeg", jpegQuality: 92, chromiumOptions: CHROMIUM });
   }
   st.thumbAt = new Date().toISOString();
 }

@@ -5,6 +5,7 @@ import { renderStill, selectComposition } from "@remotion/renderer";
 import { join } from "node:path";
 import { mkdirSync } from "node:fs";
 import { ROOT } from "../shared/catalog.mjs";
+import { CHROMIUM } from "../shared/platform.mjs";
 import { outDir as storageOut } from "../shared/storage.mjs";
 
 const [id, framesArg, outDirArg] = process.argv.slice(2);
@@ -12,11 +13,11 @@ const outDir = outDirArg ?? join(storageOut(), "preview");
 mkdirSync(outDir, { recursive: true });
 const serveUrl = await bundle({ entryPoint: join(ROOT, "src/index.ts"), publicDir: join(ROOT, "public") });
 for (const cid of id.split(",")) {
-  const comp = await selectComposition({ serveUrl, id: cid });
+  const comp = await selectComposition({ serveUrl, id: cid, chromiumOptions: CHROMIUM });
   const frames = framesArg ? framesArg.split(",").map(Number) : [0];
   for (const f of frames) {
     const output = join(outDir, `${cid}-${String(f).padStart(4, "0")}.jpg`);
-    await renderStill({ composition: comp, serveUrl, output, frame: Math.min(f, comp.durationInFrames - 1), imageFormat: "jpeg", jpegQuality: 80, scale: 0.5 });
+    await renderStill({ composition: comp, serveUrl, output, frame: Math.min(f, comp.durationInFrames - 1), imageFormat: "jpeg", jpegQuality: 80, scale: 0.5, chromiumOptions: CHROMIUM });
     console.log(output);
   }
 }

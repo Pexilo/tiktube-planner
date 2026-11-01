@@ -10,6 +10,7 @@ import { promisify } from "node:util";
 import { bundle } from "@remotion/bundler";
 import { openBrowser, renderStill, selectComposition } from "@remotion/renderer";
 import { ROOT } from "../shared/catalog.mjs";
+import { CHROMIUM } from "../shared/platform.mjs";
 import { outDir as storageOut } from "../shared/storage.mjs";
 import { renderedTale, TALE_BASE_LANG, taleTimeline } from "../shared/tales.mjs";
 
@@ -121,7 +122,7 @@ try {
   done();
 }
 // Un seul navigateur pour toutes les images (en lancer un par image est lent et peut expirer).
-const browser = await openBrowser("chrome");
+const browser = await openBrowser("chrome", { chromiumOptions: CHROMIUM });
 const composition = await selectComposition({ serveUrl, id: "tale-preview", puppeteerInstance: browser });
 const stills = [];
 for (const [i, frame] of frames.entries()) {
