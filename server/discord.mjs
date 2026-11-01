@@ -46,6 +46,9 @@ export async function test(url = webhook(), userId = readConfig().userId) {
   await post(url, { ...ping(userId), embeds: [{ title: "TikTube Planner ✓", description: "Webhook connecté : la miniature, le titre et la légende de chaque story arriveront ici à sa sortie.", color: 0xf7931a }] });
 }
 
+/** Nom et couleur de la barre de l'embed de chaque miniature : celle de la plateforme, pour savoir d'un coup d'œil où la poser. */
+const PLATFORM = { tiktok: { label: "TikTok", color: 0x25f4ee }, instagram: { label: "Instagram", color: 0xe1306c } };
+
 /** Titre et légende de la story tels qu'envoyés sur TikTok (le post s'il existe, sinon la même construction). */
 function caption(v, app) {
   const p = tt.posts().find((x) => x.videoId === v.id);
@@ -59,12 +62,12 @@ export async function send(v, app) {
   const st = video(v.id);
   const { title, description } = caption(v, app);
   // Une image par plateforme, chacune dans son embed (le nom de la plateforme en titre, l'image en grand).
-  const files = THUMB_EXTRA.map((x) => ({ path: thumbFile(v.id, x), name: `${v.id}-${x}.jpg`, label: x === "tiktok" ? "TikTok" : "Instagram" }));
+  const files = THUMB_EXTRA.map((x) => ({ path: thumbFile(v.id, x), name: `${v.id}-${x}.jpg`, ...PLATFORM[x] }));
   const embeds = files.map((f, i) => ({
     title: i ? f.label : `${f.label} · ${title}`.slice(0, 256),
     ...(!i && st.youtubeId ? { url: `https://youtube.com/shorts/${st.youtubeId}` } : {}),
     image: { url: `attachment://${f.name}` },
-    color: 0xf7931a,
+    color: f.color,
     ...(i === files.length - 1 ? { footer: { text: `Story ${v.lang.toUpperCase()} · légende TikTok juste en dessous` }, timestamp: st.publishAt ?? new Date().toISOString() } : {}),
   }));
   await post(url, { ...ping(), embeds, attachments: files.map((f, i) => ({ id: i, filename: f.name })) }, files);
