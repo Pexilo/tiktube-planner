@@ -1292,18 +1292,26 @@ function taleProduction(t) {
           : `<div class="alert" style="margin-top:6px">${ic("play")}<div>À valider : regarde ${anyLoc ? "les deux versions (onglets EN et FR)" : "la vidéo"} et retouche les bruitages si besoin. Rien ne part sur YouTube avant ton feu vert.
             <div style="margin-top:6px"><button class="btn sm" data-talerelease="${esc(t.slug)}" ${composing ? "disabled" : ""}>${ic("check")}Valider pour publication${anyLoc ? " (EN + FR)" : ""}</button></div></div></div>`) : ""}</div>
       ${cur === "en" ? "" : locSide(t, cur)}
+      ${sched || !(composedOnce || t.status === "error") ? "" : (() => {
+        // Re-rendre ne refait que la version de l'onglet choisi.
+        const C = cur.toUpperCase(), curId = cur === "en" ? t.id : t.locales?.[cur]?.id;
+        const ok = composedOnce && !composing && (cur === "en" || t.locales?.[cur]?.voiced);
+        return `<div><span class="lbl-up">Rendu${multi ? ` ${C}` : ""}</span>
+          <button class="btn sm" data-talerender="${esc(curId ?? "")}" ${ok && curId ? "" : "disabled"}>${ic("redo")}Re-rendre${multi ? ` ${C}` : ""}</button>
+          ${multi ? `<div class="note" style="margin-top:4px">Refait seulement la vidéo ${C}, avec les visuels et le son actuels.</div>` : ""}</div>`;
+      })()}
+      ${ytId || !composedOnce ? "" : taleSfxPanel(t, composing, multi ? cur : null)}
       ${multi ? `<div class="lbl-up shared-h">Commun à ${langs.map((l) => l.toUpperCase()).join(" et ")}</div>` : ""}
       ${ytId ? `<div><span class="lbl-up">Retoucher</span>
         <button class="btn sm" data-taleunlink="${esc(t.slug)}">${ic("redo")}Supprimée de YouTube : retoucher</button>
         <div class="note" style="margin-top:4px">Supprime d'abord la vidéo dans YouTube Studio. Les bruitages redeviennent modifiables ; après le remix, tu valides la nouvelle version avant qu'elle reparte.</div></div>` : ""}
       ${sched || !(composedOnce || t.status === "error") ? "" : `<div><span class="lbl-up">Recomposer avec une note</span>
         <textarea data-tnote="${esc(t.slug)}" rows="3" placeholder="Ex. : plus de rythme sur le rebondissement, le graphique de la phrase 3 est illisible…">${esc(noteDraft[t.slug] ?? "")}</textarea>
-        <div class="trow" style="margin-top:6px"><button class="btn sm" data-talecompose="${esc(t.slug)}" ${composing || t.status === "approved" ? "disabled" : ""}>${ic("sparkle")}Recomposer</button>
-          <button class="btn sm" data-talerender="${esc([t.id, ...Object.values(t.locales ?? {}).filter((l) => l.voiced).map((l) => l.id)].join(","))}" ${composedOnce && !composing ? "" : "disabled"}>${ic("redo")}Re-rendre</button></div>
+        <div class="trow" style="margin-top:6px"><button class="btn sm" data-talecompose="${esc(t.slug)}" ${composing || t.status === "approved" ? "disabled" : ""}>${ic("sparkle")}Recomposer${multi ? ` ${langs.map((l) => l.toUpperCase()).join(" + ")}` : ""}</button></div>
+        ${multi ? `<div class="note" style="margin-top:4px">Les visuels sont les mêmes dans chaque langue : Claude les recompose, puis toutes les versions sont rendues à nouveau.</div>` : ""}
         ${t.compose?.notes?.length ? `<details style="margin-top:6px"><summary>Notes déjà données (${t.compose.notes.length})</summary><div class="note" style="margin-top:4px">${t.compose.notes.map((n) => `« ${esc(n)} »`).join(" · ")}</div></details>` : ""}</div>`}
-      ${ytId || !composedOnce ? "" : taleSfxPanel(t, composing)}
       ${ytId ? "" : `<div><label class="trow" style="gap:6px;cursor:pointer"><input type="checkbox" data-tf="ad" ${t.product?.off ? "" : "checked"} ${composing ? "disabled" : ""}>Passage pub Where'd Gains Go?</label>
-        <div class="note" style="margin-top:4px">${t.product?.off ? "Vidéo sans passage pub." : "Le moment produit (~5 s) est dans la vidéo."} Changer relance le rendu.</div></div>`}
+        <div class="note" style="margin-top:4px">${t.product?.off ? "Vidéo sans passage pub." : "Le moment produit (~5 s) est dans la vidéo."} Changer relance le rendu${multi ? ` ${langs.map((l) => l.toUpperCase()).join(" et ")}` : ""}.</div></div>`}
       ${ytId ? `<div class="note">Déjà envoyée sur YouTube : le script ne se change plus d'ici.</div>` : `<div><button class="btn sm" data-talereopen="${esc(t.slug)}" ${composing ? "disabled" : ""}>${ic("redo")}Modifier ou régénérer le script</button>
         <div class="note" style="margin-top:4px">Repasse la story au stade script. La vidéo rendue, son créneau et son brouillon TikTok sont retirés ; après la nouvelle validation, voix, bruitages et visuels sont refaits.</div></div>`}
       <details><summary>Script validé${multi ? " (EN)" : ""} · ${t.beats.length} phrases</summary><div class="script-ro" style="margin-top:6px">${t.beats.map((b) => `<div class="b"><span class="tag" style="justify-self:start">${ROLES[b.role] ?? b.role}</span><div>${esc(b.text)}<small>${esc(b.visual)}</small></div></div>`).join("")}</div></details>
@@ -1377,19 +1385,23 @@ function locSide(t, lang) {
     </div>`;
 }
 /** Bruitages d'une story produite : édition à la main ou retravail par Claude, puis remix du son seul (voix et image gardées). */
-function taleSfxPanel(t, composing) {
+/** `lang` : la version de l'onglet choisi (story bilingue), seule remixée ; les bruitages eux-mêmes sont communs aux langues. */
+function taleSfxPanel(t, composing, lang = null) {
   const n = t.beats.reduce((a, b) => a + (b.sfx?.length ?? 0), 0);
-  const remixing = composing || S.render.current.id === t.id || S.render.queue.includes(t.id);
+  const id = lang && lang !== "en" ? t.locales?.[lang]?.id : t.id, L = lang ? ` ${lang.toUpperCase()}` : "";
+  const remixing = composing || S.render.current.id === id || S.render.queue.includes(id);
+  const pending = t.sfxPending === true || (Array.isArray(t.sfxPending) && (!lang || t.sfxPending.includes(lang)));
+  const ln = lang ? `data-lang="${lang}"` : "";
   return `<div><span class="lbl-up">Bruitages · ${n} son${n > 1 ? "s" : ""}</span>
-      ${t.sfxPending ? `<div class="alert" style="margin:4px 0 6px">${ic("sound")}<div>Bruitages modifiés : clique « Remixer le son » pour les entendre dans la vidéo.</div></div>` : ""}
+      ${pending ? `<div class="alert" style="margin:4px 0 6px">${ic("sound")}<div>Bruitages modifiés : clique « Remixer le son${L} » pour les entendre dans la vidéo${L}.</div></div>` : ""}
       <details data-sfxopen="${esc(t.slug)}" ${openSfx.has(t.slug) ? "open" : ""}><summary>Modifier à la main</summary>
         <div style="margin-top:6px">${t.beats.map((b, i) => `<div class="b" data-sfxbeat="${esc(b.id)}" style="margin-bottom:8px"><div class="note"><b>${i + 1}.</b> ${esc(b.text)}</div>${b.role === "product" ? `<div class="note">Moment produit : pas de bruitage.</div>` : beatSfx(b)}</div>`).join("")}</div>
       </details>
       <textarea data-sfxnote="${esc(t.slug)}" rows="2" style="margin-top:6px" placeholder="Facultatif, pour Claude : ex. plus de tension avant le rebondissement, moins de nappes…">${esc(noteDraft[`sfx:${t.slug}`] ?? "")}</textarea>
-      <div class="trow" style="margin-top:6px"><button class="btn sm" data-talesfxai="${esc(t.slug)}" ${remixing ? "disabled" : ""}>${ic("sparkle")}Retravailler avec Claude</button>
-        <button class="btn sm" data-talesfx="${esc(t.slug)}" ${remixing ? "disabled" : ""}>${ic("sound")}Remixer le son</button>
+      <div class="trow" style="margin-top:6px"><button class="btn sm" data-talesfxai="${esc(t.slug)}" ${ln} ${remixing ? "disabled" : ""}>${ic("sparkle")}Retravailler avec Claude</button>
+        <button class="btn sm" data-talesfx="${esc(t.slug)}" ${ln} ${remixing ? "disabled" : ""}>${ic("sound")}Remixer le son${L}</button>
         ${t.sfxPrevious ? `<button class="btn sm ghost" data-talesfxundo="${esc(t.slug)}" ${remixing ? "disabled" : ""}>Annuler le retravail</button>` : ""}</div>
-      <div class="note" style="margin-top:4px">Seul le son est refait : la voix et l'image de la vidéo ne bougent pas. Remixer à la main ne coûte aucun token ; Claude ne relit que le texte des phrases (petit appel, sans outils).</div>
+      <div class="note" style="margin-top:4px">Seul le son est refait : la voix et l'image de la vidéo ne bougent pas.${lang ? ` Les bruitages sont communs à chaque langue, mais seule la vidéo${L} est remixée : l'autre se remixe depuis son onglet.` : ""} Remixer à la main ne coûte aucun token ; Claude ne relit que le texte des phrases (petit appel, sans outils).</div>
       ${t.sfxNotes?.length ? `<div class="note" style="margin-top:4px">Notes déjà données : ${t.sfxNotes.map((x) => `« ${esc(x)} »`).join(" · ")}</div>` : ""}
     </div>`;
 }
@@ -1545,7 +1557,7 @@ document.body.addEventListener("click", async (e) => {
   } else if (d.talesfx || d.talesfxai) {
     const slug = d.talesfx || d.talesfxai, card = t.closest("[data-tale]");
     if (card.querySelector("[data-sfxbeat]")) await taleAct(api(`/api/tales/${encodeURIComponent(slug)}/sfx`, { beats: collectSfx(card) }, "PATCH")); // dernières saisies d'abord
-    const r = await taleAct(api(`/api/tales/${encodeURIComponent(slug)}/sfx`, d.talesfxai ? { ai: true, note: (noteDraft[`sfx:${slug}`] ?? "").trim() } : {}));
+    const r = await taleAct(api(`/api/tales/${encodeURIComponent(slug)}/sfx`, { ...(d.talesfxai ? { ai: true, note: (noteDraft[`sfx:${slug}`] ?? "").trim() } : {}), ...(d.lang ? { lang: d.lang } : {}) }));
     if (!r?.error && d.talesfxai) delete noteDraft[`sfx:${slug}`];
   } else if (d.talesfxundo) {
     await taleAct(api(`/api/tales/${encodeURIComponent(d.talesfxundo)}/sfx/undo`, {}));

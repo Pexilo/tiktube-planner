@@ -758,14 +758,21 @@ function remixProblem(t) {
 /**
  * Remet le son de la story au propre avec ses bruitages actuels : si la vidéo est déjà rendue, seul l'audio est rendu à
  * nouveau et remonté sur l'image existante (piste vidéo copiée telle quelle) ; sinon, rendu complet.
+ * `langs` : seulement ces versions (onglet choisi) ; les autres gardent leur ancien son et restent dans `sfxPending`.
  */
-async function remixSfx(slug) {
+async function remixSfx(slug, langs = null, { changed = false } = {}) {
   stage("Bruitages");
   await ensureTaleSfx({ log });
-  const t = patchTale(slug, (x) => delete x.sfxPending);
+  const all = taleVideos(slug).map((v) => v.lang);
+  const t = patchTale(slug, (x) => {
+    // `changed` : bruitages tout juste retravaillés par Claude, donc nouveaux pour chaque version.
+    const left = (changed || x.sfxPending === true ? all : (x.sfxPending ?? [])).filter((l) => langs && !langs.includes(l));
+    if (left.length) x.sfxPending = left;
+    else delete x.sfxPending;
+  });
   // Bruitages déplacés sur d'autres mots : leurs repères dans les traductions se refont (petit appel, sans outils).
-  await ensureLocales(slug, "visuals");
-  queueRender(slug, { audioOnly: true });
+  if (!langs || langs.some((l) => l !== TALE_BASE_LANG)) await ensureLocales(slug, "visuals");
+  queueRender(slug, { langs, audioOnly: true });
   return t;
 }
 
@@ -1366,13 +1373,15 @@ export function setupTaleRoutes(app, opts) {
     if (why) return fail(res, why, 400);
     if (busyWith(t.slug)) return fail(res, "Story en cours de traitement", 409);
     const next = new Map((Array.isArray(req.body?.beats) ? req.body.beats : []).map((b) => [String(b?.id), b?.sfx]));
+    const before = JSON.stringify(t.beats.map((b) => b.sfx ?? null));
     for (const b of t.beats) {
       if (!next.has(b.id) || b.role === "product") continue;
       const sfx = cleanSfx(next.get(b.id), b.text);
       if (sfx.length) b.sfx = sfx;
       else delete b.sfx;
     }
-    t.sfxPending = true;
+    // Rien de changé (enregistrement avant un remix) : les versions déjà remixées ne repassent pas « à remixer ».
+    if (JSON.stringify(t.beats.map((b) => b.sfx ?? null)) !== before) t.sfxPending = true;
     saveTale(t);
     res.json(taleSummary(t));
   });
@@ -1387,9 +1396,12 @@ export function setupTaleRoutes(app, opts) {
     if (renderCurrent.id === t.id) return fail(res, "Rendu en cours : attends la fin du rendu.", 409);
     const ai = !!req.body?.ai;
     const note = String(req.body?.note ?? "").trim().slice(0, 1000);
-    void runJob(t.slug, ai ? "Bruitages (Claude)" : "Remix des bruitages", async () => {
+    // `lang` : remixer seulement cette version (onglet choisi dans la carte), sinon toutes.
+    const langs = TALE_LANGS.includes(req.body?.lang) ? [req.body.lang] : null;
+    const L = langs ? ` ${langs[0].toUpperCase()}` : "";
+    void runJob(t.slug, ai ? `Bruitages (Claude)${L}` : `Remix des bruitages${L}`, async () => {
       if (ai) await reworkSfx(t.slug, note);
-      await remixSfx(t.slug);
+      await remixSfx(t.slug, langs, { changed: ai });
     }).catch((e) => {
       log(`Erreur : ${e.message}`);
       logEvent("error", `Stories : bruitages échoués, ${String(e.message).slice(0, 160)}`, t.id);
