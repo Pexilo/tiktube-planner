@@ -189,14 +189,11 @@ Use WebSearch and WebFetch to find 8 story ideas:
 Good stories: a person, a mistake, a twist, a number that sounds impossible (lost keys, fat-finger trades, absurd hacks, odd court cases, forgotten wallets waking up, weird on-chain messages, bizarre NFT or memecoin episodes). Avoid generic market news and price predictions, and pick stories the average crypto viewer has not already heard ten times.
 Report facts as the sources report them. Never present an accusation as fact: write "alleged", "according to …" when the sources do.
 
-Each idea also gets a discreet angle for the app Where'd Gains Go? (a wallet audit web app: real P&L, regrets, what-ifs, gas). Choose the feature the story naturally leads to:
-${featureList()}
-
 Do not propose these stories again (already used or proposed):
 ${avoid.map((t) => `- ${t}`).join("\n") || "- (none)"}
 
 Answer ONLY with this JSON, no prose:
-{"ideas":[{"type":"recent"|"offbeat","eventDate":"YYYY-MM-DD","title":"short title","hook":"on-screen hook, max 8 words, wrap the key word in *asterisks*","summary":"3-4 factual sentences: who, what, when, the twist","sources":[{"title":"publication: headline","url":"https://…","date":"YYYY-MM-DD"}],"wggAngle":{"featureId":"one of ${FEATURES.join(", ")}","why":"one sentence"}}]}`;
+{"ideas":[{"type":"recent"|"offbeat","eventDate":"YYYY-MM-DD","title":"short title","hook":"on-screen hook, max 8 words, wrap the key word in *asterisks*","summary":"3-4 factual sentences: who, what, when, the twist","sources":[{"title":"publication: headline","url":"https://…","date":"YYYY-MM-DD"}]}]}`;
 }
 
 function cleanIdea(x) {
@@ -209,7 +206,6 @@ function cleanIdea(x) {
     hook: String(x.hook ?? "").trim(),
     summary: String(x.summary ?? "").trim(),
     sources,
-    wggAngle: { featureId: FEATURES.includes(x.wggAngle?.featureId) ? x.wggAngle.featureId : "pnl", why: String(x.wggAngle?.why ?? "") },
     foundAt: new Date().toISOString(),
   };
 }
@@ -253,7 +249,7 @@ const sfxRules = () => `SOUND DESIGN (no music at all: the narrator carries the 
 ${Object.entries(STORY_SFX).map(([k, v]) => `  - ${k} (${v.mode}): ${v.use}`).join("\n")}
   Good habits: a "boom" or "hit" on the hook's shocking number, a "riser" or "reverse" into the twist word, a "drone", "heartbeat" or "clock" bed under the tense build-up, a "cash" / "fall" / "gavel" / "slam" / "glitch" when the words say it, a soft bed or "shimmer" on the outro so the loop back to the hook feels like a cliffhanger.`;
 
-function scriptPrompt(subject, problems) {
+function scriptPrompt(subject, problems, { ad = false } = {}) {
   const ref = readFileSync(join(TALES_DIR, "howells.json"), "utf8");
   return `You write the script of a "Crypto stories" vertical video (1 to 2 minutes, English voice-over, minimalist pixel-art animation) for YouTube Shorts and TikTok.
 Today's date is ${today()}.
@@ -270,11 +266,11 @@ RULES
 - 180 to 300 spoken words in total (all beats together), about 1 to 2 minutes of voice-over; aim for about 230. Short punchy sentences written to be read aloud. Numbers spelled the way they are said ("eight thousand bitcoin").
 - STORYTELLING (storytelling-hooks): the hook beat stacks 2 or 3 levers (curiosity gap + a concrete number or stake + relatability or an emotional mirror) and works in under 2 seconds; keep a crypto qualifier in it. Run the levers through the script: conflict (goal + obstacle) early, at least one pattern break ("but…") in the middle, every loop you open is closed before the outro. The three hook layers: the hook beat's "visual" is a first frame that intrigues with the sound off, and the on-screen "hook" title is the OTHER half of the gap (stakes or emotion), never the spoken line repeated. Before answering, generate 5 hook variants in your head, score them against the skill's pre-publish checklist, keep the best.
 - 10 to 18 beats, each one or two short sentences (30 words max per beat, so the picture changes every 5 to 10 seconds). Roles: hook (first beat, a curiosity gap, never "in this video"), context, build, twist, payoff, outro (last beat). Tell it in acts so the length never drags: setup, escalation, twist, consequences, a final reveal or open question. Re-hook the viewer every 20 to 30 seconds with a new question, number or turn.
-- Exactly ONE beat with role "product", about 5 seconds (10 to 16 words), placed in the middle or right before the outro, never first. Its line bridges from the story to one feature of Where'd Gains Go? (wallet audit web app) with a light, self-aware tone. No hard sell, no price, no "link in bio". Features:
-${featureList()}
+- ${ad ? `Exactly ONE beat with role "product", about 5 seconds (10 to 16 words), placed in the middle or right before the outro, never first. Its line bridges from the story to one feature of Where'd Gains Go? (wallet audit web app) with a light, self-aware tone. No hard sell, no price, no "link in bio". Features:
+${featureList()}` : `NO beat with role "product": this video mentions no app, product or brand at all (skip the reference script's product beat and leave "product" out of your JSON). The story alone carries the video.`}
 - The video LOOPS: TikTok and Shorts replay it automatically, so the last beat (outro) closes the story AND flows straight back into the hook. Its last words lead into the hook's first words as one sentence across the loop, e.g. outro "…and until someone is allowed to dig," → hook "Somewhere under this landfill in Wales, there's a hard drive…", or outro "…and that's exactly why" → hook. Read outro + hook aloud in a row: it must sound natural. No "follow", "subscribe" or "like" anywhere. The outro's visual starts with its own shot; the loop back to the first shot is handled by the kit.
 - Facts are attributed to their sources ("according to …", "court filings say …"). No accusation beyond what the sources report: use "allegedly" when they do. Do not invent quotes, figures or headlines.
-- Each beat has a "visual" brief: what the minimalist pixel-art shot shows during that sentence (one lit flat background color, one main element: a character only when someone acts, otherwise an object, a screen or a row of icons; 2 to 4 small living details; at most 2 on-screen texts). The product beat's visual is "Product cameo (handled by the wrapper)".
+- Each beat has a "visual" brief: what the minimalist pixel-art shot shows during that sentence (one lit flat background color, one main element: a character only when someone acts, otherwise an object, a screen or a row of icons; 2 to 4 small living details; at most 2 on-screen texts).${ad ? ` The product beat's visual is "Product cameo (handled by the wrapper)".` : ""}
 - "hook": on-screen title, max 8 words and ${HOOK_MAX} characters, the key word wrapped in *asterisks*. It is also the thumbnail text, which allows 2 lines at most.
 - "slug": short kebab-case id (2 to 4 words, a-z 0-9 -), e.g. "pizza-day".
 - "facts": the verified facts the video relies on, one per item, with numbers. "sources": every source used, with dates.
@@ -286,7 +282,7 @@ REFERENCE SCRIPT (format and quality to match; a different and shorter story, yo
 ${ref}
 
 Answer ONLY with the JSON of the new story, same shape as the reference, without "id", "lang", "status", "voice", "timeline", "compose":
-{"slug":"…","type":"recent"|"offbeat","eventDate":"YYYY-MM-DD","hook":"…","summary":"…","sources":[…],"facts":[…],"beats":[{"id":"b1","role":"hook","text":"…","visual":"…","sfx":[{"cue":"boom","word":"…"}]}],"product":{"featureId":"…","beat":"bN"},"yt":{"title":"…","description":"…","hashtags":[…]}}`;
+{"slug":"…","type":"recent"|"offbeat","eventDate":"YYYY-MM-DD","hook":"…","summary":"…","sources":[…],"facts":[…],"beats":[{"id":"b1","role":"hook","text":"…","visual":"…","sfx":[{"cue":"boom","word":"…"}]}],${ad ? `"product":{"featureId":"…","beat":"bN"},` : ""}"yt":{"title":"…","description":"…","hashtags":[…]}}`;
 }
 
 /** Longueur maximale d'un titre de story (YouTube, TikTok, Instagram et miniature). */
@@ -314,7 +310,7 @@ function uniqueSlug(base) {
 }
 
 /** Normalise la réponse de Claude en `Tale` et liste ce qui ne respecte pas les règles. */
-function toTale(j, idea) {
+function toTale(j, idea, { ad = false } = {}) {
   const beats = (Array.isArray(j.beats) ? j.beats : []).map((b, i) => {
     const role = ROLES.includes(b.role) ? b.role : "build";
     const text = String(b.text ?? "").trim();
@@ -335,14 +331,17 @@ function toTale(j, idea) {
     sources: (Array.isArray(j.sources) && j.sources.length ? j.sources : idea?.sources ?? []).filter((s) => s?.url).map((s) => ({ title: String(s.title ?? s.url), url: s.url, ...(s.date ? { date: String(s.date).slice(0, 10) } : {}) })),
     facts: (Array.isArray(j.facts) ? j.facts : []).map(String),
     beats,
-    product: { featureId: FEATURES.includes(j.product?.featureId) ? j.product.featureId : idea?.wggAngle?.featureId ?? "pnl", beat: productIdx >= 0 ? beats[productIdx].id : "" },
+    // Sans passage pub (défaut, réglage taleAd) : vidéo sans phrase produit ; la case de la story peut le rajouter plus tard.
+    product: { featureId: FEATURES.includes(j.product?.featureId) ? j.product.featureId : "pnl", beat: productIdx >= 0 ? beats[productIdx].id : "", ...(ad ? {} : { off: true }) },
     yt: { title: cleanTitle(j.yt?.title ?? plain(j.hook ?? slug)).slice(0, 100), description: String(j.yt?.description ?? ""), hashtags: (Array.isArray(j.yt?.hashtags) ? j.yt.hashtags : ["crypto", "cryptostories"]).map((h) => String(h).replace(/^#/, "")) },
     compose: { notes: [] },
     error: null,
     ...(idea ? { ideaId: idea.id } : {}),
     createdAt: new Date().toISOString(),
   };
-  return { tale, problems: scriptProblems(tale) };
+  const problems = scriptProblems(tale);
+  if (!ad && productIdx >= 0) problems.push("Remove the product beat: this video mentions no app or product.");
+  return { tale, problems };
 }
 
 function scriptProblems(t) {
@@ -379,18 +378,18 @@ function scriptProblems(t) {
 }
 
 const ideaSubject = (idea) =>
-  `${idea.title} (${idea.type}, event date ${idea.eventDate})\n${idea.summary}\nSuggested hook: ${idea.hook}\nSources:\n${idea.sources.map((s) => `- ${s.title}${s.date ? ` (${s.date})` : ""}: ${s.url}`).join("\n")}\nSuggested Where'd Gains Go? angle: ${idea.wggAngle.featureId} — ${idea.wggAngle.why}`;
+  `${idea.title} (${idea.type}, event date ${idea.eventDate})\n${idea.summary}\nSuggested hook: ${idea.hook}\nSources:\n${idea.sources.map((s) => `- ${s.title}${s.date ? ` (${s.date})` : ""}: ${s.url}`).join("\n")}`;
 const topicSubject = (topic) => `The creator's own topic or link: ${topic}\nResearch it first, decide whether it is "recent" (less than 60 days before today) or "offbeat", and find dated sources.`;
 
 /** Écrit un script (2 essais si le premier sort des règles). Renvoie la story normalisée et ses écarts aux règles. */
-async function generateScript(subject, idea) {
+async function generateScript(subject, idea, { ad = getState().settings.taleAd === true } = {}) {
   const settings = settingsFile("script", ["WebSearch", "WebFetch", "Skill"], ["Bash", "Edit", "Write"]);
   let problems = null;
   let result = null;
   for (let attempt = 1; attempt <= 2; attempt++) {
     stage(attempt === 1 ? "Écriture du script (Claude)" : "Correction du script (Claude)");
-    const w = await claude([...STORY_MODEL, "--max-turns", "35", "--settings", settings], scriptPrompt(subject, problems), { timeout: 25 * 60 * 1000 });
-    result = toTale(jsonFrom(w.result), idea);
+    const w = await claude([...STORY_MODEL, "--max-turns", "35", "--settings", settings], scriptPrompt(subject, problems, { ad }), { timeout: 25 * 60 * 1000 });
+    result = toTale(jsonFrom(w.result), idea, { ad });
     if (!result.problems.length) break;
     problems = result.problems.map((p) => `- ${p}`).join("\n");
     log(`Script hors règles :\n${problems}`);
@@ -441,7 +440,7 @@ THIS IS A REWRITE. The previous script for this story is below: write a clearly 
 Previous on-screen hook: ${t.hook}
 Previous beats:
 ${previous}${note ? `\n\nTHE CREATOR'S NOTE FOR THIS VERSION (follow it): ${note}` : ""}`;
-  const result = await generateScript(subject, null);
+  const result = await generateScript(subject, null, { ad: !t.product?.off });
   const next = result.tale;
   const cur = loadTale(slug);
   if (cur.status !== "script") throw new Error("La story a été validée pendant la réécriture : script inchangé.");

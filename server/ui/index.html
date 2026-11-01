@@ -433,7 +433,7 @@
     <!-- ============================================================ Stories : Idées -->
     <section id="tab-ideas" hidden>
       <div class="page-head">
-        <div><h1>Idées</h1><p>Des histoires crypto intrigantes, sourcées, avec un angle Where'd Gains Go? discret.</p></div>
+        <div><h1>Idées</h1><p>Des histoires crypto intrigantes et sourcées.</p></div>
         <div class="spacer"></div>
         <button class="btn primary" id="taleSearch"></button>
       </div>
@@ -476,7 +476,8 @@
           <div class="field"><label>Stories par jour</label><input type="number" min="0" max="4" data-s="talesPerDay" style="width:80px" /></div>
           <div class="field"><label>Aussi sur TikTok (auto)</label><div class="toggle" id="taleTtToggle"></div></div>
           <div class="field"><label>Version française</label><div class="toggle" id="taleFrToggle"></div></div>
-          <p class="note">Une story validée est fabriquée puis programmée sur YouTube au prochain créneau libre. Avec TikTok auto, elle part aussi en brouillon dans ta boîte TikTok. Avec la version française, le script anglais est traduit par Claude (termes crypto gardés en anglais), voisé avec la voix FR, et sort à la même heure sur tes comptes FR.</p>
+          <div class="field"><label>Passage pub Where'd Gains Go?</label><div class="toggle" id="taleAdToggle"></div></div>
+          <p class="note">Une story validée est fabriquée puis programmée sur YouTube au prochain créneau libre. Avec TikTok auto, elle part aussi en brouillon dans ta boîte TikTok. Avec la version française, le script anglais est traduit par Claude (termes crypto gardés en anglais), voisé avec la voix FR, et sort à la même heure sur tes comptes FR. Sans passage pub (par défaut), les nouveaux scripts ne parlent d'aucune app ; la case de chaque story peut l'ajouter.</p>
         </div>
         <div class="card pad">
           <div class="card-h"><h3>Autopilote</h3></div>
@@ -895,6 +896,7 @@ function renderSettings() {
   $("#autoToggle").classList.toggle("on", !!S.settings.autopilot);
   $("#taleTtToggle").classList.toggle("on", !!S.settings.taleAutoTikTok);
   $("#taleFrToggle").classList.toggle("on", S.settings.taleFrench !== false);
+  $("#taleAdToggle").classList.toggle("on", S.settings.taleAd === true);
   const y = S.youtube;
   setHTML($("#ytBox"), y.hasSecret
     ? `${accountRows("yt")}${y.connected ? `<p class="note">Envois aujourd'hui (toutes chaînes) : ${S.upload.today}/${S.settings.maxUploadsPerDay}.</p>` : ""}`
@@ -1139,7 +1141,6 @@ function ideaCard(i) {
     <div class="hook">${accent(i.hook)}</div>
     <p>${esc(i.summary)}</p>
     ${srcList(i.sources)}
-    ${i.wggAngle ? `<div class="angle"><b>Angle Where'd Gains Go? · ${esc(featLabel(i.wggAngle.featureId))}</b>${esc(i.wggAngle.why)}</div>` : ""}
     <div class="acts"><button class="btn sm primary" data-ideawrite="${esc(i.id)}" ${writing ? "disabled" : ""}>${writing ? '<span class="spin"></span>Écriture…' : `${ic("sparkle")}Écrire le script`}</button><button class="btn sm ghost" data-ideaskip="${esc(i.id)}" ${writing ? "disabled" : ""}>Ignorer</button></div>
   </div>`;
 }
@@ -1210,7 +1211,7 @@ function scriptEditor(t) {
         <div class="note" style="margin-top:2px">Court et direct, sans emoji ni hashtag (retirés à l'enregistrement). Les hashtags vont dans la description.</div></div>
       <div><span class="lbl-up">Moment produit</span>
         <label class="trow" style="gap:6px;margin-bottom:6px;cursor:pointer"><input type="checkbox" data-tf="ad" ${t.product?.off ? "" : "checked"}>Passage pub Where'd Gains Go?</label>
-        ${t.product?.off ? `<div class="note">Vidéo sans passage pub : la phrase « Produit » est gardée dans le script mais retirée de la vidéo (plan, voix, sous-titres).</div>` : `<select data-tf="feature">${Object.entries(feats).map(([k, l]) => `<option value="${esc(k)}" ${k === t.product?.featureId ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>
+        ${t.product?.off ? `<div class="note">${t.beats.some((b) => b.role === "product") ? "Vidéo sans passage pub : la phrase « Produit » est gardée dans le script mais retirée de la vidéo (plan, voix, sous-titres)." : "Vidéo sans passage pub : le script ne parle d'aucune app."}</div>` : `${t.beats.some((b) => b.role === "product") ? "" : `<div class="note" style="color:var(--c-work);margin-bottom:4px">Pas encore de phrase produit : passe une phrase en rôle « Produit » (ou régénère le script).</div>`}<select data-tf="feature">${Object.entries(feats).map(([k, l]) => `<option value="${esc(k)}" ${k === t.product?.featureId ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>
         <div class="note" style="margin-top:4px">Le seul passage produit (~5 s), sur la phrase « Produit ».</div>`}</div>
       <div><span class="lbl-up">Résumé</span><div class="note">${esc(t.summary)}</div></div>
       <div><span class="lbl-up">Sources</span>${srcList(t.sources)}</div>
@@ -1315,7 +1316,7 @@ function taleProduction(t) {
       ${ytId ? `<div class="note">Déjà envoyée sur YouTube : le script ne se change plus d'ici.</div>` : `<div><button class="btn sm" data-talereopen="${esc(t.slug)}" ${composing ? "disabled" : ""}>${ic("redo")}Modifier ou régénérer le script</button>
         <div class="note" style="margin-top:4px">Repasse la story au stade script. La vidéo rendue, son créneau et son brouillon TikTok sont retirés ; après la nouvelle validation, voix, bruitages et visuels sont refaits.</div></div>`}
       <details><summary>Script validé${multi ? " (EN)" : ""} · ${t.beats.length} phrases</summary><div class="script-ro" style="margin-top:6px">${t.beats.map((b) => `<div class="b"><span class="tag" style="justify-self:start">${ROLES[b.role] ?? b.role}</span><div>${esc(b.text)}<small>${esc(b.visual)}</small></div></div>`).join("")}</div></details>
-      <details><summary>Sources (${t.sources?.length ?? 0}) · ${esc(featLabel(t.product?.featureId))}</summary><div style="margin-top:6px">${srcList(t.sources)}</div></details>
+      <details><summary>Sources (${t.sources?.length ?? 0})${t.product?.off ? "" : ` · ${esc(featLabel(t.product?.featureId))}`}</summary><div style="margin-top:6px">${srcList(t.sources)}</div></details>
     </div></div>`;
 }
 const LANG_LABEL = { fr: "française" };
@@ -1591,6 +1592,7 @@ document.body.addEventListener("click", async (e) => {
 $("#taleTopic").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#taleTopicGo").click(); });
 $("#taleTtToggle").onclick = async () => { await api("/api/settings", { taleAutoTikTok: !S.settings.taleAutoTikTok }, "PATCH"); refresh(); };
 $("#taleFrToggle").onclick = async () => { await api("/api/settings", { taleFrench: S.settings.taleFrench === false }, "PATCH"); refresh(); };
+$("#taleAdToggle").onclick = async () => { await api("/api/settings", { taleAd: S.settings.taleAd !== true }, "PATCH"); refresh(); };
 
 /* ------------------------------------------------------------------ Actions globales */
 document.body.addEventListener("click", async (e) => {
