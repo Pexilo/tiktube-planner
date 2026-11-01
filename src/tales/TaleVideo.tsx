@@ -10,7 +10,7 @@ import { loopHoldFrom, TaleProvider, useTale, wordStart, type Word } from "./kit
 import { Sound } from "./kit/sfx";
 import { Canvas, P, PAL, PixelArt } from "./pixel/engine";
 import { CAPTION_ROW, SAFE_LEFT, SAFE_RIGHT, SAFE_TOP } from "./pixel/layout";
-import { drawText, PixelText, textWidth, untranslated } from "./pixel/font";
+import { drawText, hasMarks, PixelText, textWidth, untranslated } from "./pixel/font";
 import { Backdrop } from "./pixel/backdrop";
 import { Label } from "./pixel/props";
 import type { StoryProps, Tale } from "./types";
@@ -99,14 +99,16 @@ function captionBlock(g: Word[], t: number, cp: number) {
   const sizes = g.map((w) => textWidth(w.w));
   const gap = 4;
   const pad = 2;
+  const top = pad + (g.some((w) => hasMarks(w.w)) ? 1 : 0);
+  const bottom = pad + (g.some((w) => hasMarks(w.w, true)) ? 1 : 0);
   const inner = sizes.reduce((a, s) => a + s, 0) + gap * (g.length - 1);
-  const h = 7 + pad * 2;
+  const h = 7 + top + bottom;
   const c = new Canvas().rect(1, 1, inner + pad * 2, h, PAL.ink3).rect(0, 0, inner + pad * 2, h, PAL.ink);
   let x = pad;
   g.forEach((w, i) => {
     const active = t >= w.s && t < (g[i + 1]?.s ?? w.e + 0.4);
     if (active) c.rect(x - 1, 1, sizes[i] + 2, h - 2, PAL.lime);
-    drawText(c, w.w, x, pad, active ? PAL.ink : PAL.paper);
+    drawText(c, w.w, x, top, active ? PAL.ink : PAL.paper);
     x += sizes[i] + gap;
   });
   const wPx = (inner + pad * 2 + 1) * cp;

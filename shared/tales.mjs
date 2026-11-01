@@ -44,6 +44,7 @@ export function localizedTale(tale, lang = TALE_BASE_LANG) {
     hook: loc.hook || tale.hook,
     summary: loc.summary || tale.summary,
     yt: { ...tale.yt, ...loc.yt },
+    thumb: loc.thumb ? { ...tale.thumb, ...loc.thumb } : tale.thumb,
     beats: tale.beats.map((b) => ({ ...b, text: byId.get(b.id)?.text || b.text })),
     voice: loc.voice,
     timeline: loc.timeline,
@@ -99,15 +100,15 @@ export const cleanTitle = (s) =>
     .replace(/[\s|·•–—-]+$/u, "")
     .trim();
 
-/** Part du beat où l'image de la miniature est prise : les éléments du plan sont tous entrés. */
+/** Part du beat où l'image de la miniature est prise par défaut (`tale.thumb.at` sinon) : les éléments du plan sont tous entrés. */
 const THUMB_AT = 0.6;
 
 /**
  * Frame de la vidéo qui sert de visuel à la miniature (et de couverture Instagram) : dans le beat `tale.thumb.beat`,
- * le hook par défaut (son premier plan est pensé pour accrocher sans le son).
+ * le hook par défaut (son premier plan est pensé pour accrocher sans le son), à `tale.thumb.at` du beat.
  */
 export function taleThumbFrame(tale, timeline = tale.timeline ?? taleTimeline(tale.beats, tale.voice?.segments)) {
   const i = Math.max(0, tale.beats.findIndex((b) => b.id === tale.thumb?.beat));
   const b = timeline.beats[i];
-  return Math.min(timeline.totalFrames - 1, b.from + Math.round(b.dur * THUMB_AT));
+  return Math.min(timeline.totalFrames - 1, b.from + Math.round(b.dur * (tale.thumb?.at ?? THUMB_AT)));
 }

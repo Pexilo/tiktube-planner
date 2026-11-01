@@ -7,7 +7,7 @@ import { EXTRA_ICONS } from "./icons";
 import { FINE_ICONS } from "./fine";
 import { SAFE_TOP, useTextSlot } from "./layout";
 import { enterSound, Sound } from "../kit/sfx";
-import { drawText, LINE, measure, PixelText, textWidth, TP, tr, wrap } from "./font";
+import { drawText, hasMarks, LINE, measure, PixelText, textWidth, TP, tr, wrap } from "./font";
 
 /*
  * Bibliothèque pixel art des stories : objets, textes et infos (fonds : backdrop.tsx), tous sur la grille de 90 × 160
@@ -236,10 +236,12 @@ function textBox(text: string, { fill, ink = PAL.ink, color = PAL.ink, pad = 2, 
   const lines = wrap(text, Math.floor((max * P) / (TP * k)));
   const tw = Math.max(0, ...lines.map(textWidth)) * k;
   const th = (lines.length * LINE - 3) * k;
+  const top = pad + (hasMarks(lines[0] ?? "") ? k : 0);
+  const bottom = pad + (hasMarks(lines.at(-1) ?? "", true) ? 2 * k : 0);
   const w = tw + pad * 2 + 2;
-  const h = th + pad * 2 + 2;
+  const h = th + top + bottom + 2;
   const c = new Canvas().rect(1, 1, w, h, ink).rect(0, 0, w, h, ink).rect(1, 1, w - 2, h - 2, fill);
-  lines.forEach((l, i) => drawText(c, l, 1 + pad + Math.floor((tw - textWidth(l) * k) / 2), 1 + pad + i * LINE * k, color, k));
+  lines.forEach((l, i) => drawText(c, l, 1 + pad + Math.floor((tw - textWidth(l) * k) / 2), 1 + top + i * LINE * k, color, k));
   return { c, w: w + 1, h: h + 1 };
 }
 
@@ -308,7 +310,9 @@ export const Title: React.FC<{ text: string; y?: number; at?: number }> = ({ tex
           const c = new Canvas();
           if (wd.hl) {
             const bw = wd.w + (joined ? space : 0);
-            c.rect(1, 1, bw, 7 * k + 4, PAL.ink).rect(0, 0, bw, 7 * k + 4, PAL.pink);
+            // Le bloc rose monte (accent) ou descend (cédille) pour garder le signe dedans.
+            const [up, down] = [hasMarks(wd.s) ? 2 * k : 0, hasMarks(wd.s, true) ? 2 * k : 0];
+            c.rect(1, 1 - up, bw, 7 * k + 4 + up + down, PAL.ink).rect(0, -up, bw, 7 * k + 4 + up + down, PAL.pink);
             drawText(c, wd.s, 2, 2, PAL.ink, k);
           } else {
             if (!light) drawText(c, wd.s, 1, 3, PAL.ink, k);

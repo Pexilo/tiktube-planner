@@ -90,8 +90,21 @@ const ALIASES: Record<string, string> = {
   " ": " ", " ": " ", "œ": "oe", "Œ": "OE", "æ": "ae", "Æ": "AE", "ß": "ss",
 };
 
-/** Lettres accentuées (é, è, à, ç…) : la lettre de base, la police n'a que des majuscules de 7 pixels sans place pour l'accent. */
+/** Lettres accentuées (é, è, à, ç…) : la lettre de base, l'accent est dessiné à part (MARKS). */
 const glyph = (ch: string) => G[ch] ?? G[ch.toUpperCase()] ?? G[ch.normalize("NFD")[0]?.toUpperCase()] ?? G["?"];
+
+/**
+ * Accents (signes combinants après NFD) : dessinés dans l'interligne, centrés sur la lettre. `dy` = ligne du haut du signe
+ * (-2 : les deux pixels au-dessus de la lettre ; 7 : sous la lettre, pour la cédille).
+ */
+const MARKS: Record<string, { rows: string[]; dy: number }> = {
+  "\u0301": { rows: ["..#", ".#."], dy: -2 }, // aigu
+  "\u0300": { rows: ["#..", ".#."], dy: -2 }, // grave
+  "\u0302": { rows: [".#.", "#.#"], dy: -2 }, // circonflexe
+  "\u0308": { rows: ["#.#"], dy: -2 }, // tréma
+  "\u0327": { rows: [".#", "#."], dy: 7 }, // cédille
+};
+const marks = (ch: string) => [...ch.normalize("NFD").slice(1)].map((m) => MARKS[m]).filter(Boolean);
 
 /*
  * Textes à l'écran d'une story traduite (shared/tales.mjs → localizedTale) : les visuels sont écrits en anglais, chaque
@@ -136,6 +149,9 @@ export function untranslated<T>(fn: () => T): T {
 }
 const norm = (s: string) => [...tr(s)].map((c) => ALIASES[c] ?? c).join("");
 
+/** Le texte a un accent au-dessus d'une lettre (`below` : une cédille dessous) : les cadres s'agrandissent de ce côté pour qu'il ne touche pas le bord. */
+export const hasMarks = (s: string, below = false) => [...norm(s)].some((ch) => marks(ch).some((m) => (below ? m.dy >= 7 : m.dy < 0)));
+
 /** Largeur d'un texte en pixels de texte (lettres + 1 pixel d'espacement). */
 export const textWidth = (s: string) => {
   const chars = [...norm(s)];
@@ -163,6 +179,10 @@ export function drawText(c: Canvas, s: string, x: number, y: number, color: stri
   for (const ch of norm(s)) {
     const g = glyph(ch);
     g.forEach((row, j) => [...row].forEach((v, i) => v === "#" && c.rect(cx + i * k, y + j * k, k, k, color)));
+    for (const m of marks(ch)) {
+      const ox = Math.floor((g[0].length - m.rows[0].length) / 2);
+      m.rows.forEach((row, j) => [...row].forEach((v, i) => v === "#" && c.rect(cx + (ox + i) * k, y + (m.dy + j) * k, k, k, color)));
+    }
     cx += (g[0].length + 1) * k;
   }
   return cx - x - k;

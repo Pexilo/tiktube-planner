@@ -87,8 +87,12 @@ export type Tale = {
   music?: { style: string; mood: string[] };
   /** Titre court, sans emoji ni hashtag (shared/tales.mjs → cleanTitle). */
   yt: { title: string; description: string; hashtags: string[] };
-  /** Miniature : beat dont l'image est figée sous le titre (le hook par défaut) ; `title: "hook"` y met le hook à l'écran au lieu du titre YouTube. */
-  thumb?: { beat?: string; title?: "hook" };
+  /**
+   * Miniature : beat dont l'image est figée (le hook par défaut), `at` = part du beat où l'image est prise (0,6 par défaut),
+   * `title` = texte de la miniature : `"hook"` (le hook à l'écran), un texte libre (*mot* = bloc rose), le titre YouTube sinon.
+   * Surchargeable par langue (`locales.<lang>.thumb`).
+   */
+  thumb?: { beat?: string; at?: number; title?: string };
   /** Après la voix : un segment par beat (même ordre). */
   voice?: VoiceTrack & { sig?: string };
   timeline?: TaleTimeline;

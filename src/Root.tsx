@@ -110,8 +110,9 @@ export const Root: React.FC = () => (
         {TALES.map(({ tale, frames, component, thumb }) => (
           <React.Fragment key={tale.id}>
             <Composition id={tale.id} component={component} durationInFrames={frames} fps={FPS} {...FORMATS.short} defaultProps={{ tale, app: TALE_APP }} />
-            {/* Miniature dédiée (YouTube, dashboard) : rendue après la vidéo, cf. server/render.mjs. */}
-            <Still id={`${tale.id}-thumb`} component={thumb} {...FORMATS.short} defaultProps={{ tale, app: TALE_APP }} />
+            {/* Miniature dédiée (YouTube, dashboard) : rendue après la vidéo, cf. server/render.mjs. Toute la durée de la story,
+                sinon les beats après la frame 0 sortent de la composition et le plan figé (Freeze) ne s'affiche pas. */}
+            <Composition id={`${tale.id}-thumb`} component={thumb} durationInFrames={frames} fps={FPS} {...FORMATS.short} defaultProps={{ tale, app: TALE_APP }} />
           </React.Fragment>
         ))}
       </Folder>
