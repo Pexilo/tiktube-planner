@@ -59,6 +59,16 @@ for (const [re, why] of [
   ...(hd ? [[/from\s+["']\.\.\/kit["']/, "Story HD : tout vient de \"../hd\" (ne pas mélanger avec l'ancien kit \"../kit\")."]] : []),
 ])
   if (re.test(src)) errors.push(why);
+// Story HD : un objet tiré d'une photo est un PNG détouré (fond transparent). Une photo sans transparence (JPEG, WebP) ne
+// passe que comme décor plein cadre, déclaré par un commentaire « plein cadre » sur sa ligne ou la ligne au-dessus (HD.md § 3).
+if (hd) {
+  const lines = src.split(/\r?\n/);
+  lines.forEach((l, i) => {
+    const m = l.match(/["'`]([^"'`]+\.(?:jpe?g|webp))["'`]/i);
+    if (m && !/plein cadre/i.test(`${lines[i - 1] ?? ""}\n${l}`))
+      errors.push(`Ligne ${i + 1} : « ${m[1]} » a son fond. Détoure l'objet en PNG (node scripts/hd-cutout.mjs <source> <objet>.png --poly "…") ou, si c'est un décor qui remplit le plan, mets « // plein cadre : <pourquoi> » au-dessus.`);
+  });
+}
 const imports = [...src.matchAll(/from\s+["']([^"']+)["']/g)].map((m) => m[1]);
 const ALLOWED = ["react", "remotion", "../kit", "../hd", "../types"];
 for (const i of imports) if (!ALLOWED.includes(i)) errors.push(`Import non autorisé : "${i}" (autorisés : ${ALLOWED.join(", ")}).`);

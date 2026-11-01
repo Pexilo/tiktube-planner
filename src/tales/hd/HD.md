@@ -29,6 +29,14 @@ Planche de référence : `node scripts/hd-stills.mjs` → `out/hd/` (plans, plan
   `mode` (couleur majoritaire, bords nets, pas de bouillie tramée).
 - Sources : images libres dans `public/tales/hd/<slug>/`, récupérées avec `node scripts/hd-source.mjs` (licence notée dans
   `sources.json`), ou SVG dessinés (`sources.ts`, ou dans la story). Une source se remplace sans toucher au plan.
+- **Tout objet tiré d'une image est détouré** : un PNG à fond transparent, propre, dont le pixeliseur ne garde que l'objet
+  (contour d'une cellule autour de lui, pas d'un rectangle). Après chaque `hd-source.mjs`, si l'image montre un objet (bâtiment,
+  véhicule, machine, billet posé, jetons, personnage, logo sur fond), détoure-le :
+  `node scripts/hd-cutout.mjs public/tales/hd/<slug>/<photo>.jpg public/tales/hd/<slug>/<objet>-cut.png --poly "x,y x,y …"`
+  (polygones et `--circle "cx,cy,r"` en px de la source ; vérifie le résultat sur un fond uni), puis note-le dans `sources.json`
+  (même licence, « détouré »). Jamais de masque peint à la couleur du mur ni de photo rectangulaire posée telle quelle.
+  Seule exception : un décor qui remplit le plan (rue, skyline, façade de nuit), marqué `// plein cadre : <pourquoi>` au-dessus
+  de sa ligne. `tale-check` refuse tout JPEG ou WebP sans ce commentaire.
 - Le petit texte d'une capture devient illisible : seuls les gros chiffres et les blocs de couleur survivent. Ce qui
   doit se lire passe en texte bitmap (`Txt`, `forumPost`).
 
@@ -60,3 +68,35 @@ Planche de référence : `node scripts/hd-stills.mjs` → `out/hd/` (plans, plan
 - Un sujet héros, grand, dans la lumière ; le reste dans l'ombre. Encre pour le suspense, papier pour les documents,
   au plus 3 fonds par vidéo.
 - Sous-titres sous la ligne 246 (`CAPTION_ROW`) : rien d'essentiel en dessous.
+
+## 7. Défauts déjà vus : interdits
+
+Relevés sur des vidéos publiées. Relis cette liste sur chaque image de `tale-check`, en anglais **et** en français
+(`--lang=fr`).
+
+- **Un texte, une place.** Jamais deux textes sur la même ligne ou la même zone, ni un texte posé sur un autre ou sur une
+  icône. Un état (« MATCH », « ALERT », « OK ») ne s'ajoute pas à côté d'un texte : il le met en valeur (fond qui clignote,
+  couleur). Le français est 20 à 40 % plus long : prévois la place du texte traduit, pas celle de l'anglais.
+- **Rien par-dessus ce qui doit se lire.** Pas de drapeau, d'icône ou de sticker sur un écran, un bordereau ou une étiquette.
+  Un bouton (SEND, OK) reste entier, loin du bord où un autre objet le couperait (rouleau de machine, cadre, sol).
+- **Photo détourée = vraie transparence.** Un JPEG garde son fond (feutre, mur, ciel) : détoure-le avec des polygones
+  (`polys`) ou un PNG à canal alpha (`ffmpeg … geq … a=…`), jamais en repeignant des cellules de la couleur du mur. Pas de
+  fondu « qui se dissout dans le mur » non plus : sur un fond éclairé ou tramé, il laisse un rectangle gris.
+- **Pas de décor parasite.** Une photo de bâtiment derrière l'objet héros (un coffre, une machine) se lit comme autre chose
+  (« un château »). Chaque élément sert la phrase ; pas de gyrophares ou d'ampoules symétriques en bord de cadre.
+- **À l'échelle de la photo.** Un objet dessiné posé sur une photo (porte, enseigne) garde l'échelle de la scène : une porte
+  de banque plus grande que les voitures d'à côté ne marche pas. Sinon, une étiquette (`Label`) sous la photo suffit.
+- **Un objet réel garde sa logique.** Pas de bouton SEND sur un ordre papier, pas d'interface sur un objet qui n'en a pas.
+- **Un bâtiment se lit à sa forme.** Si la vraie photo trompe (la Fed de New York, un palais florentin, se lit « château »),
+  dessine la forme que tout le monde reconnaît (banque à colonnes et fronton) et nomme-la avec une étiquette.
+- **Montrer l'état, pas un ballet.** « L'argent ne part jamais » = le coffre ouvert, l'argent intact dedans ; « une banque
+  repère la faute et pose des questions » = la requête elle-même, lisible (destinataire, objet). Pas d'objets anonymes qui volent
+  dans un coffre, pas de gyrophare posé sur un objet pour dire « alerte » (un bandeau ALERT sur le document suffit).
+- **Pas de mains ni de bras qui manipulent.** Mal dessinés, ils gâchent le plan : les machines s'animent seules (la touche
+  frappée s'enfonce, le bouton s'allume, le papier sort).
+- **Pas de traits fins qui traversent.** Câbles, fils, trajets en pointillé qui passent sur un personnage ou un objet : à
+  retirer. Un déplacement se montre par un objet qui bouge, pas par une ligne.
+- **La boucle.** Le dernier plan (`loop`) montre le décor du hook **en plein cadre dès qu'il revient**, pas une miniature qui
+  grossit en fin de vidéo, et rien de nouveau dans la dernière seconde : la vidéo enchaîne sur la frame 0 du hook. Côté
+  voix, l'outro est générée en sachant qu'elle enchaîne sur le hook, et coupée sur le dernier mot (`scripts/gen-voice.mjs` →
+  `trimTail`), sans queue de fin (`shared/tales.mjs` → `TALE_TAIL = 0`).

@@ -85,4 +85,7 @@ const file = join(dir, "sources.json");
 const meta = existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : {};
 meta[name] = { title: i.title, page: i.page, author: i.author, license: i.license, licenseUrl: i.licenseUrl, credit: i.credit, fetched: new Date().toISOString().slice(0, 10) };
 writeFileSync(file, `${JSON.stringify(meta, null, 2)}\n`);
+// Rappel sur la sortie d'erreur (la dernière ligne de la sortie standard reste le chemin) : un objet se détoure (HD.md § 3).
+if (/\.(jpe?g|webp)$/i.test(name))
+  console.error(`⚠️  ${name} a un fond. Objet → détoure-le : node scripts/hd-cutout.mjs public/tales/hd/${slug}/${name} public/tales/hd/${slug}/${name.replace(/\.\w+$/, "")}-cut.png --poly "x,y x,y …" ; décor qui remplit le plan → « // plein cadre : … » au-dessus de sa ligne.`);
 console.log(`tales/hd/${slug}/${name}`);

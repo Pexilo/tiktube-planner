@@ -503,7 +503,7 @@ async function ensureTaleVoice(slug, lang = TALE_BASE_LANG) {
     for (const [k, text] of lines.entries()) {
       const raw = join(dir, `seg${k}.raw.${el ? "mp3" : IS_WIN ? "wav" : "aiff"}`);
       const out = join(dir, `seg${k}.wav`);
-      const w = el ? await elevenSegment(el, lang, lines, k, raw, out) : systemSegment(system, lang, text, raw, out);
+      const w = el ? await elevenSegment(el, lang, lines, k, raw, out, { loop: true }) : systemSegment(system, lang, text, raw, out);
       const d = dur(out);
       segments.push({ file: `voice/${id}/seg${k}.wav`, dur: +d.toFixed(3), words: w ?? wordTimings(text, d) });
       log(`Beat ${tale.beats[k].id} (${lang.toUpperCase()}) : ${d.toFixed(1)} s`);

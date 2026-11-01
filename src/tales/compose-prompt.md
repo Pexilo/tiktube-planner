@@ -17,7 +17,9 @@ les installations de modules, les médias et `@remotion/effects`. En cas de conf
    détails qui vivent, au plus 2 infos, chaque mouvement calé sur le mot qui le nomme (`useBeat().at("mot")`). Tout vient de "../hd".
    Les objets sont des sources pixelisées (`<Pix src ramps>`). Pour chaque objet réel et reconnaissable de l'histoire (logo, appareil,
    bâtiment, document célèbre), cherche d'abord une image libre : `node scripts/hd-source.mjs {{slug}} --search "…"`, puis
-   `node scripts/hd-source.mjs {{slug}} "<titre du fichier>"` (cf. KIT.md, « Sources »). Les sources du kit ou un SVG que tu dessines
+   `node scripts/hd-source.mjs {{slug}} "<titre du fichier>"` (cf. KIT.md, « Sources »). Tout objet tiré d'une photo se détoure
+   ensuite en PNG transparent (`node scripts/hd-cutout.mjs`, cf. HD.md § 3) ; seul un décor qui remplit le plan reste en JPEG, marqué
+   `// plein cadre : …`. Les sources du kit ou un SVG que tu dessines
    grand avec ses matières servent pour le reste (objets génériques) ou quand rien de libre ne convient. Ce qui doit se lire reste
    en texte bitmap.
    Le dernier beat s'écrit `<Beat id="…" loop>` (sans plateau) et se compose comme le hook : la vidéo boucle (cf. KIT.md, « La boucle »).
@@ -37,6 +39,10 @@ les installations de modules, les médias et `@remotion/effects`. En cas de conf
    Charge le skill `design-superpowers:design-review` (outil Skill) et applique sa grille de qualité visuelle et de mouvement
    à ces images : hiérarchie et point focal, lisibilité sur téléphone, contraste, chevauchements, zones interdites, vide, rythme,
    cohérence avec la phrase et avec le style de référence. Ignore ses parties design system, Figma et audit WCAG complet.
+   Passe ensuite chaque image au crible de `HD.md` § 7 (« Défauts déjà vus ») : textes qui se chevauchent ou se touchent,
+   icône sur un texte, bouton coupé, photo au fond non détouré, rectangle gris laissé par un fondu, décor parasite derrière le
+   héros, main ou bras dessinés, câble qui traverse, boucle qui grossit en fin de vidéo. Relance aussi
+   `node scripts/tale-check.mjs {{slug}} --draft --lang=fr` et vérifie les textes traduits (plus longs) de la même façon.
    Corrige et relance. 3 passes maximum.
 4. Termine par un résumé d'une ligne par beat. Ne modifie aucun autre fichier que `src/tales/drafts/{{slug}}.tsx` (et les images
    sourcées dans `public/tales/hd/{{slug}}/`).

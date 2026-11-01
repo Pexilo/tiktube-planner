@@ -158,11 +158,19 @@ export const textWidth = (s: string) => {
   return chars.reduce((w, c, i) => w + glyph(c)[0].length + (i < chars.length - 1 ? 1 : 0), 0);
 };
 
-/** Coupe un texte en lignes de `max` pixels de texte au plus (sur les espaces). */
+/** Après un chiffre, un groupe de milliers ou un symbole d'unité reste sur la même ligne (« 1.000.000.000 $ », « 20 000 000 $ », « 850 M$ »). */
+const GLUED = /^(\d{3}(?!\d)|[$€£¥%]|[kKMG]d?\$)/;
+
+/** Coupe un texte en lignes de `max` pixels de texte au plus (sur les espaces, jamais entre un nombre et son unité). */
 export function wrap(s: string, max: number): string[] {
+  const words: string[] = [];
+  for (const w of norm(s).split(/\s+/).filter(Boolean)) {
+    if (words.length && /\d$/.test(words[words.length - 1]) && GLUED.test(w)) words[words.length - 1] += ` ${w}`;
+    else words.push(w);
+  }
   const lines: string[] = [];
   let cur = "";
-  for (const w of norm(s).split(/\s+/).filter(Boolean)) {
+  for (const w of words) {
     const next = cur ? `${cur} ${w}` : w;
     if (cur && textWidth(next) > max) {
       lines.push(cur);

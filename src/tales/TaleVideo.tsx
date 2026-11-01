@@ -95,7 +95,12 @@ const PixelCaptions: React.FC<{ words: Word[] }> = ({ words }) => {
   return untranslated(() => captionBlock(g, t, cp));
 };
 
-function captionBlock(g: Word[], t: number, cp: number) {
+/** Ponctuation retirée des sous-titres (le découpage s'y fie toujours) : seul le point d'interrogation reste. */
+const CAP_STRIP = /[.,;:!…]/g;
+
+function captionBlock(words: Word[], t: number, cp: number) {
+  const g = words.map((w) => ({ ...w, w: w.w.replace(CAP_STRIP, "") })).filter((w) => w.w.trim());
+  if (!g.length) return null;
   const sizes = g.map((w) => textWidth(w.w));
   const gap = 4;
   const pad = 2;

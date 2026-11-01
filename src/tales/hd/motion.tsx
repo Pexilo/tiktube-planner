@@ -171,7 +171,8 @@ export const Title: React.FC<{ text: string; y: number; x?: number; at?: number;
 
 /**
  * Compteur qui défile par paliers de `from` à `to` entre `at` et `at + dur` (son de comptage pendant qu'il tourne).
- * `log` = progression géométrique (41 → 1,1 milliard reste lisible), `format` = mise en forme du nombre.
+ * `log` = progression géométrique (41 → 1,1 milliard reste lisible), `format` = mise en forme du nombre, `max` = largeur avant
+ * retour à la ligne (comme Txt ; à élargir quand la traduction est plus longue, « ~850 M$ SAUVÉS »).
  */
 export const Counter: React.FC<{
   from: number;
@@ -186,7 +187,8 @@ export const Counter: React.FC<{
   box?: string;
   color?: string;
   out?: number;
-}> = ({ from, to, at, dur, x, y, k = 2, log = false, format = (v) => Math.round(v).toLocaleString("en-US"), box, color, out }) => {
+  max?: number;
+}> = ({ from, to, at, dur, x, y, k = 2, log = false, format = (v) => Math.round(v).toLocaleString("en-US"), box, color, out, max }) => {
   const f = useCurrentFrame();
   const u = clamp01((held(f) - at) / Math.max(1, dur));
   const e = 1 - (1 - u) ** 3;
@@ -195,7 +197,7 @@ export const Counter: React.FC<{
     <>
       {at > 1 ? <Sound name="a-count" at={at} loopFor={dur} volume={0.7} /> : null}
       <Show at={STILL} out={out}>
-        <Txt text={format(v)} x={x} y={y} k={k} box={box} color={color} />
+        <Txt text={format(v)} x={x} y={y} k={k} box={box} color={color} max={max} />
       </Show>
     </>
   );

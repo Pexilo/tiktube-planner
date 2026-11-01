@@ -122,17 +122,26 @@ export async function listModels() {
  * renvoyé par l'API ; si le modèle n'en fournit pas, words = null (le script estime alors les temps).
  */
 export async function synthesize(voice, lang, text, { previous, next } = {}) {
+  const said = spoken(lang, text);
   const body = {
-    text,
+    text: said,
     model_id: voice.model,
     voice_settings: { ...voice.settings, use_speaker_boost: true },
     ...(voice.model === "eleven_multilingual_v2" ? {} : { language_code: lang }),
-    ...(previous ? { previous_text: previous } : {}),
-    ...(next ? { next_text: next } : {}),
+    ...(previous ? { previous_text: spoken(lang, previous) } : {}),
+    ...(next ? { next_text: spoken(lang, next) } : {}),
   };
   const j = await call(`/v1/text-to-speech/${encodeURIComponent(voice.id)}/with-timestamps?output_format=mp3_44100_128`, { method: "POST", body });
-  return { audio: Buffer.from(j.audio_base64, "base64"), words: wordsFrom(text, j.alignment) };
+  // Les mots horodatés reprennent l'écrit (sous-titres, repères) : la prononciation remplace un mot par un seul mot.
+  const written = text.split(/\s+/).filter(Boolean);
+  const words = wordsFrom(said, j.alignment)?.map((x, i) => ({ ...x, w: written[i] ?? x.w })) ?? null;
+  return { audio: Buffer.from(j.audio_base64, "base64"), words };
 }
+
+/** Mots que la voix d'une langue lit mal : graphie phonétique envoyée à ElevenLabs, un mot pour un mot (l'écrit ne change pas). */
+const PRONOUNCE = { fr: { tether: "tezère" } };
+const spoken = (lang, text) =>
+  Object.entries(PRONOUNCE[lang] ?? {}).reduce((s, [w, say]) => s.replace(new RegExp(`(?<![\\p{L}'])${w}(?![\\p{L}])`, "giu"), say), text);
 
 export const DEFAULT_MUSIC_MODEL = "music_v2_5";
 

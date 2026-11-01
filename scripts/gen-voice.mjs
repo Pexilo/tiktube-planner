@@ -9,8 +9,8 @@
 //    puis relancer avec --force.
 // 💡 Windows : Paramètres → Heure et langue → Voix → Ajouter des voix → Français (Julie, Paul, Hortense),
 //    puis relancer avec --force.
-import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { loadApps, ROOT } from "../shared/catalog.mjs";
 import { installedVoices, isMain, IS_WIN, speakToFile } from "../shared/platform.mjs";
@@ -67,8 +67,12 @@ export function systemSegment(voice, lang, text, raw, out) {
  * ElevenLabs : le son arrive déjà propre, on le coupe juste au premier / dernier caractère prononcé
  * (d'après l'alignement) et on égalise le niveau. Renvoie les mots horodatés, décalés de la coupe.
  */
-export async function elevenSegment(voice, lang, lines, k, raw, out) {
-  const { audio, words } = await synthesize(voice, lang, lines[k], { previous: lines.slice(0, k).join(" "), next: lines.slice(k + 1).join(" ") });
+export async function elevenSegment(voice, lang, lines, k, raw, out, { loop = false } = {}) {
+  // `loop` : la vidéo boucle, la dernière phrase enchaîne sur la première. Sans ce texte suivant, ElevenLabs lit le dernier
+  // mot comme une fin de phrase (étiré, posé) et la boucle marque un blanc.
+  const outro = k === lines.length - 1 && loop;
+  const next = outro ? lines[0] : lines.slice(k + 1).join(" ");
+  const { audio, words } = await synthesize(voice, lang, lines[k], { previous: lines.slice(0, k).join(" "), next });
   writeFileSync(raw, audio);
   const from = words ? Math.max(0, words[0].s - 0.04) : 0;
   const to = words ? words.at(-1).e + 0.15 : null;
@@ -77,7 +81,25 @@ export async function elevenSegment(voice, lang, lines, k, raw, out) {
     "highpass=f=70,acompressor=threshold=-18dB:ratio=2.5:attack=5:release=120:makeup=2,loudnorm=I=-15:TP=-1.5",
     "-ar", "48000", "-ac", "1", out]);
   unlinkSync(raw);
-  return words?.map((x) => ({ w: x.w, s: +(x.s - from).toFixed(3), e: +(x.e - from).toFixed(3) })) ?? null;
+  const timed = words?.map((x) => ({ w: x.w, s: +(x.s - from).toFixed(3), e: +(x.e - from).toFixed(3) })) ?? null;
+  if (outro && timed) trimTail(out, timed);
+  return timed;
+}
+
+/**
+ * Outro d'une vidéo qui boucle : coupe la piste au premier silence après le début du dernier mot (l'alignement surestime sa fin,
+ * et ElevenLabs y ajoute souvent un souffle) : la boucle enchaîne sur la voix elle-même, sans blanc. Recale la fin des mots.
+ */
+export function trimTail(file, words) {
+  const last = words.at(-1);
+  const log = spawnSync("ffmpeg", ["-v", "info", "-i", file, "-af", "silencedetect=noise=-35dB:d=0.1", "-f", "null", "-"], { encoding: "utf8" }).stderr ?? "";
+  const cut = [...log.matchAll(/silence_start: ([\d.]+)/g)].map((m) => +m[1]).find((t) => t > last.s + 0.15);
+  if (cut === undefined) return words;
+  const tmp = file.replace(/\.wav$/, ".trim.wav");
+  execFileSync("ffmpeg", ["-v", "error", "-y", "-i", file, "-t", (cut + 0.05).toFixed(3), "-af", "afade=t=out:st=" + Math.max(0, cut - 0.02).toFixed(3) + ":d=0.07", tmp]);
+  renameSync(tmp, file);
+  for (const w of words) w.e = Math.min(w.e, +(cut + 0.05).toFixed(3));
+  return words;
 }
 
 /** Génère les voix off manquantes ou périmées (toutes, ou seulement la vidéo `only`). Renvoie true si content/voices.json a changé. */

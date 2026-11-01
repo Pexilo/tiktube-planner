@@ -146,6 +146,8 @@ export function fromCells(c: Canvas, o: Finish = {}): Buf {
     const [x, y] = k.split(",").map(Number);
     [x0, y0, x1, y1] = [Math.min(x0, x), Math.min(y0, y), Math.max(x1, x), Math.max(y1, y)];
   }
+  // Dessin vide (pile encore vide, tracé pas commencé) : image transparente au lieu d'une taille infinie.
+  if (x0 === Infinity) [x0, y0, x1, y1] = [0, 0, 0, 0];
   const b: Buf = { w: x1 - x0 + 3, h: y1 - y0 + 3, px: new Int16Array((x1 - x0 + 3) * (y1 - y0 + 3)).fill(-1), ox: 1 - x0, oy: 1 - y0 };
   for (const [k, hex] of c.cells) {
     const [x, y] = k.split(",").map(Number);
