@@ -52,7 +52,10 @@ export async function master(inputs, map, pre, out) {
   }
   await run("ffmpeg", ["-v", "error", "-y", ...inputs, ...map, "-af", filter, "-ar", "48000", "-c:a", "aac", "-b:a", "320k", "-movflags", "+faststart", out]);
 }
-export const thumbFile = (id) => join(OUT, `${id}.jpg`);
+/** Miniature : `<id>.jpg` (YouTube, dashboard), `<id>-tiktok.jpg` et `<id>-instagram.jpg` pour les stories (posées à la main). */
+export const thumbFile = (id, variant = null) => join(OUT, variant ? `${id}-${variant}.jpg` : `${id}.jpg`);
+/** Versions de la miniature d'une story en plus de celle de YouTube (compositions `<id>-thumb-<variante>`). */
+export const THUMB_EXTRA = ["tiktok", "instagram"];
 
 /** Date de dernière modification du code / contenu → rebundle si nécessaire. */
 function sourcesMtime() {
@@ -244,12 +247,15 @@ async function work() {
 }
 
 /**
- * Miniature dédiée d'une story (composition `<id>-thumb`, 1080 × 1920) : un plan figé et le titre, en JPEG sous les 2 Mo
- * de YouTube. Montrée sur la carte de la story et envoyée avec la vidéo (thumbnails.set).
+ * Miniatures dédiées d'une story (1080 × 1920, un plan figé) : `<id>-thumb` sans texte, en JPEG sous les 2 Mo de YouTube,
+ * montrée sur la carte de la story et envoyée avec la vidéo (thumbnails.set) ; une version TikTok et une Instagram avec
+ * le texte, envoyées sur Discord pour être posées à la main (server/discord.mjs).
  */
 async function renderTaleThumb(url, id, st) {
-  const composition = await selectComposition({ serveUrl: url, id: `${id}-thumb` });
-  await renderStill({ composition, serveUrl: url, output: thumbFile(id), imageFormat: "jpeg", jpegQuality: 92 });
+  for (const variant of [null, ...THUMB_EXTRA]) {
+    const composition = await selectComposition({ serveUrl: url, id: variant ? `${id}-thumb-${variant}` : `${id}-thumb` });
+    await renderStill({ composition, serveUrl: url, output: thumbFile(id, variant), imageFormat: "jpeg", jpegQuality: 92 });
+  }
   st.thumbAt = new Date().toISOString();
 }
 

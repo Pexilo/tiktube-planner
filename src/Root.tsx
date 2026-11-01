@@ -7,7 +7,7 @@ import { Thumbnail } from "./compositions/Thumbnail";
 import { KeynoteVideo } from "./keynote/Keynote";
 import { renderedTale, taleLangs, taleTimeline } from "../shared/tales.mjs";
 import { makeTaleVideo } from "./tales/TaleVideo";
-import { makeTaleThumb } from "./tales/TaleThumb";
+import { makeTaleThumb, THUMB_VARIANTS, type ThumbVariant } from "./tales/TaleThumb";
 import type { StoryProps, Tale } from "./tales/types";
 // Toutes les apps de content/apps/*.json sont chargées automatiquement (ajouter un fichier = nouvelles vidéos).
 const appFiles = require.context("../content/apps", false, /\.json$/);
@@ -36,7 +36,7 @@ const TALES = TALE_APP
       .flatMap((base) => taleLangs(base).map((lang) => renderedTale(base, lang)!))
       .map((tale) => {
         const { Story } = storyFiles(`./${tale.slug}.tsx`) as { Story: React.FC<StoryProps> };
-        return { tale, frames: (tale.timeline ?? taleTimeline(tale.beats, tale.voice?.segments)).totalFrames, component: makeTaleVideo(Story), thumb: makeTaleThumb(Story) };
+        return { tale, frames: (tale.timeline ?? taleTimeline(tale.beats, tale.voice?.segments)).totalFrames, component: makeTaleVideo(Story), thumbs: (Object.keys(THUMB_VARIANTS) as ThumbVariant[]).map((v) => ({ variant: v, component: makeTaleThumb(Story, v) })) };
       })
   : [];
 
@@ -107,12 +107,15 @@ export const Root: React.FC = () => (
     ))}
     {TALE_APP && TALES.length ? (
       <Folder name="tales">
-        {TALES.map(({ tale, frames, component, thumb }) => (
+        {TALES.map(({ tale, frames, component, thumbs }) => (
           <React.Fragment key={tale.id}>
             <Composition id={tale.id} component={component} durationInFrames={frames} fps={FPS} {...FORMATS.short} defaultProps={{ tale, app: TALE_APP }} />
-            {/* Miniature dédiée (YouTube, dashboard) : rendue après la vidéo, cf. server/render.mjs. Toute la durée de la story,
-                sinon les beats après la frame 0 sortent de la composition et le plan figé (Freeze) ne s'affiche pas. */}
-            <Composition id={`${tale.id}-thumb`} component={thumb} durationInFrames={frames} fps={FPS} {...FORMATS.short} defaultProps={{ tale, app: TALE_APP }} />
+            {/* Miniatures dédiées, une par plateforme (`<id>-thumb` = YouTube et dashboard, `<id>-thumb-tiktok`, `<id>-thumb-instagram`) :
+                rendues après la vidéo, cf. server/render.mjs. Toute la durée de la story, sinon les beats après la frame 0
+                sortent de la composition et le plan figé (Freeze) ne s'affiche pas. */}
+            {thumbs.map(({ variant, component: thumb }) => (
+              <Composition key={variant} id={variant === "youtube" ? `${tale.id}-thumb` : `${tale.id}-thumb-${variant}`} component={thumb} durationInFrames={frames} fps={FPS} {...FORMATS.short} defaultProps={{ tale, app: TALE_APP }} />
+            ))}
           </React.Fragment>
         ))}
       </Folder>

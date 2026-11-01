@@ -14,7 +14,7 @@ import { cleanSfx, MAX_SFX_PER_BEAT, STORY_SFX } from "../shared/tale-sfx.mjs";
 import { ensureTaleSfx } from "../scripts/gen-tale-sfx.mjs";
 import { dur, elevenSegment, pickVoice, systemSegment, wordTimings } from "../scripts/gen-voice.mjs";
 import { DATA, getState, OUT, save, video } from "./state.mjs";
-import { current as renderCurrent, enqueue, isRendered, onRendered, onThumb, outFile, queue as renderQueue, thumbFile } from "./render.mjs";
+import { current as renderCurrent, enqueue, isRendered, onRendered, onThumb, outFile, queue as renderQueue, THUMB_EXTRA, thumbFile } from "./render.mjs";
 import { scheduleTales } from "./scheduler.mjs";
 import { logEvent } from "./events.mjs";
 import { buildMetadata, refreshUploaded, tiktokCaption } from "./youtube.mjs";
@@ -275,7 +275,7 @@ ${featureList()}
 - The video LOOPS: TikTok and Shorts replay it automatically, so the last beat (outro) closes the story AND flows straight back into the hook. Its last words lead into the hook's first words as one sentence across the loop, e.g. outro "…and until someone is allowed to dig," → hook "Somewhere under this landfill in Wales, there's a hard drive…", or outro "…and that's exactly why" → hook. Read outro + hook aloud in a row: it must sound natural. No "follow", "subscribe" or "like" anywhere. The outro's visual starts with its own shot; the loop back to the first shot is handled by the kit.
 - Facts are attributed to their sources ("according to …", "court filings say …"). No accusation beyond what the sources report: use "allegedly" when they do. Do not invent quotes, figures or headlines.
 - Each beat has a "visual" brief: what the minimalist pixel-art shot shows during that sentence (one lit flat background color, one main element: a character only when someone acts, otherwise an object, a screen or a row of icons; 2 to 4 small living details; at most 2 on-screen texts). The product beat's visual is "Product cameo (handled by the wrapper)".
-- "hook": on-screen title, max 8 words, the key word wrapped in *asterisks*.
+- "hook": on-screen title, max 8 words and ${HOOK_MAX} characters, the key word wrapped in *asterisks*. It is also the thumbnail text, which allows 2 lines at most.
 - "slug": short kebab-case id (2 to 4 words, a-z 0-9 -), e.g. "pizza-day".
 - "facts": the verified facts the video relies on, one per item, with numbers. "sources": every source used, with dates.
 - ${sfxRules()}
@@ -291,6 +291,8 @@ Answer ONLY with the JSON of the new story, same shape as the reference, without
 
 /** Longueur maximale d'un titre de story (YouTube, TikTok, Instagram et miniature). */
 const TITLE_MAX = 45;
+/** Hook à l'écran et texte de la miniature : 2 lignes de titre pixel (~14 lettres par ligne). */
+const HOOK_MAX = 28;
 
 const slugify = (s) =>
   String(s ?? "")
@@ -367,6 +369,8 @@ function scriptProblems(t) {
   if (t.beats.some((b) => !b.text || !b.visual)) out.push("Every beat needs text and visual.");
   const plain = (x) => String(x ?? "").toLowerCase().replace(/[*]/g, "").replace(/[^\p{L}\p{N} ]/gu, " ").replace(/\s+/g, " ").trim();
   if (t.hook && t.beats[0] && plain(t.beats[0].text).includes(plain(t.hook))) out.push("The on-screen hook repeats the spoken first line: make it the other half of the curiosity gap (stakes or emotion).");
+  const hookLen = String(t.hook ?? "").replaceAll("*", "").length;
+  if (hookLen > HOOK_MAX) out.push(`Hook "${t.hook}" is too long for the thumbnail (2 lines): ${HOOK_MAX} characters max.`);
   if (!t.sources.length) out.push("Sources are required.");
   const title = cleanTitle(t.yt?.title);
   if (title.length > TITLE_MAX || words(title) > 7) out.push(`yt.title "${title}" is too long: 3 to 7 words, ${TITLE_MAX} characters max.`);
@@ -546,7 +550,7 @@ RULES
 - One translated beat per English beat, same ids, same order. Each beat about as long to SAY as the English one (${name} runs longer: tighten, aim for at most +10 % words); the product beat stays about 5 seconds (10 to 18 words).
 - The video LOOPS: the outro (last beat) still ends mid-sentence (comma or no final punctuation) and flows straight into the hook's first words. Read outro + hook aloud in a row.
 - "anchors": for each beat that has "sfxWords", map every English sfx word to the ONE word of your ${name} sentence where that sound must land (the word carrying the same meaning, copied exactly from your sentence).
-- "hook": the on-screen hook in ${name}, max 8 words, the key word wrapped in *asterisks*; it is the other half of the curiosity gap, never the spoken first line.
+- "hook": the on-screen hook in ${name}, max 8 words and ${HOOK_MAX} characters (the thumbnail allows 2 lines), the key word wrapped in *asterisks*; it is the other half of the curiosity gap, never the spoken first line.
 - "yt.title": 3 to 8 words, ${TITLE_MAX} characters max, no emoji, no hashtag, no quotes, no all caps: the same intrigue as the English title, written to win the click in ${name}. "yt.description": 2 sentences. "yt.hashtags": 5, lowercase, without #, keep "cryptostories", the others what ${name}-speaking crypto viewers search (e.g. "cryptofr", "bitcoinfr").
 - "summary": the English summary in ${name} (3-4 sentences).
 ${prev?.beats?.length ? `\nPREVIOUS ${name.toUpperCase()} VERSION (improve on it, keep what works):\n${JSON.stringify({ hook: prev.hook, beats: prev.beats, yt: prev.yt })}\n` : ""}${note ? `\nTHE CREATOR'S NOTE (follow it first): ${note}\n` : ""}${problems ? `\nYOUR PREVIOUS ANSWER WAS REJECTED, FIX THIS:\n${problems}\n` : ""}
@@ -993,7 +997,7 @@ function unpublish(t) {
     if (qi >= 0) renderQueue.splice(qi, 1);
     delete getState().videos[id];
     rmSync(outFile(id), { force: true });
-    rmSync(thumbFile(id), { force: true });
+    for (const variant of [null, ...THUMB_EXTRA]) rmSync(thumbFile(id, variant), { force: true });
   }
   save();
 }

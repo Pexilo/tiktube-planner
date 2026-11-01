@@ -89,7 +89,8 @@ export type Tale = {
   yt: { title: string; description: string; hashtags: string[] };
   /**
    * Miniature : beat dont l'image est figée (le hook par défaut), `at` = part du beat où l'image est prise (0,6 par défaut),
-   * `title` = texte de la miniature : `"hook"` (le hook à l'écran), un texte libre (*mot* = bloc rose), le titre YouTube sinon.
+   * `title` = texte de la miniature : `"hook"` (le hook à l'écran), un texte libre (*mot* = bloc rose), le titre YouTube sinon ;
+   * 2 lignes au plus (TaleThumb → pickText se rabat sur le hook ou le titre YouTube s'il est trop long).
    * Surchargeable par langue (`locales.<lang>.thumb`).
    */
   thumb?: { beat?: string; at?: number; title?: string };

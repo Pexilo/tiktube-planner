@@ -279,6 +279,8 @@ function titleLines(text: string) {
   }
   return lines;
 }
+/** Nombre de lignes d'un titre (la miniature en accepte 2 au plus). */
+export const titleLineCount = (text: string) => titleLines(text).length;
 /** Hauteur d'un titre en cellules. */
 export const titleHeight = (text: string) => cells(titleLines(text).length * TITLE_LINE);
 
